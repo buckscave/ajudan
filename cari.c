@@ -198,7 +198,6 @@ static int cari_dengan_fts5(
     char trigram[CARI_MAKS_NGRAM][MAX_PANJANG_TOKEN + 1];
     char kondisi[1024];
     int kondisi_len;
-    char tmp[64];
 
     if (!db || !kata || !hasil || ukuran <= 0) return -1;
     hasil[0] = '\0';
@@ -246,20 +245,22 @@ static int cari_dengan_fts5(
         "AND length(kata) <= ? LIMIT ?;",
         sizeof(kondisi) - strlen(kondisi) - 1);
 
-    stmt = NULL;
-    rc = sqlite3_prepare_v2(db,
-        "SELECT kata FROM kata_fts WHERE "
-        "AND length(kata) >= ? AND length(kata) <= ? LIMIT ?;",
-        -1, &stmt, NULL);
+    {
+        char sql_fts[2048];
+        snprintf(sql_fts, sizeof(sql_fts),
+            "SELECT kata FROM kata_fts WHERE %s",
+            kondisi);
+        stmt = NULL;
+        rc = sqlite3_prepare_v2(db,
+            sql_fts, -1, &stmt, NULL);
+        if (rc != SQLITE_OK) return -1;
+    }
 
-    if (rc != SQLITE_OK) return -1;
-
-    sqlite3_bind_text(stmt, 1, kata, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 2,
+    sqlite3_bind_int(stmt, 1,
         len_kata > jarak_maks
         ? len_kata - jarak_maks : 1);
-    sqlite3_bind_int(stmt, 3, len_kata + jarak_maks);
-    sqlite3_bind_int(stmt, 4, CARI_MAKS_TRIGRAM);
+    sqlite3_bind_int(stmt, 2, len_kata + jarak_maks);
+    sqlite3_bind_int(stmt, 3, CARI_MAKS_TRIGRAM);
 
     count = 0;
     while (sqlite3_step(stmt) == SQLITE_ROW
