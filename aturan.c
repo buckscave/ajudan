@@ -201,12 +201,14 @@ int aj_prepare_stmt_cache(
 
     /* stmt 8: semantik_kata relations */
     rc = sqlite3_prepare_v2(db,
-        "SELECT k2.kata, h.nama, sk.nama "
+        "SELECT k2.kata, h.nama, s.nama "
         "FROM semantik_kata sk "
         "JOIN kata k1 ON sk.id_kata_1 = k1.id "
         "JOIN kata k2 ON sk.id_kata_2 = k2.id "
         "LEFT JOIN hubungan h "
         "ON sk.id_hubungan = h.id "
+        "LEFT JOIN semantik s "
+        "ON sk.id_semantik = s.id "
         "WHERE lower(k1.kata) = lower(?) "
         "LIMIT 5;",
         -1, &cache->stmt_rel_semantik, NULL);
