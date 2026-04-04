@@ -98,57 +98,171 @@ void to_lower_case(char *s) {
  *                   PREPARED STATEMENT CACHE (PERFORMA)                      *
  * ========================================================================== */
 
-int aj_prepare_stmt_cache(sqlite3 *db, AjStmtCache *cache) {
+int aj_prepare_stmt_cache(
+    sqlite3 *db, AjStmtCache *cache)
+{
     int rc;
+
     if (!db || !cache) return -1;
-    memset(cache, 0, sizeof(*cache));
 
-    rc = sqlite3_prepare_v2(db, "SELECT kk.nama FROM kata k JOIN kelas_kata kk ON k.kelas_id=kk.id WHERE lower(k.kata)=lower(?) LIMIT 1;", -1, &cache->stmt_kategori_kata, NULL);
-    if (rc != SQLITE_OK) return -1;
+    memset(cache, 0, sizeof(AjStmtCache));
 
-    rc = sqlite3_prepare_v2(db, "SELECT 1 FROM kata_fungsional kf JOIN kata k ON kf.id_kata=k.id WHERE lower(k.kata)=lower(?) LIMIT 1;", -1, &cache->stmt_stopword, NULL);
-    if (rc != SQLITE_OK) return -1;
+    /* stmt 1: kata -> POS lookup */
+    rc = sqlite3_prepare_v2(db,
+        "SELECT kk.nama FROM kelas_kata kk "
+        "JOIN kata k ON kk.id = k.kelas_id "
+        "WHERE lower(k.kata) = lower(?) "
+        "LIMIT 1;",
+        -1, &cache->stmt_kategori_kata, NULL);
+    if (rc != SQLITE_OK) goto gagal;
 
-    rc = sqlite3_prepare_v2(db, "SELECT kata FROM kata;", -1, &cache->stmt_kata_list, NULL);
-    if (rc != SQLITE_OK) return -1;
-    
-    rc = sqlite3_prepare_v2(db, "SELECT frasa_asli, frasa_hasil FROM normalisasi_frasa;", -1, &cache->stmt_normalisasi_frasa, NULL);
-    if (rc != SQLITE_OK) return -1;
+    /* stmt 2: stopword check */
+    rc = sqlite3_prepare_v2(db,
+        "SELECT 1 FROM kata "
+        "WHERE lower(kata) = lower(?) "
+        "AND kelas_id IN (5,6,7,8,10,11) "
+        "LIMIT 1;",
+        -1, &cache->stmt_stopword, NULL);
+    if (rc != SQLITE_OK) goto gagal;
 
-    rc = sqlite3_prepare_v2(db, "SELECT dp.pola_teks, jk.nama, dp.id_hubungan FROM deteksi_pola dp JOIN jenis_kalimat jk ON dp.id_jenis=jk.id ORDER BY dp.prioritas ASC;", -1, &cache->stmt_deteksi_pola, NULL);
-    if (rc != SQLITE_OK) return -1;
+    /* stmt 3: all kata list */
+    rc = sqlite3_prepare_v2(db,
+        "SELECT kata FROM kata ORDER BY kata;",
+        -1, &cache->stmt_kata_list, NULL);
+    if (rc != SQLITE_OK) goto gagal;
 
-    rc = sqlite3_prepare_v2(db, "SELECT pu.judul, pu.ringkasan, pu.penjelasan, pu.saran FROM pengetahuan_umum pu JOIN kata k ON pu.id_kata=k.id WHERE lower(k.kata)=lower(?) LIMIT 1;", -1, &cache->stmt_pen_umum_kata, NULL);
-    if (rc != SQLITE_OK) return -1;
+    /* stmt 4: phrase normalization */
+    rc = sqlite3_prepare_v2(db,
+        "SELECT frasa_asli, frasa_hasil "
+        "FROM normalisasi_frasa "
+        "ORDER BY length(frasa_asli) DESC;",
+        -1, &cache->stmt_normalisasi_frasa, NULL);
+    if (rc != SQLITE_OK) goto gagal;
 
-    rc = sqlite3_prepare_v2(db, "SELECT ak.arti FROM arti_kata ak JOIN kata k ON ak.id_kata=k.id WHERE lower(k.kata)=lower(?) LIMIT 1;", -1, &cache->stmt_arti_kata, NULL);
-    if (rc != SQLITE_OK) return -1;
+    /* stmt 5: pattern detection */
+    rc = sqlite3_prepare_v2(db,
+        "SELECT jp.nama, h.nama "
+        "FROM deteksi_pola dp "
+        "JOIN jenis_kalimat jp "
+        "ON dp.id_jenis = jp.id "
+        "JOIN hubungan h "
+        "ON dp.id_hubungan = h.id "
+        "WHERE lower(?) LIKE lower(dp.pola_teks) "
+        "ORDER BY dp.prioritas DESC "
+        "LIMIT 1;",
+        -1, &cache->stmt_deteksi_pola, NULL);
+    if (rc != SQLITE_OK) goto gagal;
 
-    rc = sqlite3_prepare_v2(db, "SELECT k2.kata, h.nama, sk.nama FROM semantik_kata sk JOIN kata k1 ON sk.id_kata_1=k1.id JOIN kata k2 ON sk.id_kata_2=k2.id LEFT JOIN hubungan h ON sk.id_hubungan=h.id WHERE lower(k1.kata)=lower(?) LIMIT 5;", -1, &cache->stmt_rel_semantik, NULL);
-    if (rc != SQLITE_OK) return -1;
+    /* stmt 6: pengetahuan_umum */
+    rc = sqlite3_prepare_v2(db,
+        "SELECT judul, ringkasan, "
+        "penjelasan, saran "
+        "FROM pengetahuan_umum "
+        "WHERE id_kata = ("
+        "SELECT id FROM kata "
+        "WHERE lower(kata) = lower(?)) "
+        "LIMIT 1;",
+        -1, &cache->stmt_pen_umum_kata, NULL);
+    if (rc != SQLITE_OK) goto gagal;
 
-    rc = sqlite3_prepare_v2(db, "SELECT pb.poin, pb.penjelasan, pb.urutan FROM pengetahuan_bertingkat pb JOIN kata k ON pb.id_kata=k.id WHERE lower(k.kata)=lower(?) AND lower(pb.topik)=lower(?) ORDER BY pb.urutan ASC;", -1, &cache->stmt_pen_bertingkat_list, NULL);
-    if (rc != SQLITE_OK) return -1;
+    /* stmt 7: arti_kata */
+    rc = sqlite3_prepare_v2(db,
+        "SELECT arti FROM arti_kata "
+        "WHERE id_kata = ("
+        "SELECT id FROM kata "
+        "WHERE lower(kata) = lower(?)) "
+        "LIMIT 1;",
+        -1, &cache->stmt_arti_kata, NULL);
+    if (rc != SQLITE_OK) goto gagal;
 
-    rc = sqlite3_prepare_v2(db, "SELECT jawaban FROM jawaban_bawaan ORDER BY RANDOM() LIMIT 1;", -1, &cache->stmt_respon_default_acak, NULL);
-    if (rc != SQLITE_OK) return -1;
+    /* stmt 8: semantik_kata relations */
+    rc = sqlite3_prepare_v2(db,
+        "SELECT k2.kata, s.nama "
+        "FROM semantik_kata sk "
+        "JOIN kata k1 ON sk.id_kata_1 = k1.id "
+        "JOIN kata k2 ON sk.id_kata_2 = k2.id "
+        "JOIN semantik s "
+        "ON sk.id_semantik = s.id "
+        "WHERE lower(k1.kata) = lower(?) "
+        "LIMIT 20;",
+        -1, &cache->stmt_rel_semantik, NULL);
+    if (rc != SQLITE_OK) goto gagal;
+
+    /* stmt 9: pengetahuan_bertingkat */
+    rc = sqlite3_prepare_v2(db,
+        "SELECT poin, penjelasan, urutan "
+        "FROM pengetahuan_bertingkat "
+        "WHERE id_kata = ("
+        "SELECT id FROM kata "
+        "WHERE lower(kata) = lower(?)) "
+        "AND lower(topik) = lower(?) "
+        "ORDER BY urutan;",
+        -1, &cache->stmt_pen_bertingkat_list, NULL);
+    if (rc != SQLITE_OK) goto gagal;
+
+    /* stmt 10: jawaban_bawaan random */
+    rc = sqlite3_prepare_v2(db,
+        "SELECT jawaban FROM jawaban_bawaan "
+        "ORDER BY RANDOM() LIMIT 1;",
+        -1, &cache->stmt_respon_default_acak, NULL);
+    if (rc != SQLITE_OK) goto gagal;
 
     return 0;
+
+gagal:
+    aj_log("aj_prepare_stmt_cache: %s\n",
+        sqlite3_errmsg(db));
+    aj_finalize_stmt_cache(cache);
+    return -1;
 }
 
-void aj_finalize_stmt_cache(AjStmtCache *cache) {
+void aj_finalize_stmt_cache(AjStmtCache *cache)
+{
     if (!cache) return;
-    if (cache->stmt_kategori_kata) sqlite3_finalize(cache->stmt_kategori_kata);
-    if (cache->stmt_stopword) sqlite3_finalize(cache->stmt_stopword);
-    if (cache->stmt_kata_list) sqlite3_finalize(cache->stmt_kata_list);
-    if (cache->stmt_normalisasi_frasa) sqlite3_finalize(cache->stmt_normalisasi_frasa);
-    if (cache->stmt_deteksi_pola) sqlite3_finalize(cache->stmt_deteksi_pola);
-    if (cache->stmt_pen_umum_kata) sqlite3_finalize(cache->stmt_pen_umum_kata);
-    if (cache->stmt_arti_kata) sqlite3_finalize(cache->stmt_arti_kata);
-    if (cache->stmt_rel_semantik) sqlite3_finalize(cache->stmt_rel_semantik);
-    if (cache->stmt_pen_bertingkat_list) sqlite3_finalize(cache->stmt_pen_bertingkat_list);
-    if (cache->stmt_respon_default_acak) sqlite3_finalize(cache->stmt_respon_default_acak);
-    memset(cache, 0, sizeof(*cache));
+
+    if (cache->stmt_kategori_kata) {
+        sqlite3_finalize(cache->stmt_kategori_kata);
+        cache->stmt_kategori_kata = NULL;
+    }
+    if (cache->stmt_stopword) {
+        sqlite3_finalize(cache->stmt_stopword);
+        cache->stmt_stopword = NULL;
+    }
+    if (cache->stmt_kata_list) {
+        sqlite3_finalize(cache->stmt_kata_list);
+        cache->stmt_kata_list = NULL;
+    }
+    if (cache->stmt_normalisasi_frasa) {
+        sqlite3_finalize(
+            cache->stmt_normalisasi_frasa);
+        cache->stmt_normalisasi_frasa = NULL;
+    }
+    if (cache->stmt_deteksi_pola) {
+        sqlite3_finalize(cache->stmt_deteksi_pola);
+        cache->stmt_deteksi_pola = NULL;
+    }
+    if (cache->stmt_pen_umum_kata) {
+        sqlite3_finalize(cache->stmt_pen_umum_kata);
+        cache->stmt_pen_umum_kata = NULL;
+    }
+    if (cache->stmt_arti_kata) {
+        sqlite3_finalize(cache->stmt_arti_kata);
+        cache->stmt_arti_kata = NULL;
+    }
+    if (cache->stmt_rel_semantik) {
+        sqlite3_finalize(cache->stmt_rel_semantik);
+        cache->stmt_rel_semantik = NULL;
+    }
+    if (cache->stmt_pen_bertingkat_list) {
+        sqlite3_finalize(
+            cache->stmt_pen_bertingkat_list);
+        cache->stmt_pen_bertingkat_list = NULL;
+    }
+    if (cache->stmt_respon_default_acak) {
+        sqlite3_finalize(
+            cache->stmt_respon_default_acak);
+        cache->stmt_respon_default_acak = NULL;
+    }
 }
 
 /* ========================================================================== *
@@ -199,51 +313,85 @@ double hitung_skor_fuzzy(int jarak, int panjang_max) {
     return s;
 }
 
-int normalisasi_frasa_input_dari_db(sqlite3 *db, AjStmtCache *cache, const char *input_asli, char *input_norm, size_t ukuran_input) {
-    size_t L;
+int normalisasi_frasa_input_dari_db(
+    sqlite3 *db, AjStmtCache *cache,
+    const char *input_asli,
+    char *input_norm, size_t ukuran_input)
+{
     int rc;
+    const char *fa, *fh;
+    char *pos;
+    char buf_lo[MAX_INPUT_USER];
+    char fra_lo[MAX_PANJANG_STRING];
+    int len_fa, len_fh, offset;
+    size_t sisa_len;
 
-    if (!db || !cache || !input_asli || !input_norm || ukuran_input == 0) return -1;
+    if (!db || !cache || !input_asli
+        || !input_norm || ukuran_input == 0) {
+        return -1;
+    }
 
+    /* Mulai dengan salinan input asli */
     snprintf(input_norm, ukuran_input, "%s", input_asli);
-    trim(input_norm);
-    to_lower_case(input_norm);
 
     rc = sqlite3_reset(cache->stmt_normalisasi_frasa);
     if (rc != SQLITE_OK) return -1;
 
-    while (sqlite3_step(cache->stmt_normalisasi_frasa) == SQLITE_ROW) {
-        const char *pola_asli = (const char*)sqlite3_column_text(cache->stmt_normalisasi_frasa, 0);
-        const char *pola_hasil = (const char*)sqlite3_column_text(cache->stmt_normalisasi_frasa, 1);
-        const char *pos_percent;
-        size_t prefix_len;
-        char sisa[MAX_INPUT_USER];
+    while (sqlite3_step(
+        cache->stmt_normalisasi_frasa) == SQLITE_ROW) {
+        fa = (const char *)sqlite3_column_text(
+            cache->stmt_normalisasi_frasa, 0);
+        fh = (const char *)sqlite3_column_text(
+            cache->stmt_normalisasi_frasa, 1);
 
-        if (!pola_asli || !pola_hasil) continue;
+        if (!fa || !fh || !fa[0]) continue;
 
-        pos_percent = strstr(pola_asli, "%");
-        if (pos_percent) {
-            prefix_len = (size_t)(pos_percent - pola_asli);
-            if (strncmp(input_norm, pola_asli, (int)prefix_len) == 0) {
-                snprintf(sisa, sizeof(sisa), "%s", input_norm + prefix_len);
-                snprintf(input_norm, ukuran_input, "%s%s", pola_hasil, sisa);
+        len_fa = (int)strlen(fa);
+        len_fh = (int)strlen(fh);
+
+        /* Buat salinan huruf kecil untuk pencarian */
+        snprintf(buf_lo, sizeof(buf_lo), "%s",
+            input_norm);
+        to_lower_case(buf_lo);
+
+        snprintf(fra_lo, sizeof(fra_lo), "%s", fa);
+        to_lower_case(fra_lo);
+
+        /* Cari dan ganti semua kemunculan */
+        pos = strstr(buf_lo, fra_lo);
+        while (pos != NULL) {
+            offset = (int)(pos - buf_lo);
+            sisa_len = strlen(
+                input_norm + offset + len_fa) + 1;
+
+            /* Cek ruang buffer */
+            if ((size_t)(offset + len_fh) + sisa_len
+                > ukuran_input) {
                 break;
             }
-        } else {
-            if (strcmp(input_norm, pola_asli) == 0) {
-                snprintf(input_norm, ukuran_input, "%s", pola_hasil);
-                break;
-            }
+
+            /* Geser sisa string */
+            memmove(
+                input_norm + offset + len_fh,
+                input_norm + offset + len_fa,
+                sisa_len);
+
+            /* Salin pengganti */
+            memcpy(input_norm + offset, fh,
+                (size_t)len_fh);
+
+            /* Perbarui buffer huruf kecil */
+            snprintf(buf_lo, sizeof(buf_lo), "%s",
+                input_norm);
+            to_lower_case(buf_lo);
+
+            /* Lanjut cari setelah pengganti */
+            pos = strstr(
+                buf_lo + offset + len_fh, fra_lo);
         }
     }
-    sqlite3_reset(cache->stmt_normalisasi_frasa);
 
-    L = strlen(input_norm);
-    while (L > 0 && (ispunct((unsigned char)input_norm[L - 1]) || isspace((unsigned char)input_norm[L - 1]))) {
-        input_norm[L - 1] = '\0';
-        L--;
-    }
-    trim(input_norm);
+    sqlite3_reset(cache->stmt_normalisasi_frasa);
     return 0;
 }
 
@@ -513,28 +661,53 @@ int bangun_pohon_ketergantungan(TokenKalimat tokens[], int jml_token, SimpulKete
  *                           DETEKSI JENIS KALIMAT                             *
  * ========================================================================== */
 
-int deteksi_jenis_dan_sumber_dari_db(sqlite3 *db, AjStmtCache *cache, const char *kalimat_norm, char *jenis, size_t ukuran_jenis, char *sumber, size_t ukuran_sumber) {
+int deteksi_jenis_dan_sumber_dari_db(
+    sqlite3 *db, AjStmtCache *cache,
+    const char *kalimat_norm,
+    char *jenis, size_t ukuran_jenis,
+    char *sumber, size_t ukuran_sumber)
+{
     int rc;
+    const char *val_jenis, *val_sumber;
 
-    if (!db || !cache || !kalimat_norm || !jenis || !sumber || ukuran_jenis == 0 || ukuran_sumber == 0) return -1;
+    if (!db || !cache || !kalimat_norm
+        || !jenis || ukuran_jenis == 0
+        || !sumber || ukuran_sumber == 0) {
+        return -1;
+    }
+
     jenis[0] = '\0';
     sumber[0] = '\0';
 
     rc = sqlite3_reset(cache->stmt_deteksi_pola);
     if (rc != SQLITE_OK) return -1;
 
-    while (sqlite3_step(cache->stmt_deteksi_pola) == SQLITE_ROW) {
-        const char *pola_teks = (const char*)sqlite3_column_text(cache->stmt_deteksi_pola, 0);
-        const char *jenis_kalimat = (const char*)sqlite3_column_text(cache->stmt_deteksi_pola, 1);
-        const char *id_hubungan_str = (const char*)sqlite3_column_text(cache->stmt_deteksi_pola, 2);
+    rc = sqlite3_bind_text(
+        cache->stmt_deteksi_pola,
+        1, kalimat_norm, -1, SQLITE_TRANSIENT);
+    if (rc != SQLITE_OK) {
+        sqlite3_reset(cache->stmt_deteksi_pola);
+        return -1;
+    }
 
-        if (!pola_teks || !jenis_kalimat) continue;
-        if (strstr(kalimat_norm, pola_teks) != NULL) {
-            snprintf(jenis, ukuran_jenis, "%s", jenis_kalimat);
-            snprintf(sumber, ukuran_sumber, "%s", (id_hubungan_str && id_hubungan_str[0]) ? id_hubungan_str : "gabungan_spok");
-            sqlite3_reset(cache->stmt_deteksi_pola);
-            return 0;
+    if (sqlite3_step(cache->stmt_deteksi_pola)
+        == SQLITE_ROW) {
+        val_jenis = (const char *)sqlite3_column_text(
+            cache->stmt_deteksi_pola, 0);
+        val_sumber = (const char *)sqlite3_column_text(
+            cache->stmt_deteksi_pola, 1);
+
+        if (val_jenis) {
+            snprintf(jenis, ukuran_jenis, "%s",
+                val_jenis);
         }
+        if (val_sumber) {
+            snprintf(sumber, ukuran_sumber, "%s",
+                val_sumber);
+        }
+
+        sqlite3_reset(cache->stmt_deteksi_pola);
+        return 0;
     }
 
     sqlite3_reset(cache->stmt_deteksi_pola);
