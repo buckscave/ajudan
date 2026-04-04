@@ -21,7 +21,7 @@ int aj_log_enabled = 0;
  * ========================================================================== */
 
 void aj_set_log_enabled(int enabled) {
-    aj_log_enabled = enabled ? 1 : 0;
+    aj_log_enabled = enabled;
 }
 
 void aj_log(const char *fmt, ...) {
@@ -32,13 +32,17 @@ void aj_log(const char *fmt, ...) {
     va_end(ap);
 }
 
-int aj_parse_cli_flags(int argc, char **argv) {
+int aj_parse_cli_flags(int argc, char **argv)
+{
     int i;
+
     for (i = 1; i < argc; i++) {
-        if (argv[i] && strcmp(argv[i], "-log") == 0) {
-            aj_set_log_enabled(1);
+        if (strcmp(argv[i], "-v") == 0
+            || strcmp(argv[i], "--verbose") == 0) {
+            aj_log_enabled = 1;
         }
     }
+
     return 0;
 }
 
@@ -61,17 +65,33 @@ int ajudan_strcasecmp(const char *s1, const char *s2) {
 }
 
 /* Fungsi parser untuk KategoriPOS */
-KategoriPOS parse_pos(const char *pos_str) {
+KategoriPOS parse_pos(const char *pos_str)
+{
     if (!pos_str) return POS_UNKNOWN;
-    if (ajudan_strcasecmp(pos_str, "nomina") == 0) return POS_NOMINA;
-    if (ajudan_strcasecmp(pos_str, "verba") == 0) return POS_VERBA;
-    if (ajudan_strcasecmp(pos_str, "adjektiva") == 0) return POS_ADJEKTIVA;
-    if (ajudan_strcasecmp(pos_str, "numeralia") == 0) return POS_NUMERALIA;
-    if (ajudan_strcasecmp(pos_str, "pronomina") == 0) return POS_PRONOMINA;
-    if (ajudan_strcasecmp(pos_str, "adverbia") == 0) return POS_ADVERBIA;
-    if (ajudan_strcasecmp(pos_str, "preposisi") == 0) return POS_PREPOSISI;
-    if (ajudan_strcasecmp(pos_str, "konjungsi") == 0) return POS_KONJUNGSI;
-    if (ajudan_strcasecmp(pos_str, "interjeksi") == 0) return POS_INTERJEKSI;
+
+    if (ajudan_strcasecmp(pos_str, "nomina") == 0)
+        return POS_NOMINA;
+    if (ajudan_strcasecmp(pos_str, "verba") == 0)
+        return POS_VERBA;
+    if (ajudan_strcasecmp(pos_str, "adjektiva") == 0)
+        return POS_ADJEKTIVA;
+    if (ajudan_strcasecmp(pos_str, "adverbia") == 0)
+        return POS_ADVERBIA;
+    if (ajudan_strcasecmp(pos_str, "numeralia") == 0)
+        return POS_NUMERALIA;
+    if (ajudan_strcasecmp(pos_str, "interjeksi") == 0)
+        return POS_INTERJEKSI;
+    if (ajudan_strcasecmp(pos_str, "pronomina") == 0)
+        return POS_PRONOMINA;
+    if (ajudan_strcasecmp(pos_str, "preposisi") == 0)
+        return POS_PREPOSISI;
+    if (ajudan_strcasecmp(pos_str, "konjungsi") == 0)
+        return POS_KONJUNGSI;
+    if (ajudan_strcasecmp(pos_str, "partikel") == 0)
+        return POS_PARTIKEL;
+    if (ajudan_strcasecmp(pos_str, "determiner") == 0)
+        return POS_DETERMINER;
+
     return POS_UNKNOWN;
 }
 
@@ -140,16 +160,20 @@ int aj_prepare_stmt_cache(
     if (rc != SQLITE_OK) goto gagal;
 
     /* stmt 5: pattern detection */
+    /*
+     * PENTING: SQL ini mengambil SEMUA pola dari deteksi_pola.
+     * Pencocokan substring dilakukan di C (strstr) oleh
+     * fungsi deteksi_jenis_dan_sumber_dari_db.
+     * Kolom: 0=pola_teks, 1=jenis_kalimat.nama, 2=id_hubungan.
+     * id_hubungan adalah TEXT (bukan join ke tabel hubungan)
+     * untuk menghindari masalah type mismatch.
+     */
     rc = sqlite3_prepare_v2(db,
-        "SELECT jp.nama, h.nama "
+        "SELECT dp.pola_teks, jk.nama, dp.id_hubungan "
         "FROM deteksi_pola dp "
-        "JOIN jenis_kalimat jp "
-        "ON dp.id_jenis = jp.id "
-        "JOIN hubungan h "
-        "ON dp.id_hubungan = h.id "
-        "WHERE lower(?) LIKE lower(dp.pola_teks) "
-        "ORDER BY dp.prioritas DESC "
-        "LIMIT 1;",
+        "JOIN jenis_kalimat jk "
+        "ON dp.id_jenis = jk.id "
+        "ORDER BY dp.prioritas ASC;",
         -1, &cache->stmt_deteksi_pola, NULL);
     if (rc != SQLITE_OK) goto gagal;
 
@@ -177,14 +201,14 @@ int aj_prepare_stmt_cache(
 
     /* stmt 8: semantik_kata relations */
     rc = sqlite3_prepare_v2(db,
-        "SELECT k2.kata, s.nama "
+        "SELECT k2.kata, h.nama, sk.nama "
         "FROM semantik_kata sk "
         "JOIN kata k1 ON sk.id_kata_1 = k1.id "
         "JOIN kata k2 ON sk.id_kata_2 = k2.id "
-        "JOIN semantik s "
-        "ON sk.id_semantik = s.id "
+        "LEFT JOIN hubungan h "
+        "ON sk.id_hubungan = h.id "
         "WHERE lower(k1.kata) = lower(?) "
-        "LIMIT 20;",
+        "LIMIT 5;",
         -1, &cache->stmt_rel_semantik, NULL);
     if (rc != SQLITE_OK) goto gagal;
 
@@ -470,12 +494,6 @@ static int tokenisasi_dengan_stem(
     return jml;
 }
 
-/* ---------------------------------------------------------------- *
- * isi_kategori_dari_database_dengan_stem
- *   Versi diperluas yang juga stem token
- *   sebelum mencari kategori di database.
- * ---------------------------------------------------------------- */
-
 static int isi_kategori_dengan_stem(
     sqlite3 *db,
     AjStmtCache *cache,
@@ -513,7 +531,8 @@ static int isi_kategori_dengan_stem(
         } else {
             if (stem_kata(db, teks, kata_stem,
                 (int)sizeof(kata_stem)) == 0
-                && ajudan_strcasecmp(kata_stem, teks) != 0) {
+                && ajudan_strcasecmp(kata_stem, teks)
+                    != 0) {
                 sqlite3_reset(cache->stmt_kategori_kata);
                 sqlite3_bind_text(
                     cache->stmt_kategori_kata,
@@ -668,7 +687,9 @@ int deteksi_jenis_dan_sumber_dari_db(
     char *sumber, size_t ukuran_sumber)
 {
     int rc;
-    const char *val_jenis, *val_sumber;
+    const char *pola_teks;
+    const char *jenis_kalimat;
+    const char *id_hubungan_str;
 
     if (!db || !cache || !kalimat_norm
         || !jenis || ukuran_jenis == 0
@@ -682,32 +703,31 @@ int deteksi_jenis_dan_sumber_dari_db(
     rc = sqlite3_reset(cache->stmt_deteksi_pola);
     if (rc != SQLITE_OK) return -1;
 
-    rc = sqlite3_bind_text(
-        cache->stmt_deteksi_pola,
-        1, kalimat_norm, -1, SQLITE_TRANSIENT);
-    if (rc != SQLITE_OK) {
-        sqlite3_reset(cache->stmt_deteksi_pola);
-        return -1;
-    }
-
-    if (sqlite3_step(cache->stmt_deteksi_pola)
+    while (sqlite3_step(cache->stmt_deteksi_pola)
         == SQLITE_ROW) {
-        val_jenis = (const char *)sqlite3_column_text(
+        pola_teks = (const char *)sqlite3_column_text(
             cache->stmt_deteksi_pola, 0);
-        val_sumber = (const char *)sqlite3_column_text(
+        jenis_kalimat = (const char *)sqlite3_column_text(
             cache->stmt_deteksi_pola, 1);
+        id_hubungan_str = (const char *)sqlite3_column_text(
+            cache->stmt_deteksi_pola, 2);
 
-        if (val_jenis) {
+        if (!pola_teks || !jenis_kalimat) continue;
+
+        /* Cocokkan substring menggunakan strstr */
+        if (strstr(kalimat_norm, pola_teks) != NULL) {
             snprintf(jenis, ukuran_jenis, "%s",
-                val_jenis);
+                jenis_kalimat);
+            if (id_hubungan_str && id_hubungan_str[0]) {
+                snprintf(sumber, ukuran_sumber, "%s",
+                    id_hubungan_str);
+            } else {
+                snprintf(sumber, ukuran_sumber, "%s",
+                    "gabungan_spok");
+            }
+            sqlite3_reset(cache->stmt_deteksi_pola);
+            return 0;
         }
-        if (val_sumber) {
-            snprintf(sumber, ukuran_sumber, "%s",
-                val_sumber);
-        }
-
-        sqlite3_reset(cache->stmt_deteksi_pola);
-        return 0;
     }
 
     sqlite3_reset(cache->stmt_deteksi_pola);
@@ -1266,7 +1286,6 @@ int format_respons_daftar(
     return -1;
 }
 
-
 /* ========================================================================== *
  *                     FITUR TAMBAHAN: FORMATTER ANALITIK                     *
  * ========================================================================== */
@@ -1337,6 +1356,38 @@ int ambil_respon_default_acak(sqlite3 *db, AjStmtCache *cache, char *output, siz
     }
     sqlite3_reset(cache->stmt_respon_default_acak);
     return -1;
+}
+
+static void tangani_sapaan(
+    sqlite3 *db,
+    AjStmtCache *cache,
+    char *output,
+    size_t ukuran_output)
+{
+    static const char *SAPAAN_BALASAN[] = {
+        "Halo! Saya AJUDAN 3.0, asisten virtual Anda. "
+        "Silakan bertanya tentang komputer, internet, "
+        "teknologi, atau topik umum lainnya.",
+        "Hai! Ada yang bisa saya bantu? Anda bisa "
+        "bertanya tentang berbagai topik seperti "
+        "komputer, sains, atau teknologi.",
+        "Halo! Saya siap membantu. Coba tanyakan "
+        "sesuatu tentang komputer, internet, "
+        "atau topik lain yang menarik.",
+        "Selamat datang! Saya AJUDAN, bot pengetahuan "
+        "umum. Ketik pertanyaan Anda dan saya akan "
+        "berusaha menjawab sebaik mungkin."
+    };
+    static const int JML_SAPAAN = 4;
+    int idx;
+
+    (void)db;
+    (void)cache;
+
+    idx = (int)(time(NULL) % (unsigned long)JML_SAPAAN);
+
+    snprintf(output, ukuran_output, "%s",
+        SAPAAN_BALASAN[idx]);
 }
 
 void tangani_permintaan_arti_kata(sqlite3 *db, AjStmtCache *cache, const char *topik, char *output, size_t ukuran_output) {
@@ -1581,6 +1632,7 @@ int proses_percakapan(
     AjStmtCache cache;
     int jml_token, sesi_id;
     int adalah_pertanyaan_lanjutan;
+    int pola_terdeteksi;
 
     if (!koneksi_db || !id_pengguna || !input_pengguna
         || !respon_bot || ukuran_respon == 0) {
@@ -1627,30 +1679,36 @@ int proses_percakapan(
         return 0;
     }
 
+    /*
+     * Coba deteksi pola. JIKA GAGAL, JANGAN LANGSUNG
+     * FALLBACK - tetap lanjutkan dengan default
+     * "pengetahuan_umum" agar bot tetap mencoba mencari
+     * informasi dari knowledge base.
+     */
+    pola_terdeteksi = 0;
     if (deteksi_jenis_dan_sumber_dari_db(
         koneksi_db, &cache, input_normal,
         jenis_kalimat, sizeof(jenis_kalimat),
-        sumber_data, sizeof(sumber_data)) != 0) {
-        if (ambil_respon_default_acak(
-            koneksi_db, &cache, respon_bot,
-            ukuran_respon) != 0) {
-            snprintf(respon_bot, ukuran_respon,
-                "Maaf, saya sedang bingung.");
-        }
-        aj_log("Deteksi pola: gagal, fallback.\n");
-        aj_finalize_stmt_cache(&cache);
-        return 0;
+        sumber_data, sizeof(sumber_data)) == 0) {
+        pola_terdeteksi = 1;
+        aj_log("Pola terdeteksi: jenis='%s' "
+            "sumber='%s'\n",
+            jenis_kalimat, sumber_data);
+    } else {
+        aj_log("Pola tidak terdeteksi, "
+            "menggunakan default.\n");
+        snprintf(jenis_kalimat,
+            sizeof(jenis_kalimat), "lain");
+        snprintf(sumber_data,
+            sizeof(sumber_data), "pengetahuan_umum");
     }
 
-    aj_log("Jenis kalimat: %s | Sumber: %s\n",
-        jenis_kalimat, sumber_data);
     snprintf(hasil_spok.jenis_kalimat,
         sizeof(hasil_spok.jenis_kalimat), "%s",
         jenis_kalimat);
 
     /*
-     * Tokenisasi dengan stemming: setiap token
-     * otomatis di-stem dan lema diisi.
+     * Tokenisasi dengan stemming.
      */
     jml_token = tokenisasi_dengan_stem(
         koneksi_db, input_normal,
@@ -1682,8 +1740,7 @@ int proses_percakapan(
     aj_log("POS tagging: selesai\n");
 
     /*
-     * Dependency parsing diperluas menggantikan
-     * bangun_pohon_ketergantungan sederhana.
+     * Dependency parsing diperluas.
      */
     bangun_depensi_diperluas(
         daftar_token, jml_token,
@@ -1707,8 +1764,7 @@ int proses_percakapan(
             : input_normal);
 
     /*
-     * Pencarian fuzzy optimal menggantikan
-     * cari_topik_dengan_fuzzy yang O(n).
+     * Pencarian fuzzy optimal.
      */
     if (cari_topik_optimal(
         koneksi_db, &cache, topik_bersih,
@@ -1739,37 +1795,128 @@ int proses_percakapan(
         hasil_ekstraksi.sub_topik,
         hasil_ekstraksi.kuantitas);
 
-    /* Dispatch ke handler berdasarkan sumber data. */
-    if (strcmp(sumber_data, "arti_kata") == 0) {
-        tangani_permintaan_arti_kata(
-            koneksi_db, &cache, topik_norm,
+    /* ============================================================ *
+     *  DISPATCH LENGKAP: Handler untuk semua tipe sumber_data
+     * ============================================================ */
+
+    if (strcmp(sumber_data, "sapaan") == 0) {
+        /* SAPAAN: salam khusus */
+        tangani_sapaan(koneksi_db, &cache,
             respon_bot, ukuran_respon);
-    } else if (strcmp(sumber_data,
-        "pengetahuan_umum") == 0) {
-        tangani_permintaan_penjelasan(
-            koneksi_db, &cache, topik_norm,
-            &hasil_spok, respon_bot, ukuran_respon);
-    } else if (strcmp(sumber_data,
-        "pengetahuan_bertingkat") == 0
-        || strcmp(sumber_data,
-            "pengetahuan_bertingkat_sebagian") == 0) {
-        tangani_permintaan_daftar(
-            koneksi_db, &cache, &hasil_ekstraksi,
-            respon_bot, ukuran_respon);
-    } else if (strcmp(sumber_data,
-        "gabungan_spok") == 0
-        || strcmp(sumber_data, "sebab") == 0) {
+
+    } else if (strcmp(sumber_data, "definisi") == 0
+        || strcmp(sumber_data, "fungsi") == 0
+        || strcmp(sumber_data, "ciri") == 0) {
+        /* DEFINISI: cari arti kata, lalu KB, lalu fallback */
+        if (pola_terdeteksi && strlen(topik_norm) > 2) {
+            tangani_permintaan_arti_kata(
+                koneksi_db, &cache, topik_norm,
+                respon_bot, ukuran_respon);
+        } else {
+            tangani_permintaan_penjelasan(
+                koneksi_db, &cache, topik_norm,
+                &hasil_spok, respon_bot, ukuran_respon);
+        }
+
+    } else if (strcmp(sumber_data, "sebab") == 0
+        || strcmp(sumber_data, "dampak") == 0
+        || strcmp(sumber_data, "gabungan_spok") == 0) {
+        /* SEBAB/DAMPAK/GABUNGAN: analisis hubungan */
         tangani_pertanyaan_sebab(
             koneksi_db, &cache, &hasil_spok,
             respon_bot, ukuran_respon);
-    } else {
-        if (ambil_respon_default_acak(
-            koneksi_db, &cache, respon_bot,
-            ukuran_respon) != 0) {
-            snprintf(respon_bot, ukuran_respon,
-                "Maaf, saya tidak tahu harus "
-                "mencari informasi itu dari mana.");
+
+    } else if (strcmp(sumber_data, "langkah") == 0) {
+        /* LANGKAH: daftar bertahap */
+        if (strlen(hasil_ekstraksi.sub_topik) > 0) {
+            snprintf(hasil_ekstraksi.sub_topik,
+                sizeof(hasil_ekstraksi.sub_topik),
+                "%s", "langkah");
         }
+        tangani_permintaan_daftar(
+            koneksi_db, &cache, &hasil_ekstraksi,
+            respon_bot, ukuran_respon);
+
+    } else if (strcmp(sumber_data, "fakta") == 0
+        || strcmp(sumber_data, "sejarah") == 0
+        || strcmp(sumber_data, "pengetahuan_umum") == 0) {
+        /* FAKTA/SEJARAH/PENGETAHUAN UMUM: KB */
+        tangani_permintaan_penjelasan(
+            koneksi_db, &cache, topik_norm,
+            &hasil_spok, respon_bot, ukuran_respon);
+
+    } else if (strcmp(sumber_data, "manfaat") == 0) {
+        /* MANFAAT: daftar manfaat */
+        if (strlen(hasil_ekstraksi.sub_topik) > 0
+            && strcmp(hasil_ekstraksi.sub_topik,
+                "manfaat") != 0) {
+            snprintf(hasil_ekstraksi.sub_topik,
+                sizeof(hasil_ekstraksi.sub_topik),
+                "%s", "manfaat");
+        } else if (strlen(
+            hasil_ekstraksi.sub_topik) == 0) {
+            snprintf(hasil_ekstraksi.sub_topik,
+                sizeof(hasil_ekstraksi.sub_topik),
+                "%s", "manfaat");
+        }
+        tangani_permintaan_daftar(
+            koneksi_db, &cache, &hasil_ekstraksi,
+            respon_bot, ukuran_respon);
+
+    } else if (strcmp(sumber_data, "perbedaan") == 0
+        || strcmp(sumber_data, "analogi") == 0) {
+        /* PERBEDAAN/ANALOGI: penjelasan KB */
+        tangani_permintaan_penjelasan(
+            koneksi_db, &cache, topik_norm,
+            &hasil_spok, respon_bot, ukuran_respon);
+
+    } else if (!pola_terdeteksi) {
+        /* TANPA POLA: coba KB, lalu arti kata,
+         * lalu semantik, lalu fallback */
+        if (ambil_pengetahuan_umum(
+            koneksi_db, &cache, topik_norm,
+            hasil_spok.subjek,
+            (size_t)sizeof(hasil_spok.subjek),
+            hasil_spok.predikat,
+            (size_t)sizeof(hasil_spok.predikat),
+            hasil_spok.objek,
+            (size_t)sizeof(hasil_spok.objek),
+            hasil_spok.keterangan,
+            (size_t)sizeof(hasil_spok.keterangan)
+            ) == 0) {
+            snprintf(respon_bot, ukuran_respon,
+                "%s\n%s\n%s\n%s",
+                hasil_spok.subjek,
+                hasil_spok.predikat,
+                hasil_spok.objek,
+                hasil_spok.keterangan);
+        } else if (ambil_arti_kata(
+            koneksi_db, &cache, topik_norm,
+            hasil_spok.subjek,
+            (size_t)sizeof(hasil_spok.subjek)
+            ) == 0) {
+            snprintf(respon_bot, ukuran_respon,
+                "%s: %s",
+                topik_norm,
+                hasil_spok.subjek);
+        } else {
+            if (ambil_respon_default_acak(
+                koneksi_db, &cache, respon_bot,
+                ukuran_respon) != 0) {
+                snprintf(respon_bot, ukuran_respon,
+                    "Maaf, saya tidak memiliki "
+                    "informasi tentang '%s'. Coba "
+                    "gunakan kata kunci yang lebih "
+                    "spesifik.",
+                    topik_norm);
+            }
+        }
+
+    } else {
+        /* DEFAULT: fallback untuk sumber_data lain */
+        tangani_permintaan_penjelasan(
+            koneksi_db, &cache, topik_norm,
+            &hasil_spok, respon_bot, ukuran_respon);
     }
 
     aj_log("Respon siap.\n");
