@@ -1210,6 +1210,15 @@ INSERT OR IGNORE INTO kata_fungsional (id_kata, tipe, id_hubungan, id_ragam) VAL
 ((SELECT id FROM kata WHERE kata='anda'), 'pronomina_persona', 'terkait', 3),
 ((SELECT id FROM kata WHERE kata='ini'), 'pronomina_demonstratif', 'terkait', 1),
 ((SELECT id FROM kata WHERE kata='itu'), 'pronomina_demonstratif', 'terkait', 1),
+-- Kata tanya
+((SELECT id FROM kata WHERE kata='apa'), 'pronomina_tanya', 'pertanyaan', 1),
+((SELECT id FROM kata WHERE kata='mengapa'), 'pronomina_tanya', 'sebab', 1),
+((SELECT id FROM kata WHERE kata='bagaimana'), 'pronomina_tanya', 'langkah', 1),
+((SELECT id FROM kata WHERE kata='siapa'), 'pronomina_tanya', 'fakta', 1),
+((SELECT id FROM kata WHERE kata='kapan'), 'pronomina_tanya', 'fakta', 1),
+((SELECT id FROM kata WHERE kata='dimana'), 'pronomina_tanya', 'fakta', 1),
+((SELECT id FROM kata WHERE kata='mana'), 'pronomina_tanya', 'fakta', 1),
+((SELECT id FROM kata WHERE kata='berapa'), 'pronomina_tanya', 'fakta', 1),
 -- Kata kerja bantu/auxiliary
 ((SELECT id FROM kata WHERE kata='ada'), 'verba_aux', 'terkait', 1),
 ((SELECT id FROM kata WHERE kata='bisa'), 'verba_modality', 'pertanyaan', 1),
@@ -1319,12 +1328,31 @@ COMMIT;
 BEGIN TRANSACTION;
 
 INSERT OR IGNORE INTO deteksi_pola (pola_teks, id_jenis, id_hubungan, prioritas) VALUES
--- Definisi
+-- Definisi singkat (hanya judul + ringkasan/arti)
 ('apa itu', 2, 'definisi', 10),
+('itu apa', 2, 'definisi', 9),
+('itu apa ya', 2, 'definisi', 8),
+('itu apakah', 2, 'definisi', 8),
 ('apa yang dimaksud', 2, 'definisi', 9),
 ('apa yang dimaksud dengan', 2, 'definisi', 10),
 ('definisikan', 2, 'definisi', 8),
 ('jelaskan pengertian', 2, 'definisi', 9),
+('pengertian dari', 2, 'definisi', 8),
+('pengertian', 2, 'definisi', 6),
+('artinya apa', 2, 'definisi', 9),
+('arti apa', 2, 'definisi', 8),
+('arti dari', 2, 'definisi', 9),
+-- Penjelasan lengkap (judul + ringkasan + penjelasan + saran)
+('jelaskan tentang', 12, 'penjelasan_lengkap', 9),
+('jabarkan', 12, 'penjelasan_lengkap', 8),
+('jabarkan tentang', 12, 'penjelasan_lengkap', 9),
+('deskripsikan', 12, 'penjelasan_lengkap', 8),
+('beritahu lebih lanjut', 12, 'penjelasan_lengkap', 9),
+('beritahu tentang', 12, 'penjelasan_lengkap', 8),
+('ceritakan tentang', 12, 'penjelasan_lengkap', 8),
+('ceritakan', 12, 'penjelasan_lengkap', 7),
+('jelaskan', 12, 'penjelasan_lengkap', 7),
+('tolong jelaskan', 12, 'penjelasan_lengkap', 8),
 -- Pertanyaan mengapa/sebab
 ('mengapa', 4, 'sebab', 8),
 ('kenapa', 4, 'sebab', 8),
@@ -1360,13 +1388,8 @@ INSERT OR IGNORE INTO deteksi_pola (pola_teks, id_jenis, id_hubungan, prioritas)
 ('perbedaan', 15, 'perbedaan', 8),
 ('bedanya', 15, 'perbedaan', 8),
 ('apa bedanya', 15, 'perbedaan', 9),
--- Penjelasan/Perintah
-('jelaskan', 12, 'gabungan_spok', 8),
-('tolong jelaskan', 12, 'gabungan_spok', 7),
-('ceritakan', 12, 'gabungan_spok', 7),
-('deskripsikan', 12, 'gabungan_spok', 7),
-('jelaskan tentang', 12, 'gabungan_spok', 9),
-('ceritakan tentang', 12, 'gabungan_spok', 8),
+-- Penjelasan/Perintah (fallback jika tidak tertangkap di atas)
+('penjelasan', 12, 'gabungan_spok', 5),
 -- Sapaan
 ('halo', 11, 'sapaan', 10),
 ('hai', 11, 'sapaan', 10),
@@ -1381,11 +1404,13 @@ COMMIT;
 BEGIN TRANSACTION;
 
 INSERT OR IGNORE INTO normalisasi_frasa (frasa_asli, frasa_hasil) VALUES
--- Ekspresi definisi
-('apa itu', 'definisi'),
-('apa yang dimaksud', 'definisi'),
-('apa yang dimaksud dengan', 'definisi'),
-('jelaskan pengertian', 'definisi'),
+-- Ekspresi penjelasan lengkap
+('beritahu lebih lanjut tentang', 'jelaskan tentang'),
+-- Ekspresi sinonim/antonim
+('disebut juga', 'sinonim'),
+('berlawanan dengan', 'antonim'),
+('sama arti', 'sinonim'),
+('berlawanan arti', 'antonim'),
 -- Ekspresi cara/langkah
 ('bagaimana cara', 'cara'),
 ('gimana cara', 'cara'),
@@ -2056,6 +2081,70 @@ INSERT OR IGNORE INTO semantik_kata (id_kata_1, id_kata_2, id_semantik, id_ragam
 ((SELECT id FROM kata WHERE kata='sinonim'), (SELECT id FROM kata WHERE kata='antonim'), 10, 1, 7, 'terkait'),
 ((SELECT id FROM kata WHERE kata='matematika'), (SELECT id FROM kata WHERE kata='algoritma'), 10, 1, 3, 'terkait'),
 ((SELECT id FROM kata WHERE kata='matematika'), (SELECT id FROM kata WHERE kata='angka'), 10, 1, 3, 'terkait');
+
+COMMIT;
+
+-- ========================================================================== --
+-- 14. PENGETAHUAN BERTINGKAT: JENIS-JENIS (untuk pertanyaan "X apa itu?")       --
+-- ========================================================================== --
+BEGIN TRANSACTION;
+
+INSERT OR IGNORE INTO pengetahuan_bertingkat (id_kata, id_bidang, topik, urutan, poin, penjelasan, id_hubungan) VALUES
+-- === Komputer: Jenis-jenis ===
+((SELECT id FROM kata WHERE kata='komputer'), 1, 'jenis', 1,
+ 'Komputer Desktop',
+ 'Komputer yang ditempatkan di meja, biasanya berukuran besar dengan kemampuan tinggi. Cocok untuk pekerjaan berat seperti editing video, gaming, dan pemrograman.', 'jenis_dari'),
+((SELECT id FROM kata WHERE kata='komputer'), 1, 'jenis', 2,
+ 'Laptop (Komputer Jinjing)',
+ 'Komputer portabel yang ringan dan bisa dibawa ke mana-mana. Memiliki baterai internal, layar, keyboard, dan touchpad terintegrasi.', 'jenis_dari'),
+((SELECT id FROM kata WHERE kata='komputer'), 1, 'jenis', 3,
+ 'Komputer Tablet',
+ 'Perangkat portabel dengan layar sentuh sebagai input utama. Lebih kecil dari laptop, cocok untuk konsumsi media dan pekerjaan ringan.', 'jenis_dari'),
+((SELECT id FROM kata WHERE kata='komputer'), 1, 'jenis', 4,
+ 'Server',
+ 'Komputer berperforma tinggi yang dirancang untuk melayani permintaan jaringan, menyimpan data, dan menjalankan aplikasi bagi banyak pengguna secara bersamaan.', 'jenis_dari'),
+((SELECT id FROM kata WHERE kata='komputer'), 1, 'jenis', 5,
+ 'Smartphone (Komputer Saku)',
+ 'Telepon pintar yang memiliki kemampuan komputer mirip komputer desktop kecil. Dapat menjalankan aplikasi, mengakses internet, dan memproses data.', 'jenis_dari'),
+
+-- === Hewan: Jenis-jenis ===
+((SELECT id FROM kata WHERE kata='hewan'), 20, 'jenis', 1,
+ 'Hewan Vertebrata (Ber tulang belakang)',
+ 'Hewan yang memiliki tulang belakang, termasuk mamalia, burung, reptil, amfibi, dan ikan. Tubuh mereka memiliki struktur kerangka yang jelas.', 'jenis_dari'),
+((SELECT id FROM kata WHERE kata='hewan'), 20, 'jenis', 2,
+ 'Hewan Invertebrata (Tanpa tulang belakang)',
+ 'Hewan yang tidak memiliki tulang belakang, seperti serangga, laba-laba, cacing, dan bintang laut. Merupakan kelompok terbesar dari semua hewan.', 'jenis_dari'),
+
+-- === Bahasa: Jenis-jenis ===
+((SELECT id FROM kata WHERE kata='bahasa'), 7, 'jenis', 1,
+ 'Bahasa Daerah',
+ 'Bahasa yang digunakan oleh masyarakat di suatu daerah tertentu sebagai alat komunikasi sehari-hari, misalnya bahasa Jawa, Sunda, atau Minangkabau.', 'jenis_dari'),
+((SELECT id FROM kata WHERE kata='bahasa'), 7, 'jenis', 2,
+ 'Bahasa Nasional',
+ 'Bahasa resmi yang digunakan sebagai bahasa persatuan suatu negara, seperti Bahasa Indonesia yang menjadi bahasa resmi Republik Indonesia.', 'jenis_dari'),
+((SELECT id FROM kata WHERE kata='bahasa'), 7, 'jenis', 3,
+ 'Bahasa Asing',
+ 'Bahasa yang berasal dari luar negeri dan dipelajari sebagai bahasa kedua atau bahasa internasional, seperti bahasa Inggris, Arab, atau Mandarin.', 'jenis_dari'),
+((SELECT id FROM kata WHERE kata='bahasa'), 7, 'jenis', 4,
+ 'Bahasa Pemrograman',
+ 'Bahasa buatan yang digunakan untuk menulis instruksi yang dapat dieksekusi oleh komputer, seperti Python, Java, C, dan JavaScript.', 'jenis_dari'),
+
+-- === Energi: Jenis-jenis ===
+((SELECT id FROM kata WHERE kata='energi'), 2, 'jenis', 1,
+ 'Energi Kinetik',
+ 'Energi yang dimiliki oleh benda yang bergerak. Semakin cepat benda bergerak, semakin besar energi kinetiknya. Contoh: energi angin dan energi aliran air.', 'jenis_dari'),
+((SELECT id FROM kata WHERE kata='energi'), 2, 'jenis', 2,
+ 'Energi Potensial',
+ 'Energi yang tersimpan dalam suatu benda karena posisi atau keadaannya. Contoh: energi yang tersimpan dalam baterai atau air di ketinggian tertentu.', 'jenis_dari'),
+((SELECT id FROM kata WHERE kata='energi'), 2, 'jenis', 3,
+ 'Energi Panas (Kalor)',
+ 'Energi yang dihasilkan oleh getaran partikel penyusun materi. Dapat berpindah dari benda bersuhu tinggi ke benda bersuhu rendah.', 'jenis_dari'),
+((SELECT id FROM kata WHERE kata='energi'), 2, 'jenis', 4,
+ 'Energi Listrik',
+ 'Energi yang dihasilkan oleh aliran muatan listrik. Merupakan bentuk energi yang paling banyak digunakan dalam kehidupan sehari-hari modern.', 'jenis_dari'),
+((SELECT id FROM kata WHERE kata='energi'), 2, 'jenis', 5,
+ 'Energi Cahaya',
+ 'Energi yang dibawa oleh gelombang elektromagnetik dan dapat dilihat oleh mata manusia. Sumber utamanya adalah matahari.', 'jenis_dari');
 
 COMMIT;
 

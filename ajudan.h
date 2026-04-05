@@ -33,6 +33,7 @@
 #define MAX_TOKEN_KALIMAH 64
 #define MAX_INPUT_USER 512
 #define MAX_RESPONS 2048
+#define MAX_KLAUSA 8
 #define FUZZY_MAX_KANDIDAT 10
 #define FUZZY_MIN_SKOR 0.6
 #define FUZZY_MAX_JARAK 2
@@ -99,6 +100,21 @@ typedef enum {
     SPOK_V_N,
     SPOK_V
 } StrukturSpok;
+
+/* ================================================================== *
+ *                   ENUMERASI TIPE INTENT PERTANYAAN                     *
+ * ================================================================== */
+
+typedef enum {
+    INTENT_LAIN = 0,
+    INTENT_DEFINISI,
+    INTENT_JENIS,
+    INTENT_PENJELASAN,
+    INTENT_ALASAN,
+    INTENT_CARA,
+    INTENT_PERBANDINGAN,
+    INTENT_ARTI
+} TipeIntent;
 
 typedef struct {
     char teks[MAX_PANJANG_TOKEN];
@@ -400,5 +416,20 @@ int ekstrak_topik_diperluas(
     const TokenKalimat tokens[], int jml_token,
     const SimpulKetergantungan nodes[],
     HasilEkstraksiTopik *hasil);
+
+/* ================================================================== *
+ *     DEKLARASI MODUL KLAUSA & INTENT (klausa.c)                        *
+ * ================================================================== */
+
+int ekstrak_semua_klausa_pertanyaan(
+    const char *input,
+    char klausa_out[][MAX_INPUT_USER],
+    int max_klausa);
+int deteksi_pertanyaan_implisit(
+    const char *teks);
+TipeIntent klasifikasi_intent_klausa(
+    const char *klausa,
+    char *topik_out, size_t ukuran_topik);
+void bersihkan_topik(char *topik);
 
 #endif
