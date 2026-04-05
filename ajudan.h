@@ -174,6 +174,7 @@ typedef struct {
     sqlite3_stmt *stmt_rel_semantik;
     sqlite3_stmt *stmt_pen_bertingkat_list;
     sqlite3_stmt *stmt_respon_default_acak;
+    sqlite3_stmt *stmt_sapaan_acak;
 } AjStmtCache;
 
 /* ================================================================== *

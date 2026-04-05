@@ -1466,22 +1466,29 @@ COMMIT;
 -- ========================================================================== --
 BEGIN TRANSACTION;
 
-INSERT OR IGNORE INTO jawaban_bawaan (jawaban, prioritas) VALUES
-('Maaf, saya belum memiliki informasi tentang itu. Coba tanyakan dengan cara lain atau gunakan kata kunci yang lebih spesifik.', 10),
-('Saya tidak yakin tentang topik tersebut. Bisakah Anda memberikan konteks lebih atau menanyakan dengan kata yang berbeda?', 9),
-('Hmm, pertanyaan yang menarik. Sayangnya saya belum mempelajari hal itu secara mendalam.', 8),
-('Maaf, pengetahuan saya masih terbatas tentang hal tersebut. Coba tanyakan topik lain yang berkaitan.', 8),
-('Saya belum bisa menjawab pertanyaan itu dengan baik. Silakan coba gunakan kata kunci yang lebih umum atau tanyakan kembali nanti.', 7),
-('Topik tersebut belum ada dalam basis data saya. Anda bisa mencoba bertanya tentang teknologi, sains, atau bahasa Indonesia.', 7),
-('Saya sedang terus belajar. Untuk pertanyaan itu, saya sarankan Anda mencari informasi dari sumber yang lebih terpercaya.', 6),
-('Terima kasih atas pertanyaannya, namun saya belum memiliki data yang cukup untuk memberikan jawaban yang akurat.', 6),
-('Wah, itu di luar pengetahuan saya saat ini. Mungkin Anda bisa mencoba tanya tentang komputer, internet, atau topik umum lainnya.', 5),
-('Pertanyaan bagus! Tapi sayangnya saya belum tahu jawabannya. Yuk cari tahu bersama atau coba tanya yang lain dulu.', 5),
-('Maaf, saya tidak dapat memproses pertanyaan tersebut. Pastikan kalimat yang Anda masukkan sudah jelas dan benar ejaannya.', 4),
-('Sepertinya saya perlu belajar lebih banyak tentang hal itu. Coba tanyakan sesuatu yang sudah saya kuasai dulu ya.', 4),
-('Saya mengerti pertanyaan Anda, tetapi belum memiliki data yang relevan. Coba tanyakan dengan frasa yang berbeda.', 3),
-('Hmm, sepertinya ada kesalahan dalam pemrosesan. Bisa diulang dengan kalimat yang lebih sederhana?', 3),
-('Terima kasih atas pertanyaan Anda. Saat ini saya hanya mampu menjawab pertanyaan terbatas tentang beberapa topik utama.', 2);
+INSERT OR IGNORE INTO jawaban_bawaan (jawaban, tipe, prioritas) VALUES
+-- === SAPAAN ===
+('Halo! Saya AJUDAN 3.0, asisten virtual Anda. Silakan bertanya tentang komputer, internet, teknologi, atau topik umum lainnya.', 'sapaan', 10),
+('Hai! Ada yang bisa saya bantu? Anda bisa bertanya tentang berbagai topik seperti komputer, sains, atau teknologi.', 'sapaan', 9),
+('Halo! Saya siap membantu. Coba tanyakan sesuatu tentang komputer, internet, atau topik lain yang menarik.', 'sapaan', 8),
+('Selamat datang! Saya AJUDAN, bot pengetahuan umum. Ketik pertanyaan Anda dan saya akan berusaha menjawab sebaik mungkin.', 'sapaan', 7),
+('Halo! Senang bertemu dengan Anda. Apa yang ingin Anda ketahui hari ini?', 'sapaan', 6),
+-- === FALLBACK ===
+('Maaf, saya belum memiliki informasi tentang itu. Coba tanyakan dengan cara lain atau gunakan kata kunci yang lebih spesifik.', 'fallback', 10),
+('Saya tidak yakin tentang topik tersebut. Bisakah Anda memberikan konteks lebih atau menanyakan dengan kata yang berbeda?', 'fallback', 9),
+('Hmm, pertanyaan yang menarik. Sayangnya saya belum mempelajari hal itu secara mendalam.', 'fallback', 8),
+('Maaf, pengetahuan saya masih terbatas tentang hal tersebut. Coba tanyakan topik lain yang berkaitan.', 'fallback', 8),
+('Saya belum bisa menjawab pertanyaan itu dengan baik. Silakan coba gunakan kata kunci yang lebih umum atau tanyakan kembali nanti.', 'fallback', 7),
+('Topik tersebut belum ada dalam basis data saya. Anda bisa mencoba bertanya tentang teknologi, sains, atau bahasa Indonesia.', 'fallback', 7),
+('Saya sedang terus belajar. Untuk pertanyaan itu, saya sarankan Anda mencari informasi dari sumber yang lebih terpercaya.', 'fallback', 6),
+('Terima kasih atas pertanyaannya, namun saya belum memiliki data yang cukup untuk memberikan jawaban yang akurat.', 'fallback', 6),
+('Wah, itu di luar pengetahuan saya saat ini. Mungkin Anda bisa mencoba tanya tentang komputer, internet, atau topik umum lainnya.', 'fallback', 5),
+('Pertanyaan bagus! Tapi sayangnya saya belum tahu jawabannya. Yuk cari tahu bersama atau coba tanya yang lain dulu.', 'fallback', 5),
+('Maaf, saya tidak dapat memproses pertanyaan tersebut. Pastikan kalimat yang Anda masukkan sudah jelas dan benar ejaannya.', 'fallback', 4),
+('Sepertinya saya perlu belajar lebih banyak tentang hal itu. Coba tanyakan sesuatu yang sudah saya kuasai dulu ya.', 'fallback', 4),
+('Saya mengerti pertanyaan Anda, tetapi belum memiliki data yang relevan. Coba tanyakan dengan frasa yang berbeda.', 'fallback', 3),
+('Hmm, sepertinya ada kesalahan dalam pemrosesan. Bisa diulang dengan kalimat yang lebih sederhana?', 'fallback', 3),
+('Terima kasih atas pertanyaan Anda. Saat ini saya hanya mampu menjawab pertanyaan terbatas tentang beberapa topik utama.', 'fallback', 2);
 
 COMMIT;
 

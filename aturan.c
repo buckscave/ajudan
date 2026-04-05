@@ -226,11 +226,20 @@ int aj_prepare_stmt_cache(
         -1, &cache->stmt_pen_bertingkat_list, NULL);
     if (rc != SQLITE_OK) goto gagal;
 
-    /* stmt 10: jawaban_bawaan random */
+    /* stmt 10: jawaban_bawaan random (fallback) */
     rc = sqlite3_prepare_v2(db,
         "SELECT jawaban FROM jawaban_bawaan "
+        "WHERE tipe = 'fallback' "
         "ORDER BY RANDOM() LIMIT 1;",
         -1, &cache->stmt_respon_default_acak, NULL);
+    if (rc != SQLITE_OK) goto gagal;
+
+    /* stmt 11: sapaan random */
+    rc = sqlite3_prepare_v2(db,
+        "SELECT jawaban FROM jawaban_bawaan "
+        "WHERE tipe = 'sapaan' "
+        "ORDER BY RANDOM() LIMIT 1;",
+        -1, &cache->stmt_sapaan_acak, NULL);
     if (rc != SQLITE_OK) goto gagal;
 
     return 0;
@@ -288,6 +297,11 @@ void aj_finalize_stmt_cache(AjStmtCache *cache)
         sqlite3_finalize(
             cache->stmt_respon_default_acak);
         cache->stmt_respon_default_acak = NULL;
+    }
+    if (cache->stmt_sapaan_acak) {
+        sqlite3_finalize(
+            cache->stmt_sapaan_acak);
+        cache->stmt_sapaan_acak = NULL;
     }
 }
 
@@ -351,6 +365,7 @@ int normalisasi_frasa_input_dari_db(
     char fra_lo[MAX_PANJANG_STRING];
     int len_fa, len_fh, offset;
     size_t sisa_len;
+    int batas_ok;
 
     if (!db || !cache || !input_asli
         || !input_norm || ukuran_input == 0) {
@@ -387,6 +402,40 @@ int normalisasi_frasa_input_dari_db(
         pos = strstr(buf_lo, fra_lo);
         while (pos != NULL) {
             offset = (int)(pos - buf_lo);
+
+            /*
+             * Pengecekan batas kata (word boundary):
+             * frasa harus berdiri sendiri sebagai kata,
+             * bukan bagian dari kata lain.
+             * Contoh: "lo" harus cocok di "lo ya"
+             * tapi TIDAK di "halo".
+             */
+            batas_ok = 1;
+            /* Karakter sebelumnya harus awal string,
+             * spasi, atau tanda baca */
+            if (offset > 0) {
+                if (isalnum((unsigned char)
+                    buf_lo[offset - 1])) {
+                    batas_ok = 0;
+                }
+            }
+            /* Karakter sesudahnya harus akhir string,
+             * spasi, atau tanda baca */
+            if (batas_ok
+                && (offset + len_fa)
+                    < (int)strlen(buf_lo)) {
+                if (isalnum((unsigned char)
+                    buf_lo[offset + len_fa])) {
+                    batas_ok = 0;
+                }
+            }
+
+            if (!batas_ok) {
+                /* Lanjutkan pencarian dari pos+1 */
+                pos = strstr(pos + 1, fra_lo);
+                continue;
+            }
+
             sisa_len = strlen(
                 input_norm + offset + len_fa) + 1;
 
@@ -1366,30 +1415,31 @@ static void tangani_sapaan(
     char *output,
     size_t ukuran_output)
 {
-    static const char *SAPAAN_BALASAN[] = {
-        "Halo! Saya AJUDAN 3.0, asisten virtual Anda. "
-        "Silakan bertanya tentang komputer, internet, "
-        "teknologi, atau topik umum lainnya.",
-        "Hai! Ada yang bisa saya bantu? Anda bisa "
-        "bertanya tentang berbagai topik seperti "
-        "komputer, sains, atau teknologi.",
-        "Halo! Saya siap membantu. Coba tanyakan "
-        "sesuatu tentang komputer, internet, "
-        "atau topik lain yang menarik.",
-        "Selamat datang! Saya AJUDAN, bot pengetahuan "
-        "umum. Ketik pertanyaan Anda dan saya akan "
-        "berusaha menjawab sebaik mungkin."
-    };
-    static const int JML_SAPAAN = 4;
-    int idx;
+    const char *val;
+    int rc;
 
-    (void)db;
-    (void)cache;
+    if (!db || !cache || !output || ukuran_output == 0) return;
 
-    idx = (int)(time(NULL) % (unsigned long)JML_SAPAAN);
+    rc = sqlite3_reset(cache->stmt_sapaan_acak);
+    if (rc != SQLITE_OK) {
+        snprintf(output, ukuran_output,
+            "Halo! Saya AJUDAN, asisten virtual Anda.");
+        return;
+    }
 
-    snprintf(output, ukuran_output, "%s",
-        SAPAAN_BALASAN[idx]);
+    if (sqlite3_step(cache->stmt_sapaan_acak) == SQLITE_ROW) {
+        val = (const char *)sqlite3_column_text(
+            cache->stmt_sapaan_acak, 0);
+        if (val && val[0]) {
+            snprintf(output, ukuran_output, "%s", val);
+            sqlite3_reset(cache->stmt_sapaan_acak);
+            return;
+        }
+    }
+
+    sqlite3_reset(cache->stmt_sapaan_acak);
+    snprintf(output, ukuran_output,
+        "Halo! Saya AJUDAN, asisten virtual Anda.");
 }
 
 void tangani_permintaan_arti_kata(sqlite3 *db, AjStmtCache *cache, const char *topik, char *output, size_t ukuran_output) {

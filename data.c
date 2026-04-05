@@ -284,6 +284,7 @@ int buat_tabel_jawaban_bawaan(sqlite3 *db, InfoKesalahan *error) {
         "CREATE TABLE IF NOT EXISTS jawaban_bawaan ("
         "id INTEGER PRIMARY KEY, "
         "jawaban TEXT NOT NULL, "
+        "tipe TEXT DEFAULT 'fallback', "
         "prioritas INTEGER DEFAULT 1"
         ");";
     ajudan_logf("Buat tabel: %s", "jawaban_bawaan", NULL, NULL);
