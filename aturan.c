@@ -1,12 +1,15 @@
 /* ========================================================================== *
- * AJUDAN 3.0 - Rulebase (basisaturan2.c)                                     *
+ * AJUDAN 3.1 - Rulebase (aturan.c)                                           *
  * -------------------------------------------------------------------------- *
  * C89, POSIX, SQLITE3                                                        *
  * -------------------------------------------------------------------------- *
- * Penulis: Chandra Lesmana, Diperbaiki dan Ditingkatkan                       *
+ * Modul rulebase: normalisasi, tokenisasi, fuzzy,                           *
+ * prepared statement cache, SPOK, dan pipeline utama                        *
+ * percakapan. Handler respon dipindahkan ke percakapan.c.                   *
  * ========================================================================== */
 
 #include "ajudan.h"
+#include <stdio.h>
 
 /* ========================================================================== *
  *                          STATE & KONTEKS GLOBAL                            *
@@ -470,19 +473,30 @@ int normalisasi_frasa_input_dari_db(
     return 0;
 }
 
-int cari_topik_dengan_fuzzy(sqlite3 *db, AjStmtCache *cache, const char *masukan, char *topik_norm, size_t ukuran, int jarak_maks, double skor_min, KandidatFuzzy kandidat[], int max_kandidat) {
+int cari_topik_dengan_fuzzy(
+    sqlite3 *db, AjStmtCache *cache,
+    const char *masukan,
+    char *topik_norm, size_t ukuran,
+    int jarak_maks, double skor_min,
+    KandidatFuzzy kandidat[], int max_kandidat)
+{
     int rc, count, idx, i, jarak, pl, pm, panjang_max;
     double skor;
     const char *kata;
 
-    if (!db || !cache || !masukan || !topik_norm || ukuran == 0) return -1;
+    if (!db || !cache || !masukan || !topik_norm
+        || ukuran == 0) {
+        return -1;
+    }
 
     rc = sqlite3_reset(cache->stmt_kata_list);
     if (rc != SQLITE_OK) return -1;
 
     count = 0;
-    while (sqlite3_step(cache->stmt_kata_list) == SQLITE_ROW) {
-        kata = (const char*)sqlite3_column_text(cache->stmt_kata_list, 0);
+    while (sqlite3_step(cache->stmt_kata_list)
+        == SQLITE_ROW) {
+        kata = (const char *)sqlite3_column_text(
+            cache->stmt_kata_list, 0);
         if (!kata) continue;
 
         jarak = hitung_jarak_levenshtein(masukan, kata);
@@ -491,9 +505,15 @@ int cari_topik_dengan_fuzzy(sqlite3 *db, AjStmtCache *cache, const char *masukan
         panjang_max = (pl > pm) ? pl : pm;
         skor = hitung_skor_fuzzy(jarak, panjang_max);
 
-        if (jarak <= jarak_maks && skor >= skor_min && count < max_kandidat) {
-            snprintf(kandidat[count].teks, sizeof(kandidat[count].teks), "%s", masukan);
-            snprintf(kandidat[count].cocok, sizeof(kandidat[count].cocok), "%s", kata);
+        if (jarak <= jarak_maks
+            && skor >= skor_min
+            && count < max_kandidat) {
+            snprintf(kandidat[count].teks,
+                sizeof(kandidat[count].teks),
+                "%s", masukan);
+            snprintf(kandidat[count].cocok,
+                sizeof(kandidat[count].cocok),
+                "%s", kata);
             kandidat[count].jarak = jarak;
             kandidat[count].skor = skor;
             count++;
@@ -504,10 +524,18 @@ int cari_topik_dengan_fuzzy(sqlite3 *db, AjStmtCache *cache, const char *masukan
     if (count > 0) {
         idx = 0;
         for (i = 1; i < count; i++) {
-            if (kandidat[i].skor > kandidat[idx].skor) idx = i;
-            else if (kandidat[i].skor == kandidat[idx].skor && kandidat[i].jarak < kandidat[idx].jarak) idx = i;
+            if (kandidat[i].skor
+                > kandidat[idx].skor) {
+                idx = i;
+            } else if (kandidat[i].skor
+                    == kandidat[idx].skor
+                && kandidat[i].jarak
+                    < kandidat[idx].jarak) {
+                idx = i;
+            }
         }
-        snprintf(topik_norm, ukuran, "%s", kandidat[idx].cocok);
+        snprintf(topik_norm, ukuran, "%s",
+            kandidat[idx].cocok);
         return 0;
     }
 
@@ -516,10 +544,10 @@ int cari_topik_dengan_fuzzy(sqlite3 *db, AjStmtCache *cache, const char *masukan
 }
 
 /* ========================================================================== *
- *                        TOKENISASI & KATEGORI FALLBACK                      *
+ *                     TOKENISASI & KATEGORI FALLBACK                          *
  * ========================================================================== */
 
-static int tokenisasi_dengan_stem(
+int tokenisasi_dengan_stem(
     sqlite3 *db,
     const char *kalimat,
     TokenKalimat tokens[],
@@ -545,7 +573,7 @@ static int tokenisasi_dengan_stem(
     return jml;
 }
 
-static int isi_kategori_dengan_stem(
+int isi_kategori_dengan_stem(
     sqlite3 *db,
     AjStmtCache *cache,
     TokenKalimat tokens[],
@@ -587,7 +615,8 @@ static int isi_kategori_dengan_stem(
                 sqlite3_reset(cache->stmt_kategori_kata);
                 sqlite3_bind_text(
                     cache->stmt_kategori_kata,
-                    1, kata_stem, -1, SQLITE_TRANSIENT);
+                    1, kata_stem, -1,
+                    SQLITE_TRANSIENT);
 
                 if (sqlite3_step(
                     cache->stmt_kategori_kata)
@@ -605,7 +634,8 @@ static int isi_kategori_dengan_stem(
                         cari_kategori_fallback_dari_db(
                             db, teks);
                     if (tokens[i].lema[0] == '\0') {
-                        snprintf(tokens[i].lema,
+                        snprintf(
+                            tokens[i].lema,
                             sizeof(tokens[i].lema),
                             "%s", teks);
                     }
@@ -628,22 +658,30 @@ static int isi_kategori_dengan_stem(
     return 0;
 }
 
-int tokenisasi_kalimat(const char *kalimat, TokenKalimat tokens[], int max_tokens) {
+int tokenisasi_kalimat(
+    const char *kalimat,
+    TokenKalimat tokens[], int max_tokens)
+{
     char buf[MAX_INPUT_USER];
     char *tok;
     int count, i;
 
-    if (!kalimat || !tokens || max_tokens <= 0) return 0;
+    if (!kalimat || !tokens || max_tokens <= 0)
+        return 0;
 
     snprintf(buf, sizeof(buf), "%s", kalimat);
     for (i = 0; buf[i]; i++) {
-        if (ispunct((unsigned char)buf[i]) && buf[i] != '-') buf[i] = ' ';
+        if (ispunct((unsigned char)buf[i])
+            && buf[i] != '-') {
+            buf[i] = ' ';
+        }
     }
 
     tok = strtok(buf, " \t\n");
     count = 0;
     while (tok && count < max_tokens) {
-        snprintf(tokens[count].teks, sizeof(tokens[count].teks), "%s", tok);
+        snprintf(tokens[count].teks,
+            sizeof(tokens[count].teks), "%s", tok);
         tokens[count].lema[0] = '\0';
         tokens[count].pos = POS_UNKNOWN;
         tokens[count].id = count;
@@ -653,52 +691,84 @@ int tokenisasi_kalimat(const char *kalimat, TokenKalimat tokens[], int max_token
     return count;
 }
 
-KategoriPOS cari_kategori_fallback_dari_db(sqlite3 *db, const char *kata) {
+KategoriPOS cari_kategori_fallback_dari_db(
+    sqlite3 *db, const char *kata)
+{
     int len, i, all_digit;
 
     (void)db;
     if (!kata || !kata[0]) return POS_UNKNOWN;
 
-    if (isupper((unsigned char)kata[0])) return POS_PROPER_NOUN;
+    if (isupper((unsigned char)kata[0]))
+        return POS_PROPER_NOUN;
 
     len = (int)strlen(kata);
     all_digit = 1;
     for (i = 0; i < len; i++) {
-        if (!isdigit((unsigned char)kata[i])) { all_digit = 0; break; }
+        if (!isdigit((unsigned char)kata[i])) {
+            all_digit = 0;
+            break;
+        }
     }
     if (all_digit) return POS_NUMERALIA;
 
-    if (strncmp(kata, "me", 2) == 0 || strncmp(kata, "ber", 3) == 0 || strncmp(kata, "di", 2) == 0 || strncmp(kata, "ter", 3) == 0)
+    if (strncmp(kata, "me", 2) == 0
+        || strncmp(kata, "ber", 3) == 0
+        || strncmp(kata, "di", 2) == 0
+        || strncmp(kata, "ter", 3) == 0) {
         return POS_VERBA;
-    if (strncmp(kata, "pe", 2) == 0 || strncmp(kata, "pen", 3) == 0 || strncmp(kata, "peng", 4) == 0 || strncmp(kata, "peny", 4) == 0)
+    }
+    if (strncmp(kata, "pe", 2) == 0
+        || strncmp(kata, "pen", 3) == 0
+        || strncmp(kata, "peng", 4) == 0
+        || strncmp(kata, "peny", 4) == 0) {
         return POS_NOMINA;
+    }
     if (len > 2) {
-        if (strcmp(kata + len - 2, "an") == 0) return POS_NOMINA;
-        if (strcmp(kata + len - 1, "i") == 0 || (len > 3 && strcmp(kata + len - 3, "kan") == 0)) return POS_VERBA;
+        if (strcmp(kata + len - 2, "an") == 0)
+            return POS_NOMINA;
+        if (strcmp(kata + len - 1, "i") == 0
+            || (len > 3
+                && strcmp(kata + len - 3, "kan") == 0)) {
+            return POS_VERBA;
+        }
     }
     return POS_NOMINA;
 }
 
-int isi_kategori_dari_database(sqlite3 *db, AjStmtCache *cache, TokenKalimat tokens[], int jml_token) {
+int isi_kategori_dari_database(
+    sqlite3 *db, AjStmtCache *cache,
+    TokenKalimat tokens[], int jml_token)
+{
     int i, rc;
     const char *teks;
     const char *pos_str;
 
-    if (!db || !cache || !tokens || jml_token <= 0) return -1;
+    if (!db || !cache || !tokens || jml_token <= 0)
+        return -1;
 
     rc = sqlite3_reset(cache->stmt_kategori_kata);
     if (rc != SQLITE_OK) return -1;
 
     for (i = 0; i < jml_token; i++) {
         teks = tokens[i].teks;
-        sqlite3_bind_text(cache->stmt_kategori_kata, 1, teks, -1, SQLITE_TRANSIENT);
-        if (sqlite3_step(cache->stmt_kategori_kata) == SQLITE_ROW) {
-            pos_str = (const char*)sqlite3_column_text(cache->stmt_kategori_kata, 0);
+        sqlite3_bind_text(cache->stmt_kategori_kata,
+            1, teks, -1, SQLITE_TRANSIENT);
+        if (sqlite3_step(cache->stmt_kategori_kata)
+            == SQLITE_ROW) {
+            pos_str = (const char *)
+                sqlite3_column_text(
+                    cache->stmt_kategori_kata, 0);
             tokens[i].pos = parse_pos(pos_str);
-            snprintf(tokens[i].lema, sizeof(tokens[i].lema), "%s", teks);
+            snprintf(tokens[i].lema,
+                sizeof(tokens[i].lema),
+                "%s", teks);
         } else {
-            tokens[i].pos = cari_kategori_fallback_dari_db(db, teks);
-            snprintf(tokens[i].lema, sizeof(tokens[i].lema), "%s", teks);
+            tokens[i].pos =
+                cari_kategori_fallback_dari_db(db, teks);
+            snprintf(tokens[i].lema,
+                sizeof(tokens[i].lema),
+                "%s", teks);
         }
         sqlite3_reset(cache->stmt_kategori_kata);
     }
@@ -706,29 +776,7 @@ int isi_kategori_dari_database(sqlite3 *db, AjStmtCache *cache, TokenKalimat tok
 }
 
 /* ========================================================================== *
- *                           DEPENDENCY TREE SEDERHANA                         *
- * ========================================================================== */
-
-int bangun_pohon_ketergantungan(TokenKalimat tokens[], int jml_token, SimpulKetergantungan *nodes, int verbose) {
-    int i;
-    (void)verbose;
-    if (!tokens || !nodes || jml_token <= 0) return -1;
-
-    for (i = 0; i < jml_token; i++) {
-        nodes[i].token = &tokens[i];
-        nodes[i].head_id = (i == 0) ? -1 : 0;
-        snprintf(nodes[i].relasi, sizeof(nodes[i].relasi),
-                 (tokens[i].pos == POS_VERBA) ? "predikat" :
-                 (tokens[i].pos == POS_NOMINA || tokens[i].pos == POS_PROPER_NOUN) ? "nomina" :
-                 "lain");
-        nodes[i].children = NULL;
-        nodes[i].next = (i + 1 < jml_token) ? &nodes[i + 1] : NULL;
-    }
-    return 0;
-}
-
-/* ========================================================================== *
- *                           DETEKSI JENIS KALIMAT                             *
+ *                         DETEKSI JENIS KALIMAT                               *
  * ========================================================================== */
 
 int deteksi_jenis_dan_sumber_dari_db(
@@ -758,10 +806,12 @@ int deteksi_jenis_dan_sumber_dari_db(
         == SQLITE_ROW) {
         pola_teks = (const char *)sqlite3_column_text(
             cache->stmt_deteksi_pola, 0);
-        jenis_kalimat = (const char *)sqlite3_column_text(
-            cache->stmt_deteksi_pola, 1);
-        id_hubungan_str = (const char *)sqlite3_column_text(
-            cache->stmt_deteksi_pola, 2);
+        jenis_kalimat = (const char *)
+            sqlite3_column_text(
+                cache->stmt_deteksi_pola, 1);
+        id_hubungan_str = (const char *)
+            sqlite3_column_text(
+                cache->stmt_deteksi_pola, 2);
 
         if (!pola_teks || !jenis_kalimat) continue;
 
@@ -769,7 +819,8 @@ int deteksi_jenis_dan_sumber_dari_db(
         if (strstr(kalimat_norm, pola_teks) != NULL) {
             snprintf(jenis, ukuran_jenis, "%s",
                 jenis_kalimat);
-            if (id_hubungan_str && id_hubungan_str[0]) {
+            if (id_hubungan_str
+                && id_hubungan_str[0]) {
                 snprintf(sumber, ukuran_sumber, "%s",
                     id_hubungan_str);
             } else {
@@ -786,208 +837,7 @@ int deteksi_jenis_dan_sumber_dari_db(
 }
 
 /* ========================================================================== *
- *                           ANALISIS STRUKTUR SPOK                           *
- * ========================================================================== */
-
-int analisis_struktur_spok(sqlite3 *db, TokenKalimat tokens[], int jml_token, HasilAnalisisSpok *spok) {
-    int i, found_v, found_n;
-
-    (void)db;
-    if (!tokens || !spok || jml_token <= 0) return -1;
-
-    spok->subjek[0] = '\0';
-    spok->predikat[0] = '\0';
-    spok->objek[0] = '\0';
-    spok->keterangan[0] = '\0';
-    spok->jml_entitas_dikenal = 0;
-    spok->jml_entitas_otomatis = 0;
-    spok->struktur = SPOK_TIDAK_DIKENAL;
-
-    found_v = -1;
-    found_n = -1;
-
-    for (i = 0; i < jml_token; i++) {
-        if (tokens[i].pos == POS_VERBA) { found_v = i; break; }
-    }
-    for (i = 0; i < jml_token && i != found_v; i++) {
-        if (tokens[i].pos == POS_NOMINA || tokens[i].pos == POS_PROPER_NOUN) { found_n = i; break; }
-    }
-
-    if (found_n >= 0) snprintf(spok->subjek, sizeof(spok->subjek), "%s", tokens[found_n].teks);
-    if (found_v >= 0) snprintf(spok->predikat, sizeof(spok->predikat), "%s", tokens[found_v].teks);
-
-    for (i = found_v + 1; found_v >= 0 && i < jml_token; i++) {
-        if (tokens[i].pos == POS_NOMINA || tokens[i].pos == POS_PROPER_NOUN) {
-            snprintf(spok->objek, sizeof(spok->objek), "%s", tokens[i].teks);
-            break;
-        }
-    }
-
-    if (found_n >= 0 && found_v >= 0 && spok->objek[0] != '\0') spok->struktur = SPOK_N_V_N;
-    else if (found_n >= 0 && found_v >= 0) spok->struktur = SPOK_N_V;
-    else spok->struktur = SPOK_TIDAK_DIKENAL;
-
-    return 0;
-}
-
-/* ========================================================================== *
- *                          EKSTRAKSI TOPIK UTAMA                             *
- * ========================================================================== */
-
-static int is_angka(const char *s) {
-    while (*s) {
-        if (!isdigit((unsigned char)*s)) return 0;
-        s++;
-    }
-    return 1;
-}
-
-void ekstrak_topik_utama(sqlite3 *db, TokenKalimat tokens[], int jml_token, HasilEkstraksiTopik *hasil) {
-    int i, k, bi, n;
-    sqlite3_stmt *stmt;
-    char buf[MAX_INPUT_USER];
-    char ngram[256];
-    char *last_space;
-
-    (void)db;
-    if (!tokens || jml_token <= 0 || !hasil) return;
-
-    hasil->topik_utama[0] = '\0';
-    hasil->sub_topik[0] = '\0';
-    hasil->kuantitas[0] = '\0';
-    buf[0] = '\0';
-    bi = 0;
-
-    for (i = 0; i < jml_token; i++) {
-        const char *tok = tokens[i].teks;
-        if (ajudan_strcasecmp(tok, "salah") == 0 && i + 1 < jml_token && ajudan_strcasecmp(tokens[i + 1].teks, "satu") == 0) {
-            snprintf(hasil->kuantitas, sizeof(hasil->kuantitas), "salah satu");
-        } else if (ajudan_strcasecmp(tok, "beberapa") == 0) {
-            snprintf(hasil->kuantitas, sizeof(hasil->kuantitas), "%s", tok);
-        } else if (strncmp(tok, "ke", 2) == 0 && strlen(tok) > 2 && is_angka(tok + 2)) {
-            snprintf(hasil->kuantitas, sizeof(hasil->kuantitas), "%s", tok);
-        }
-    }
-
-    for (i = 0; i < jml_token; i++) {
-        const char *tok = tokens[i].teks;
-        int skip = 0;
-        size_t needed, l;
-
-        if (strlen(hasil->kuantitas) > 0 && ajudan_strcasecmp(tok, hasil->kuantitas) == 0) skip = 1;
-
-        stmt = NULL;
-        if (sqlite3_prepare_v2(db, "SELECT 1 FROM kata_fungsional kf JOIN kata k ON kf.id_kata=k.id WHERE lower(k.kata)=lower(?) LIMIT 1;", -1, &stmt, NULL) == SQLITE_OK) {
-            sqlite3_bind_text(stmt, 1, tok, -1, SQLITE_TRANSIENT);
-            if (sqlite3_step(stmt) == SQLITE_ROW) skip = 1;
-            sqlite3_finalize(stmt);
-        }
-
-        for (k = 0; tok[k]; k++) {
-            if (isdigit((unsigned char)tok[k])) { skip = 1; break; }
-        }
-
-        if (!skip) {
-            needed = strlen(tok) + ((buf[0] != '\0') ? 1U : 0U);
-            if (strlen(buf) + needed < sizeof(buf)) {
-                if (buf[0] != '\0') { buf[bi++] = ' '; buf[bi] = '\0'; }
-                l = strlen(tok);
-                if (bi + (int)l < (int)sizeof(buf) - 1) { strncpy(buf + bi, tok, l); bi += (int)l; buf[bi] = '\0'; }
-            }
-        }
-    }
-
-    for (n = 3; n >= 2; n--) {
-        for (i = 0; i + n <= jml_token; i++) {
-            int kk;
-            ngram[0] = '\0';
-            for (kk = 0; kk < n; kk++) {
-                if (kk > 0) strncat(ngram, " ", sizeof(ngram) - strlen(ngram) - 1);
-                strncat(ngram, tokens[i + kk].teks, sizeof(ngram) - strlen(ngram) - 1);
-            }
-
-            stmt = NULL;
-            if (sqlite3_prepare_v2(db, "SELECT 1 FROM pengetahuan_umum pu JOIN kata k ON pu.id_kata=k.id WHERE lower(k.kata)=lower(?) LIMIT 1;", -1, &stmt, NULL) == SQLITE_OK) {
-                sqlite3_bind_text(stmt, 1, ngram, -1, SQLITE_TRANSIENT);
-                if (sqlite3_step(stmt) == SQLITE_ROW) {
-                    snprintf(buf, sizeof(buf), "%s", ngram);
-                    sqlite3_finalize(stmt);
-                    goto done_ngram;
-                }
-                sqlite3_finalize(stmt);
-            }
-            if (sqlite3_prepare_v2(db, "SELECT 1 FROM kata WHERE lower(kata)=lower(?) LIMIT 1;", -1, &stmt, NULL) == SQLITE_OK) {
-                sqlite3_bind_text(stmt, 1, ngram, -1, SQLITE_TRANSIENT);
-                if (sqlite3_step(stmt) == SQLITE_ROW) {
-                    snprintf(buf, sizeof(buf), "%s", ngram);
-                    sqlite3_finalize(stmt);
-                    goto done_ngram;
-                }
-                sqlite3_finalize(stmt);
-            }
-        }
-    }
-
-done_ngram:
-    trim(buf);
-    to_lower_case(buf);
-
-    last_space = strrchr(buf, ' ');
-    if (last_space) {
-        /*
-         * Ambil kata terakhir sebagai topik_utama,
-         * sisa sebagai sub_topik.
-         * Tapi jika sisa berisi hanya kata fungsional,
-         * gunakan seluruh buf sebagai topik.
-         */
-        char kiri[MAX_INPUT_USER];
-        sqlite3_stmt *stmt2;
-        int sub_is_only_func;
-
-        snprintf(kiri, sizeof(kiri), "%s", buf);
-        *last_space = '\0';
-
-        sub_is_only_func = 0;
-        stmt2 = NULL;
-        if (sqlite3_prepare_v2(db,
-            "SELECT 1 FROM kata "
-            "WHERE lower(kata) = lower(?) "
-            "AND kelas_id IN (5,6,7,8,10,11) "
-            "LIMIT 1;",
-            -1, &stmt2, NULL) == SQLITE_OK) {
-            sqlite3_bind_text(stmt2, 1, kiri,
-                -1, SQLITE_TRANSIENT);
-            if (sqlite3_step(stmt2) == SQLITE_ROW) {
-                sub_is_only_func = 1;
-            }
-            sqlite3_finalize(stmt2);
-        }
-
-        if (sub_is_only_func && strlen(buf) > 0) {
-            /* Sub-topik hanya kata fungsional,
-             * gunakan seluruh buf sebagai topik */
-            snprintf(hasil->topik_utama,
-                sizeof(hasil->topik_utama), "%s", buf);
-            hasil->sub_topik[0] = '\0';
-        } else {
-            snprintf(hasil->topik_utama,
-                sizeof(hasil->topik_utama), "%s",
-                last_space + 1);
-            snprintf(hasil->sub_topik,
-                sizeof(hasil->sub_topik), "%s",
-                kiri);
-        }
-    } else {
-        snprintf(hasil->topik_utama,
-            sizeof(hasil->topik_utama), "%s", buf);
-    }
-
-    trim(hasil->topik_utama);
-    trim(hasil->sub_topik);
-}
-
-/* ========================================================================== *
- *                  PENCARIAN ENTITAS TERKAIT DENGAN FILTER                   *
+ *                PENCARIAN ENTITAS TERKAIT DENGAN FILTER                      *
  * ========================================================================== */
 
 int cari_entitas_terkait_dengan_filter(
@@ -997,50 +847,86 @@ int cari_entitas_terkait_dengan_filter(
     const char *filter_bidang,
     const char *filter_gaya,
     EntitasTerkait hasil[],
-    int max_hasil
-) {
+    int max_hasil)
+{
     sqlite3_stmt *stmt = NULL;
     int count = 0;
     const char *sql =
-        "SELECT k.kata, ak.arti, kk.nama, b.nama, rk.nama "
+        "SELECT k.kata, ak.arti, kk.nama, b.nama, "
+        "rk.nama "
         "FROM kata k "
-        "LEFT JOIN arti_kata ak ON k.id = ak.id_kata "
-        "LEFT JOIN kelas_kata kk ON k.kelas_id = kk.id "
-        "LEFT JOIN bidang b ON k.bidang_id = b.id "
-        "LEFT JOIN ragam_kata rk ON k.ragam_id = rk.id "
+        "LEFT JOIN arti_kata ak "
+        "ON k.id = ak.id_kata "
+        "LEFT JOIN kelas_kata kk "
+        "ON k.kelas_id = kk.id "
+        "LEFT JOIN bidang b "
+        "ON k.bidang_id = b.id "
+        "LEFT JOIN ragam_kata rk "
+        "ON k.ragam_id = rk.id "
         "WHERE lower(k.kata) LIKE lower(?) "
         "AND (?='' OR kk.nama=? ) "
         "AND (?='' OR b.nama=? ) "
         "AND (?='' OR rk.nama=? ) "
         "LIMIT ?;";
 
-    if (!db || !kata_kunci || !hasil || max_hasil <= 0) return -1;
+    if (!db || !kata_kunci || !hasil || max_hasil <= 0)
+        return -1;
 
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL)
+        != SQLITE_OK) {
         return -1;
     }
 
-    sqlite3_bind_text(stmt, 1, kata_kunci, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 2, filter_kategori ? filter_kategori : "", -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 3, filter_kategori ? filter_kategori : "", -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 4, filter_bidang ? filter_bidang : "", -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 5, filter_bidang ? filter_bidang : "", -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 6, filter_gaya ? filter_gaya : "", -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 7, filter_gaya ? filter_gaya : "", -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 1, kata_kunci, -1,
+        SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2,
+        filter_kategori ? filter_kategori : "",
+        -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3,
+        filter_kategori ? filter_kategori : "",
+        -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 4,
+        filter_bidang ? filter_bidang : "",
+        -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 5,
+        filter_bidang ? filter_bidang : "",
+        -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 6,
+        filter_gaya ? filter_gaya : "",
+        -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 7,
+        filter_gaya ? filter_gaya : "",
+        -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt, 8, max_hasil);
 
-    while (sqlite3_step(stmt) == SQLITE_ROW && count < max_hasil) {
-        const char *k = (const char*)sqlite3_column_text(stmt, 0);
-        const char *a = (const char*)sqlite3_column_text(stmt, 1);
-        const char *c = (const char*)sqlite3_column_text(stmt, 2);
-        const char *b = (const char*)sqlite3_column_text(stmt, 3);
-        const char *g = (const char*)sqlite3_column_text(stmt, 4);
+    while (sqlite3_step(stmt) == SQLITE_ROW
+        && count < max_hasil) {
+        const char *k = (const char *)
+            sqlite3_column_text(stmt, 0);
+        const char *a = (const char *)
+            sqlite3_column_text(stmt, 1);
+        const char *c = (const char *)
+            sqlite3_column_text(stmt, 2);
+        const char *b = (const char *)
+            sqlite3_column_text(stmt, 3);
+        const char *g = (const char *)
+            sqlite3_column_text(stmt, 4);
 
-        snprintf(hasil[count].kata, sizeof(hasil[count].kata), "%s", k ? k : "");
-        snprintf(hasil[count].arti, sizeof(hasil[count].arti), "%s", a ? a : "");
-        snprintf(hasil[count].kategori, sizeof(hasil[count].kategori), "%s", c ? c : "");
-        snprintf(hasil[count].bidang, sizeof(hasil[count].bidang), "%s", b ? b : "");
-        snprintf(hasil[count].gaya, sizeof(hasil[count].gaya), "%s", g ? g : "");
+        snprintf(hasil[count].kata,
+            sizeof(hasil[count].kata), "%s",
+            k ? k : "");
+        snprintf(hasil[count].arti,
+            sizeof(hasil[count].arti), "%s",
+            a ? a : "");
+        snprintf(hasil[count].kategori,
+            sizeof(hasil[count].kategori), "%s",
+            c ? c : "");
+        snprintf(hasil[count].bidang,
+            sizeof(hasil[count].bidang), "%s",
+            b ? b : "");
+        snprintf(hasil[count].gaya,
+            sizeof(hasil[count].gaya), "%s",
+            g ? g : "");
         hasil[count].skor_relevansi = 1.0;
         count++;
     }
@@ -1050,7 +936,7 @@ int cari_entitas_terkait_dengan_filter(
 }
 
 /* ========================================================================== *
- *                       QUERY ISI: MAKNA, RELASI, PENGETAHUAN                *
+ *              QUERY ISI: MAKNA, RELASI, PENGETAHUAN                         *
  * ========================================================================== */
 
 int ambil_arti_kata(
@@ -1076,7 +962,8 @@ int ambil_arti_kata(
     sqlite3_bind_text(cache->stmt_arti_kata,
         1, lema, -1, SQLITE_TRANSIENT);
 
-    if (sqlite3_step(cache->stmt_arti_kata) == SQLITE_ROW) {
+    if (sqlite3_step(cache->stmt_arti_kata)
+        == SQLITE_ROW) {
         defi = (const char *)sqlite3_column_text(
             cache->stmt_arti_kata, 0);
         if (defi) {
@@ -1124,9 +1011,10 @@ int ambil_pengetahuan_umum(
     const char *j, *r, *p, *s;
     char kata_stem[MAX_PANJANG_TOKEN];
 
-    if (!db || !cache || !topik || !judul || !ringkasan
-        || !penjelasan || !saran || uj == 0 || ur == 0
-        || up == 0 || us == 0) {
+    if (!db || !cache || !topik || !judul
+        || !ringkasan || !penjelasan || !saran
+        || uj == 0 || ur == 0 || up == 0
+        || us == 0) {
         return -1;
     }
 
@@ -1189,7 +1077,8 @@ int ambil_pengetahuan_umum(
     }
 
     if (judul[0] == '\0' && ringkasan[0] == '\0'
-        && penjelasan[0] == '\0' && saran[0] == '\0') {
+        && penjelasan[0] == '\0'
+        && saran[0] == '\0') {
         return -1;
     }
 
@@ -1228,8 +1117,9 @@ int ambil_hubungan_semantik(
             == SQLITE_ROW) {
             kata2 = (const char *)sqlite3_column_text(
                 cache->stmt_rel_semantik, 0);
-            jenis_hub = (const char *)sqlite3_column_text(
-                cache->stmt_rel_semantik, 1);
+            jenis_hub = (const char *)
+                sqlite3_column_text(
+                    cache->stmt_rel_semantik, 1);
             if (kata2) {
                 snprintf(frag, sizeof(frag), "%s %s",
                     (jenis_hub && jenis_hub[0])
@@ -1266,7 +1156,7 @@ int ambil_hubungan_semantik(
 }
 
 /* ========================================================================== *
- *                     GENERATOR RESPONS: SPOK + BERTINGKAT                   *
+ *                GENERATOR RESPONS: SPOK + BERTINGKAT                         *
  * ========================================================================== */
 
 int format_respons_daftar(
@@ -1291,10 +1181,12 @@ int format_respons_daftar(
 
     snprintf(header, sizeof(header),
         "Berikut %s %s:\n",
-        ajudan_strcasecmp(topik_bertingkat, "fakta") == 0
+        ajudan_strcasecmp(topik_bertingkat, "fakta")
+            == 0
             ? "daftar"
             : (ajudan_strcasecmp(
-                topik_bertingkat, "penyebab") == 0
+                topik_bertingkat, "penyebab")
+                == 0
                 ? "hal terkait" : "langkah"),
         kata);
     snprintf(output, uo, "%s", header);
@@ -1302,13 +1194,16 @@ int format_respons_daftar(
     rc = sqlite3_reset(cache->stmt_pen_bertingkat_list);
     if (rc != SQLITE_OK) return -1;
 
-    sqlite3_bind_text(cache->stmt_pen_bertingkat_list,
+    sqlite3_bind_text(
+        cache->stmt_pen_bertingkat_list,
         1, kata, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(cache->stmt_pen_bertingkat_list,
+    sqlite3_bind_text(
+        cache->stmt_pen_bertingkat_list,
         2, topik_bertingkat, -1, SQLITE_TRANSIENT);
 
     i = 0;
-    while (sqlite3_step(cache->stmt_pen_bertingkat_list)
+    while (sqlite3_step(
+            cache->stmt_pen_bertingkat_list)
         == SQLITE_ROW) {
         p = (const char *)sqlite3_column_text(
             cache->stmt_pen_bertingkat_list, 0);
@@ -1339,14 +1234,16 @@ int format_respons_daftar(
     if (stem_kata(db, kata, kata_stem,
         (int)sizeof(kata_stem)) == 0
         && ajudan_strcasecmp(kata_stem, kata) != 0) {
-        sqlite3_bind_text(cache->stmt_pen_bertingkat_list,
+        sqlite3_bind_text(
+            cache->stmt_pen_bertingkat_list,
             1, kata_stem, -1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(cache->stmt_pen_bertingkat_list,
+        sqlite3_bind_text(
+            cache->stmt_pen_bertingkat_list,
             2, topik_bertingkat, -1, SQLITE_TRANSIENT);
 
         i = 0;
         while (sqlite3_step(
-            cache->stmt_pen_bertingkat_list)
+                cache->stmt_pen_bertingkat_list)
             == SQLITE_ROW) {
             p = (const char *)sqlite3_column_text(
                 cache->stmt_pen_bertingkat_list, 0);
@@ -1379,70 +1276,130 @@ int format_respons_daftar(
 }
 
 /* ========================================================================== *
- *                     FITUR TAMBAHAN: FORMATTER ANALITIK                     *
+ *                    FITUR TAMBAHAN: FORMATTER ANALITIK                       *
  * ========================================================================== */
 
-void format_jawaban_analitik(const char *topik, const char *analisis, const char *saran_verifikasi, char *output, size_t ukuran_output) {
-    if (!topik || !analisis || !output || ukuran_output == 0) return;
+void format_jawaban_analitik(
+    const char *topik,
+    const char *analisis,
+    const char *saran_verifikasi,
+    char *output, size_t ukuran_output)
+{
+    const char *saran;
 
-    snprintf(output, ukuran_output, "Berdasarkan data yang saya pelajari, '%s' %s. Untuk kepastiannya, Anda bisa memeriksanya sendiri di %s.",
-             topik, analisis, (saran_verifikasi && saran_verifikasi[0]) ? saran_verifikasi : "sumber terpercaya");
+    if (!topik || !analisis || !output
+        || ukuran_output == 0) {
+        return;
+    }
+
+    saran = (saran_verifikasi && saran_verifikasi[0])
+        ? saran_verifikasi
+        : "sumber terpercaya";
+
+    snprintf(output, ukuran_output,
+        "Berdasarkan data yang saya pelajari, "
+        "'%s' %s. Untuk kepastiannya, "
+        "Anda bisa memeriksanya sendiri di %s.",
+        topik, analisis, saran);
 }
 
 /* ========================================================================== *
- *                   KERANGKA RESPON BERBASIS DATA (pola_kalimat)            *
+ *            KERANGKA RESPON BERBASIS DATA (pola_kalimat)                     *
  * ========================================================================== */
 
-int pilih_kerangka_respon(sqlite3 *db, const char *hubungan, char *kerangka, size_t ukuran_kerangka) {
+int pilih_kerangka_respon(
+    sqlite3 *db,
+    const char *hubungan,
+    char *kerangka,
+    size_t ukuran_kerangka)
+{
     sqlite3_stmt *stmt = NULL;
     int rc;
     const char *val;
+    char nama_hubungan[256];
 
-    if (!db || !hubungan || !kerangka || ukuran_kerangka == 0) return -1;
+    if (!db || !hubungan || !kerangka
+        || ukuran_kerangka == 0) {
+        return -1;
+    }
     kerangka[0] = '\0';
 
-    char nama_hubungan[256] = {0};
-    if (sqlite3_prepare_v2(db, "SELECT nama FROM hubungan WHERE id=? LIMIT 1;", -1, &stmt, NULL) == SQLITE_OK) {
-        sqlite3_bind_text(stmt, 1, hubungan, -1, SQLITE_TRANSIENT);
+    memset(nama_hubungan, 0, sizeof(nama_hubungan));
+    if (sqlite3_prepare_v2(db,
+        "SELECT nama FROM hubungan "
+        "WHERE id=? LIMIT 1;",
+        -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, hubungan, -1,
+            SQLITE_TRANSIENT);
         if (sqlite3_step(stmt) == SQLITE_ROW) {
-            const char *name = (const char*)sqlite3_column_text(stmt, 0);
-            if (name) snprintf(nama_hubungan, sizeof(nama_hubungan), "%s", name);
+            const char *name =
+                (const char *)sqlite3_column_text(
+                    stmt, 0);
+            if (name) {
+                snprintf(nama_hubungan,
+                    sizeof(nama_hubungan), "%s",
+                    name);
+            }
         }
         sqlite3_finalize(stmt);
     }
-    
-    const char *hub_key = (nama_hubungan[0]) ? nama_hubungan : hubungan;
 
-    rc = sqlite3_prepare_v2(db, "SELECT kerangka_jawaban FROM pola_kalimat WHERE id_hubungan=? ORDER BY prioritas DESC LIMIT 1;", -1, &stmt, NULL);
-    if (rc != SQLITE_OK) return -1;
+    {
+        const char *hub_key = nama_hubungan[0]
+            ? nama_hubungan : hubungan;
 
-    sqlite3_bind_text(stmt, 1, hub_key, -1, SQLITE_TRANSIENT);
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
-        val = (const char*)sqlite3_column_text(stmt, 0);
-        if (val) snprintf(kerangka, ukuran_kerangka, "%s", val);
+        rc = sqlite3_prepare_v2(db,
+            "SELECT kerangka_jawaban "
+            "FROM pola_kalimat "
+            "WHERE id_hubungan=? "
+            "ORDER BY prioritas DESC LIMIT 1;",
+            -1, &stmt, NULL);
+        if (rc != SQLITE_OK) return -1;
+
+        sqlite3_bind_text(stmt, 1, hub_key, -1,
+            SQLITE_TRANSIENT);
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            val = (const char *)
+                sqlite3_column_text(stmt, 0);
+            if (val) {
+                snprintf(kerangka,
+                    ukuran_kerangka, "%s", val);
+            }
+        }
+        sqlite3_finalize(stmt);
     }
-    sqlite3_finalize(stmt);
+
     return (kerangka[0] == '\0') ? -1 : 0;
 }
 
 /* ========================================================================== *
- *                      HANDLER SUMBER DATA DENGAN REASONING                   *
+ *                       FALLBACK RESPON DEFAULT                               *
  * ========================================================================== */
 
-int ambil_respon_default_acak(sqlite3 *db, AjStmtCache *cache, char *output, size_t ukuran_output) {
+int ambil_respon_default_acak(
+    sqlite3 *db, AjStmtCache *cache,
+    char *output, size_t ukuran_output)
+{
     int rc;
     const char *respon;
 
-    if (!db || !cache || !output || ukuran_output == 0) return -1;
+    if (!db || !cache || !output
+        || ukuran_output == 0) {
+        return -1;
+    }
 
     rc = sqlite3_reset(cache->stmt_respon_default_acak);
     if (rc != SQLITE_OK) return -1;
 
-    if (sqlite3_step(cache->stmt_respon_default_acak) == SQLITE_ROW) {
-        respon = (const char*)sqlite3_column_text(cache->stmt_respon_default_acak, 0);
+    if (sqlite3_step(cache->stmt_respon_default_acak)
+        == SQLITE_ROW) {
+        respon = (const char *)sqlite3_column_text(
+            cache->stmt_respon_default_acak, 0);
         if (respon) {
-            snprintf(output, ukuran_output, "%s", respon);
-            sqlite3_reset(cache->stmt_respon_default_acak);
+            snprintf(output, ukuran_output, "%s",
+                respon);
+            sqlite3_reset(
+                cache->stmt_respon_default_acak);
             return 0;
         }
     }
@@ -1450,249 +1407,19 @@ int ambil_respon_default_acak(sqlite3 *db, AjStmtCache *cache, char *output, siz
     return -1;
 }
 
-static void tangani_sapaan(
-    sqlite3 *db,
-    AjStmtCache *cache,
-    char *output,
-    size_t ukuran_output)
-{
-    const char *val;
-    int rc;
-
-    if (!db || !cache || !output || ukuran_output == 0) return;
-
-    rc = sqlite3_reset(cache->stmt_sapaan_acak);
-    if (rc != SQLITE_OK) {
-        snprintf(output, ukuran_output,
-            "Halo! Saya AJUDAN, asisten virtual Anda.");
-        return;
-    }
-
-    if (sqlite3_step(cache->stmt_sapaan_acak) == SQLITE_ROW) {
-        val = (const char *)sqlite3_column_text(
-            cache->stmt_sapaan_acak, 0);
-        if (val && val[0]) {
-            snprintf(output, ukuran_output, "%s", val);
-            sqlite3_reset(cache->stmt_sapaan_acak);
-            return;
-        }
-    }
-
-    sqlite3_reset(cache->stmt_sapaan_acak);
-    snprintf(output, ukuran_output,
-        "Halo! Saya AJUDAN, asisten virtual Anda.");
-}
-
-/*
- * tangani_arti_singkat - Mengembalikan definisi/arti singkat.
- * Hanya judul + ringkasan (tanpa penjelasan panjang).
- * Digunakan untuk pertanyaan "apa itu X", "X itu apa", dll.
- */
-static void tangani_arti_singkat(
-    sqlite3 *db,
-    AjStmtCache *cache,
-    const char *topik,
-    char *output,
-    size_t ukuran_output)
-{
-    char judul_buf[MAX_RESPONS];
-    char ringkasan_buf[MAX_RESPONS];
-    char penjelasan_buf[MAX_RESPONS];
-    char saran_buf[MAX_RESPONS];
-
-    if (!db || !cache || !topik || !output
-        || ukuran_output == 0) {
-        return;
-    }
-
-    /* Coba ambil dari pengetahuan_umum (judul + ringkasan saja) */
-    if (ambil_pengetahuan_umum(db, cache, topik,
-        judul_buf, sizeof(judul_buf),
-        ringkasan_buf, sizeof(ringkasan_buf),
-        penjelasan_buf, sizeof(penjelasan_buf),
-        saran_buf, sizeof(saran_buf)) == 0) {
-        /*
-         * Hanya tampilkan judul + ringkasan.
-         * Jika judul kosong, gunakan ringkasan saja.
-         */
-        if (judul_buf[0] != '\0'
-            && ringkasan_buf[0] != '\0') {
-            snprintf(output, ukuran_output,
-                "%s\n%s", judul_buf, ringkasan_buf);
-        } else if (ringkasan_buf[0] != '\0') {
-            snprintf(output, ukuran_output,
-                "%s", ringkasan_buf);
-        } else if (judul_buf[0] != '\0') {
-            snprintf(output, ukuran_output,
-                "%s", judul_buf);
-        } else {
-            /* judul dan ringkasan kosong, fallback */
-            if (ambil_respon_default_acak(db, cache,
-                output, ukuran_output) != 0) {
-                snprintf(output, ukuran_output,
-                    "Maaf, saya belum tahu tentang "
-                    "'%s'.", topik);
-            }
-        }
-        return;
-    }
-
-    /* Coba ambil dari arti_kata */
-    if (ambil_arti_kata(db, cache, topik,
-        ringkasan_buf, sizeof(ringkasan_buf)) == 0) {
-        snprintf(output, ukuran_output,
-            "%s: %s", topik, ringkasan_buf);
-        return;
-    }
-
-    /* Fallback */
-    if (ambil_respon_default_acak(db, cache,
-        output, ukuran_output) != 0) {
-        snprintf(output, ukuran_output,
-            "Maaf, saya belum tahu tentang '%s'.",
-            topik);
-    }
-}
-
-void tangani_permintaan_arti_kata(sqlite3 *db, AjStmtCache *cache, const char *topik, char *output, size_t ukuran_output) {
-    char definisi[MAX_RESPONS];
-    char analisis_buffer[MAX_RESPONS];
-
-    if (!db || !cache || !topik || !output || ukuran_output == 0) return;
-
-    if (ambil_arti_kata(db, cache, topik, definisi, sizeof(definisi)) == 0) {
-        snprintf(output, ukuran_output, "%s: %s\n", topik, definisi);
-    } else {
-        if (ambil_hubungan_semantik(db, cache, topik, analisis_buffer, sizeof(analisis_buffer)) == 0) {
-            format_jawaban_analitik(topik, analisis_buffer, "kamus atau ensiklopedia", output, ukuran_output);
-        } else {
-            if (ambil_respon_default_acak(db, cache, output, ukuran_output) != 0) {
-                snprintf(output, ukuran_output, "Maaf, saya tidak menemukan informasi mengenai '%s'.\n", topik);
-            }
-        }
-    }
-}
-
-void tangani_permintaan_penjelasan_analitik(sqlite3 *db, AjStmtCache *cache, const char *topik, HasilAnalisisSpok *spok, char *output, size_t ukuran_output) {
-    char analisis_buffer[MAX_RESPONS];
-    const char* topik_yang_akan_dianalisis = topik;
-
-    if (strlen(spok->objek) > 0) {
-        topik_yang_akan_dianalisis = spok->objek;
-    }
-
-    if (ambil_hubungan_semantik(db, cache, topik_yang_akan_dianalisis, analisis_buffer, sizeof(analisis_buffer)) == 0) {
-        format_jawaban_analitik(topik_yang_akan_dianalisis, analisis_buffer, "ensiklopedia atau sumber referensi", output, ukuran_output);
-    } else if (ambil_arti_kata(db, cache, topik_yang_akan_dianalisis, analisis_buffer, sizeof(analisis_buffer)) == 0) {
-        char temp_analisis[MAX_RESPONS];
-        snprintf(temp_analisis, sizeof(temp_analisis), "didefinisikan sebagai '%s'", analisis_buffer);
-        format_jawaban_analitik(topik_yang_akan_dianalisis, temp_analisis, "kamus", output, ukuran_output);
-    } else {
-        if (ambil_respon_default_acak(db, cache, output, ukuran_output) != 0) {
-            snprintf(output, ukuran_output, "Maaf, saya tidak memiliki cukup data untuk menjelaskan '%s'.\n", topik_yang_akan_dianalisis);
-        }
-    }
-}
-
-void tangani_permintaan_penjelasan(sqlite3 *db, AjStmtCache *cache, const char *topik, HasilAnalisisSpok *spok, char *output, size_t ukuran_output) {
-    char judul[MAX_RESPONS], ringkasan[MAX_RESPONS], penjelasan[MAX_RESPONS], saran[MAX_RESPONS];
-
-    if (!db || !cache || !topik || !output || ukuran_output == 0) return;
-
-    if (ambil_pengetahuan_umum(db, cache, topik, judul, sizeof(judul), ringkasan, sizeof(ringkasan), penjelasan, sizeof(penjelasan), saran, sizeof(saran)) == 0) {
-        snprintf(output, ukuran_output, "%s\n%s\n%s\n%s\n", judul, ringkasan, penjelasan, saran);
-    } else {
-        aj_log("Fakta langsung untuk '%s' tidak ditemukan. Mencoba analisis.\n", topik);
-        tangani_permintaan_penjelasan_analitik(db, cache, topik, spok, output, ukuran_output);
-    }
-}
-
-void tangani_permintaan_daftar(sqlite3 *db, AjStmtCache *cache, HasilEkstraksiTopik *ekstraksi, char *output, size_t ukuran_output) {
-    int dengan_detail;
-
-    if (!db || !cache || !ekstraksi || !output || ukuran_output == 0) return;
-
-    dengan_detail = (strlen(ekstraksi->kuantitas) == 0) ? 1 : 0;
-
-    if (format_respons_daftar(db, cache, ekstraksi->topik_utama, (strlen(ekstraksi->sub_topik) > 0) ? ekstraksi->sub_topik : "fakta", dengan_detail, output, ukuran_output) != 0) {
-        snprintf(output, ukuran_output, "Maaf, daftar '%s%s%s' belum tersedia.\n",
-            (strlen(ekstraksi->sub_topik) > 0) ? ekstraksi->sub_topik : "",
-            (strlen(ekstraksi->sub_topik) > 0) ? " dari " : "",
-            ekstraksi->topik_utama
-        );
-    }
-}
-
-void tangani_pertanyaan_sebab(sqlite3 *db, AjStmtCache *cache, HasilAnalisisSpok *spok, char *output, size_t ukuran_output) {
-    EntitasTerkait entitas[10];
-    int jml_entitas, i;
-    char kerangka[256];
-    char buffer[MAX_RESPONS];
-    int wrote;
-    const char* topik_yang_akan_dianalisis;
-
-    if (!db || !cache || !spok || !output || ukuran_output == 0) return;
-
-    if (strlen(spok->objek) > 0) {
-        topik_yang_akan_dianalisis = spok->objek;
-    } else {
-        topik_yang_akan_dianalisis = spok->topik_utama;
-    }
-
-    if (pilih_kerangka_respon(db, "sebab", kerangka, sizeof(kerangka)) != 0) {
-        snprintf(kerangka, sizeof(kerangka), "Alasan umum: {topik} penting karena {contoh}.");
-    }
-
-    jml_entitas = cari_entitas_terkait_dengan_filter(db, topik_yang_akan_dianalisis, "verba,nomina", "", "umum", entitas, 10);
-
-    buffer[0] = '\0';
-    wrote = 0;
-    if (jml_entitas > 0) {
-        for (i = 0; i < jml_entitas && i < 3; i++) {
-            if (i > 0) strncat(buffer, ", ", sizeof(buffer) - strlen(buffer) - 1);
-            strncat(buffer, entitas[i].kata, sizeof(buffer) - strlen(buffer) - 1);
-            wrote++;
-        }
-    }
-
-    {
-        char tmp[MAX_RESPONS];
-        const char *pos_topik, *pos_contoh;
-        snprintf(tmp, sizeof(tmp), "%s", kerangka);
-
-        pos_topik = strstr(tmp, "{topik}");
-        if (pos_topik) {
-            char left[MAX_RESPONS], right[MAX_RESPONS];
-            size_t left_len = (size_t)(pos_topik - tmp);
-            snprintf(left, sizeof(left), "%.*s", (int)left_len, tmp);
-            snprintf(right, sizeof(right), "%s", pos_topik + 7);
-            snprintf(tmp, sizeof(tmp), "%s%s%s", left, topik_yang_akan_dianalisis, right);
-        }
-
-        pos_contoh = strstr(tmp, "{contoh}");
-        if (pos_contoh) {
-            char left2[MAX_RESPONS], right2[MAX_RESPONS];
-            size_t left2_len = (size_t)(pos_contoh - tmp);
-            snprintf(left2, sizeof(left2), "%.*s", (int)left2_len, tmp);
-            snprintf(right2, sizeof(right2), "%s", pos_contoh + 8);
-            snprintf(tmp, sizeof(tmp), "%s%s%s", left2, (wrote > 0) ? buffer : topik_yang_akan_dianalisis, right2);
-        }
-
-        snprintf(output, ukuran_output, "%s\n", tmp);
-    }
-}
-
 /* ========================================================================== *
- *                            SESI & DISPATCHER                                *
+ *                          SESI PERCAKAPAN                                    *
  * ========================================================================== */
 
-int cari_atau_buat_sesi_percakapan(const char *user_id) {
+int cari_atau_buat_sesi_percakapan(const char *user_id)
+{
     int i, id;
     time_t now;
 
     now = time(NULL);
     for (i = 0; i < jumlah_sesi_aktif; i++) {
-        if (strcmp(sesi_aktif[i].user_id, user_id) == 0) {
+        if (strcmp(sesi_aktif[i].user_id, user_id)
+            == 0) {
             sesi_aktif[i].last_activity = now;
             return i;
         }
@@ -1700,10 +1427,14 @@ int cari_atau_buat_sesi_percakapan(const char *user_id) {
     if (jumlah_sesi_aktif < MAX_SESSIONS) {
         id = jumlah_sesi_aktif++;
         sesi_aktif[id].id = id;
-        snprintf(sesi_aktif[id].user_id, sizeof(sesi_aktif[id].user_id), "%s", user_id);
+        snprintf(sesi_aktif[id].user_id,
+            sizeof(sesi_aktif[id].user_id),
+            "%s", user_id);
         sesi_aktif[id].topik_utama[0] = '\0';
         sesi_aktif[id].tipe_list[0] = '\0';
-        snprintf(sesi_aktif[id].status_alur, sizeof(sesi_aktif[id].status_alur), "idle");
+        snprintf(sesi_aktif[id].status_alur,
+            sizeof(sesi_aktif[id].status_alur),
+            "idle");
         sesi_aktif[id].pertanyaan_terakhir[0] = '\0';
         sesi_aktif[id].cache_alias_key[0] = '\0';
         sesi_aktif[id].cache_alias_val[0] = '\0';
@@ -1716,23 +1447,63 @@ int cari_atau_buat_sesi_percakapan(const char *user_id) {
     return 0;
 }
 
-void perbarui_sesi_percakapan(int sesi_id, const char *topik_baru, const char *tipe_list, const char *status, const char *pertanyaan) {
+void perbarui_sesi_percakapan(
+    int sesi_id,
+    const char *topik_baru,
+    const char *tipe_list,
+    const char *status,
+    const char *pertanyaan)
+{
     time_t now;
 
     now = time(NULL);
-    if (sesi_id < 0 || sesi_id >= jumlah_sesi_aktif) return;
+    if (sesi_id < 0
+        || sesi_id >= jumlah_sesi_aktif) {
+        return;
+    }
 
     if (topik_baru && strlen(topik_baru) > 0) {
-        snprintf(sesi_aktif[sesi_id].topik_utama, sizeof(sesi_aktif[sesi_id].topik_utama), "%s", topik_baru);
+        snprintf(sesi_aktif[sesi_id].topik_utama,
+            sizeof(sesi_aktif[sesi_id].topik_utama),
+            "%s", topik_baru);
     }
-    if (tipe_list) snprintf(sesi_aktif[sesi_id].tipe_list, sizeof(sesi_aktif[sesi_id].tipe_list), "%s", tipe_list);
-    if (status) snprintf(sesi_aktif[sesi_id].status_alur, sizeof(sesi_aktif[sesi_id].status_alur), "%s", status);
-    if (pertanyaan) snprintf(sesi_aktif[sesi_id].pertanyaan_terakhir, sizeof(sesi_aktif[sesi_id].pertanyaan_terakhir), "%s", pertanyaan);
+    if (tipe_list) {
+        snprintf(sesi_aktif[sesi_id].tipe_list,
+            sizeof(sesi_aktif[sesi_id].tipe_list),
+            "%s", tipe_list);
+    }
+    if (status) {
+        snprintf(sesi_aktif[sesi_id].status_alur,
+            sizeof(sesi_aktif[sesi_id].status_alur),
+            "%s", status);
+    }
+    if (pertanyaan) {
+        snprintf(
+            sesi_aktif[sesi_id].pertanyaan_terakhir,
+            sizeof(
+                sesi_aktif[sesi_id].pertanyaan_terakhir),
+            "%s", pertanyaan);
+    }
 
     sesi_aktif[sesi_id].last_activity = now;
 }
 
-void bersihkan_sesi_kadaluarsa(void) {
+int ambil_jumlah_sesi(void)
+{
+    return jumlah_sesi_aktif;
+}
+
+const char *ambil_topik_sesi(int sesi_id)
+{
+    if (sesi_id < 0
+        || sesi_id >= jumlah_sesi_aktif) {
+        return NULL;
+    }
+    return sesi_aktif[sesi_id].topik_utama;
+}
+
+void bersihkan_sesi_kadaluarsa(void)
+{
     time_t now, batas;
     int i, j;
 
@@ -1740,7 +1511,8 @@ void bersihkan_sesi_kadaluarsa(void) {
     batas = now - (24 * 60 * 60);
     for (i = 0; i < jumlah_sesi_aktif; i++) {
         if (sesi_aktif[i].last_activity < batas) {
-            for (j = i; j < jumlah_sesi_aktif - 1; j++) {
+            for (j = i;
+                j < jumlah_sesi_aktif - 1; j++) {
                 sesi_aktif[j] = sesi_aktif[j + 1];
             }
             jumlah_sesi_aktif--;
@@ -1750,805 +1522,307 @@ void bersihkan_sesi_kadaluarsa(void) {
 }
 
 /* ========================================================================== *
- *                     HANDLER UNTUK PERTANYAAN LANJUTAN                       *
- * ========================================================================== */
-
-void tangani_pertanyaan_lanjutan(sqlite3 *db, AjStmtCache *cache, const char *input, int sesi_id, char *output, size_t ukuran_output) {
-    const char *topik_sebelumnya = sesi_aktif[sesi_id].topik_utama;
-
-    if (!topik_sebelumnya || strlen(topik_sebelumnya) == 0) {
-        snprintf(output, ukuran_output, "Maksud Anda topik apa? Saya lupa topik pembicaraan kita sebelumnya.\n");
-        return;
-    }
-
-    aj_log("Mendeteksi pertanyaan lanjutan untuk topik: '%s'\n", topik_sebelumnya);
-
-    if (strstr(input, "apa lagi") || strstr(input, "contoh lain") || strstr(input, "siapa lagi")) {
-        tangani_permintaan_daftar(db, cache, &(HasilEkstraksiTopik){ .topik_utama = "" }, output, ukuran_output);
-    } else {
-        snprintf(output, ukuran_output, "Maaf, saya tidak yakin apa yang Anda maksud dengan '%s' dalam konteks '%s'.\n", input, topik_sebelumnya);
-    }
-}
-
-/* ========================================================================== *
- *          EKSTRAKSI KLAUSA PERTANYAAN TERAKHIR (SPOK)                     *
+ *                   RESOLUSI REFERENSI KONTEKSTUAL                            *
  * ========================================================================== */
 
 /*
- * is_kata_tanya - Cek apakah suatu kata adalah kata tanya
- * yang menandakan klausa tersebut berisi pertanyaan.
+ * Deteksi apakah topik yang diekstrak hanya berisi
+ * kata-kata demonstratif ("itu", "hal itu", dll)
+ * tanpa konten nyata, sehingga perlu diganti dengan
+ * topik sesi sebelumnya.
+ *
+ * Return 1 jika topik kosong/berisi referensi,
+ * 0 jika topik memiliki konten nyata.
  */
-static int is_kata_tanya(const char *kata)
+int adalah_referensi_kosong(const char *topik)
 {
-    if (!kata || !kata[0]) return 0;
-    if (strcmp(kata, "apa") == 0) return 1;
-    if (strcmp(kata, "siapa") == 0) return 1;
-    if (strcmp(kata, "mengapa") == 0) return 1;
-    if (strcmp(kata, "bagaimana") == 0) return 1;
-    if (strcmp(kata, "kapan") == 0) return 1;
-    if (strcmp(kata, "dimana") == 0) return 1;
-    if (strcmp(kata, "berapa") == 0) return 1;
-    if (strcmp(kata, "mana") == 0) return 1;
-    return 0;
-}
-
-/*
- * ekstrak_klausa_pertanyaan_terakhir - Memecah kalimat panjang
- * menjadi klausa-klausa, lalu mengembalikan klausa pertanyaan
- * terakhir yang mengandung kata tanya.
- *
- * Algoritma:
- * 1. Pecah input berdasarkan tanda akhir kalimat (. ? !)
- * 2. Ambil kalimat terakhir yang mengandung kata tanya
- * 3. Dalam kalimat itu, pecah berdasarkan pemisah klausa
- *    (koma, dan, lalu, sedangkan, serta, tetapi, namun, dll)
- * 4. Ambil sub-klausa terakhir yang mengandung kata tanya
- * 5. Kembalikan sub-klausa tersebut (dibersihkan)
- *
- * Contoh input:
- * "teman saya kemarin ..., menurutmu komputer yg bagus
- *  itu apa, mengapa dan sebenarnya komputer itu apa?"
- *
- * Output: "sebenarnya komputer itu apa"
- */
-static void ekstrak_klausa_pertanyaan_terakhir(
-    const char *input,
-    char *klausa_out,
-    size_t ukuran)
-{
-    char kalimat_buf[MAX_INPUT_USER];
-    char kalimat_lo[MAX_INPUT_USER];
-    char *ptr, *akhir;
-    int i;
-    char sub_klausa[MAX_INPUT_USER];
-    char token_buf[MAX_PANJANG_TOKEN];
+    char buf[MAX_PANJANG_STRING];
     char *t;
+    int ada_konten = 0;
 
-    /*
-     * Daftar pemisah klausa (urutan panjang menurun
-     * agar yang lebih panjang dicocokkan duluan).
-     */
-    static const char *pemisah[] = {
-        "sedangkan",
-        "sambil",
-        "ketika",
-        "sebelum",
-        "setelah",
-        "walaupun",
-        "meskipun",
-        "padahal",
-        "kemudian",
-        "maupun",
-        "namun",
-        "lalu",
-        "dan",
-        "atau",
-        "tetapi",
-        NULL
-    };
+    if (!topik || topik[0] == '\0') return 1;
 
-    if (!input || !klausa_out || ukuran == 0) {
-        klausa_out[0] = '\0';
-        return;
-    }
+    snprintf(buf, sizeof(buf), "%s", topik);
+    to_lower_case(buf);
 
-    klausa_out[0] = '\0';
-
-    /* --- 1. Pecah berdasarkan tanda akhir kalimat --- */
-    snprintf(kalimat_buf, sizeof(kalimat_buf), "%s", input);
-
-    /* Cari kalimat terakhir yang punya kata tanya.
-     * Scan dari belakang untuk menemukan pemisah kalimat
-     * (. ? !) lalu cek apakah kalimat tsb punya kata tanya.
-     */
-    akhir = kalimat_buf + strlen(kalimat_buf);
-    ptr = NULL;
-
-    for (;;) {
-        char *c;
-        int ada_tanya_kal;
-
-        if (ptr == NULL) {
-            ptr = kalimat_buf;
-        } else {
-            /* Mundur dari ptr untuk cari pemisah kalimat */
-            c = ptr - 1;
-            while (c > kalimat_buf
-                && isspace((unsigned char)*c)) {
-                c--;
-            }
-            while (c > kalimat_buf) {
-                if (*c == '.' || *c == '?'
-                    || *c == '!') {
-                    c++;
-                    while (c < akhir
-                        && isspace((unsigned char)*c)) {
-                        c++;
-                    }
-                    ptr = c;
-                    break;
-                }
-                c--;
-            }
-            if (c <= kalimat_buf) {
-                ptr = kalimat_buf;
-            }
-        }
-
-        if (ptr == NULL) break;
-
-        /* Cek apakah kalimat ini punya kata tanya */
-        snprintf(kalimat_lo, sizeof(kalimat_lo), "%s",
-            ptr);
-        to_lower_case(kalimat_lo);
-
-        ada_tanya_kal = 0;
-        for (i = 0; i < (int)strlen(kalimat_lo); i++) {
-            if (kalimat_lo[i] == '?') {
-                ada_tanya_kal = 1;
-                break;
-            }
-        }
-        if (!ada_tanya_kal) {
-            /* Cek kata tanya via tokenisasi */
-            snprintf(token_buf, sizeof(token_buf),
-                "%s", kalimat_lo);
-            t = strtok(token_buf, " \t\n");
-            while (t != NULL) {
-                int tl = (int)strlen(t);
-                while (tl > 0
-                    && ispunct((unsigned char)
-                        t[tl - 1])) {
-                    t[tl - 1] = '\0';
-                    tl--;
-                }
-                if (is_kata_tanya(t)) {
-                    ada_tanya_kal = 1;
-                    break;
-                }
-                t = strtok(NULL, " \t\n");
-            }
-        }
-
-        if (ada_tanya_kal) {
-            /* Kalimat ini mengandung pertanyaan.
-             * Pecah menjadi sub-klausa dan ambil sub-klausa
-             * terakhir yang juga mengandung kata tanya.
-             */
-            int len_kal;
-
-            snprintf(sub_klausa,
-                sizeof(sub_klausa), "%s", ptr);
-            len_kal = (int)strlen(sub_klausa);
-
-            /* Hapus tanda baca di akhir */
-            while (len_kal > 0
-                && ispunct((unsigned char)
-                    sub_klausa[len_kal - 1])) {
-                sub_klausa[len_kal - 1] = '\0';
-                len_kal--;
-            }
-
-            /* Pecah berdasarkan pemisah klausa */
-            for (;;) {
-                int j;
-                int ketemu;
-                char *pos_pem;
-                int panjang_pem;
-
-                ketemu = 0;
-                pos_pem = NULL;
-                panjang_pem = 0;
-
-                /* Cari pemisah klausa terakhir */
-                for (j = 0; pemisah[j] != NULL; j++) {
-                    char pp[64];
-                    int pl;
-                    char *found;
-
-                    snprintf(pp, sizeof(pp),
-                        " %s ", pemisah[j]);
-                    pl = (int)strlen(pp);
-
-                    found = strstr(sub_klausa, pp);
-                    if (found != NULL
-                        && (pos_pem == NULL
-                            || found > pos_pem)) {
-                        pos_pem = found;
-                        panjang_pem = pl;
-                        ketemu = 1;
-                    }
-
-                    /* Juga coba tanpa spasi awal */
-                    snprintf(pp, sizeof(pp),
-                        "%s ", pemisah[j]);
-                    pl = (int)strlen(pp);
-                    found = strstr(sub_klausa, pp);
-                    if (found != NULL
-                        && (pos_pem == NULL
-                            || found > pos_pem)) {
-                        pos_pem = found;
-                        panjang_pem = pl;
-                        ketemu = 1;
-                    }
-                }
-
-                /* Juga cek koma */
-                {
-                    char *cp = strrchr(sub_klausa, ',');
-                    if (cp != NULL
-                        && (pos_pem == NULL
-                            || cp > pos_pem)) {
-                        pos_pem = cp;
-                        panjang_pem = 1;
-                        ketemu = 1;
-                    }
-                }
-
-                if (!ketemu || pos_pem == NULL) {
-                    break;
-                }
-
-                /* Ambil bagian setelah pemisah */
-                {
-                    char *awal_sub;
-                    awal_sub = pos_pem + panjang_pem;
-                    while (*awal_sub
-                        && isspace((unsigned char)*awal_sub)) {
-                        awal_sub++;
-                    }
-
-                    /* Cek apakah bagian setelah pemisah
-                     * mengandung kata tanya */
-                    {
-                        char sesudah[MAX_INPUT_USER];
-                        int ada_tanya;
-
-                        snprintf(sesudah,
-                            sizeof(sesudah), "%s",
-                            awal_sub);
-                        to_lower_case(sesudah);
-
-                        ada_tanya = 0;
-                        t = strtok(sesudah, " \t\n");
-                        while (t != NULL) {
-                            if (is_kata_tanya(t)) {
-                                ada_tanya = 1;
-                                break;
-                            }
-                            t = strtok(NULL, " \t\n");
-                        }
-
-                        if (ada_tanya) {
-                            snprintf(sub_klausa,
-                                sizeof(sub_klausa),
-                                "%s", awal_sub);
-                            continue;
-                        }
-                    }
-                }
-
-                break;
-            }
-
-            trim(sub_klausa);
-            snprintf(klausa_out, ukuran, "%s",
-                sub_klausa);
-            return;
-        }
-
-        /* Tidak ada kata tanya, mundur */
-        akhir = ptr;
-        ptr = NULL;
-    }
-
-    /* Fallback: gunakan seluruh input */
-    snprintf(klausa_out, ukuran, "%s", input);
-}
-
-/* ========================================================================== *
- *     ANALISIS POLA SPOK PADA KLAUSA PERTANYAAN                          *
- * ========================================================================== */
-
-/*
- * analisis_pola_spok_pertanyaan - Menganalisis pola kata dalam
- * klausa pertanyaan untuk menentukan maksudnya.
- *
- * Prinsip: posisi relatif antara "apa", "itu", dan kata topik
- * menentukan jenis pertanyaan.
- *
- * Pola SPOK yang dikenali:
- *
- *   [isi] apa itu [topik]    -> definisi (arti)
- *       Contoh: "apa itu komputer"
- *       "menurutmu apa itu algoritma"
- *
- *   [topik] [isi] itu apa    -> definisi (benda tsb)
- *       Contoh: "komputer itu apa"
- *       "sebenarnya komputer itu apa"
- *
- *   [topik] [isi] apa itu    -> jenis (macam/varian)
- *       Contoh: "komputer apa itu"
- *       "laptop apa itu"
- *
- *   Mengembalikan:
- *     0 = tidak bisa klasifikasi (biarkan sumber_data)
- *     1 = definisi (set sumber_data ke "definisi")
- *     2 = jenis   (set sumber_data ke "jenis")
- */
-static int analisis_pola_spok_pertanyaan(
-    const char *klausa,
-    char *sumber_data,
-    size_t ukuran_sumber)
-{
-    char buf[MAX_INPUT_USER];
-    char tokens[MAX_TOKEN_KALIMAH][MAX_PANJANG_TOKEN];
-    int n_tokens;
-    int i;
-    int pos_apa, pos_itu;
-    int ada_apa, ada_itu;
-    int len_klausa;
-    char *t;
-
-    if (!klausa || !sumber_data
-        || ukuran_sumber == 0) {
-        return 0;
-    }
-
-    /* Salin dan bersihkan */
-    snprintf(buf, sizeof(buf), "%s", klausa);
-
-    /* Hapus tanda baca */
-    len_klausa = (int)strlen(buf);
-    while (len_klausa > 0
-        && ispunct((unsigned char)
-            buf[len_klausa - 1])) {
-        buf[len_klausa - 1] = '\0';
-        len_klausa--;
-    }
-    if (len_klausa <= 0) return 0;
-
-    /* Tokenisasi sederhana */
-    n_tokens = 0;
     t = strtok(buf, " \t\n");
-    while (t != NULL && n_tokens < MAX_TOKEN_KALIMAH) {
-        snprintf(tokens[n_tokens],
-            sizeof(tokens[n_tokens]), "%s", t);
-        n_tokens++;
+    while (t != NULL) {
+        if (strcmp(t, "itu") != 0
+            && strcmp(t, "ini") != 0
+            && strcmp(t, "hal") != 0
+            && strcmp(t, "masalah") != 0
+            && strcmp(t, "yg") != 0
+            && strcmp(t, "yang") != 0
+            && strcmp(t, "dia") != 0
+            && strcmp(t, "mereka") != 0
+            && strlen(t) > 1) {
+            ada_konten = 1;
+        }
         t = strtok(NULL, " \t\n");
     }
 
-    if (n_tokens <= 0) return 0;
-
-    /* Konversi semua token ke huruf kecil */
-    for (i = 0; i < n_tokens; i++) {
-        to_lower_case(tokens[i]);
-    }
-
-    /* Cari posisi "apa" dan "itu" */
-    ada_apa = 0;
-    ada_itu = 0;
-    pos_apa = -1;
-    pos_itu = -1;
-
-    for (i = 0; i < n_tokens; i++) {
-        if (strcmp(tokens[i], "apa") == 0) {
-            pos_apa = i;
-            ada_apa = 1;
-        }
-        if (strcmp(tokens[i], "itu") == 0) {
-            pos_itu = i;
-            ada_itu = 1;
-        }
-    }
-
-    /* --- Jika tidak ada "apa" atau "itu", biarkan --- */
-    if (!ada_apa && !ada_itu) {
-        return 0;
-    }
-
-    /* --- Jika hanya ada "itu" (tanpa "apa") --- */
-    if (!ada_apa && ada_itu) {
-        /* "itu" saja di akhir klausa -> jenis */
-        if (pos_itu == n_tokens - 1) {
-            snprintf(sumber_data, ukuran_sumber,
-                "jenis");
-            return 2;
-        }
-        return 0;
-    }
-
-    /* --- Jika hanya ada "apa" (tanpa "itu") --- */
-    if (ada_apa && !ada_itu) {
-        /* "apa" di akhir -> definisi */
-        if (pos_apa == n_tokens - 1) {
-            snprintf(sumber_data, ukuran_sumber,
-                "definisi");
-            return 1;
-        }
-        /* "apa" di awal, ada topik sesudahnya -> definisi */
-        if (pos_apa == 0 && n_tokens > 1) {
-            snprintf(sumber_data, ukuran_sumber,
-                "definisi");
-            return 1;
-        }
-        return 0;
-    }
-
-    /* --- Kedua "apa" dan "itu" ada --- */
-
-    /*
-     * Pola: [isi] APA ITU [topik] -> definisi
-     * Contoh: "apa itu komputer"
-     *   pos_apa < pos_itu, dan ada kata setelah "itu"
-     */
-    if (pos_apa < pos_itu
-        && pos_itu < n_tokens - 1) {
-        snprintf(sumber_data, ukuran_sumber,
-            "definisi");
-        return 1;
-    }
-
-    /*
-     * Pola: [topik] [isi] ITU APA -> definisi
-     * Contoh: "komputer itu apa"
-     *   pos_itu < pos_apa, dan "apa" di akhir
-     */
-    if (pos_itu < pos_apa
-        && pos_apa == n_tokens - 1) {
-        snprintf(sumber_data, ukuran_sumber,
-            "definisi");
-        return 1;
-    }
-
-    /*
-     * Pola: [topik] [isi] APA ITU -> jenis
-     * Contoh: "komputer apa itu"
-     *   pos_apa < pos_itu, dan "itu" di akhir
-     */
-    if (pos_apa < pos_itu
-        && pos_itu == n_tokens - 1) {
-        snprintf(sumber_data, ukuran_sumber,
-            "jenis");
-        return 2;
-    }
-
-    /*
-     * Fallback: pos_apa > pos_itu
-     * Contoh: "itu apa" -> definisi
-     */
-    if (pos_apa > pos_itu) {
-        snprintf(sumber_data, ukuran_sumber,
-            "definisi");
-        return 1;
-    }
-
-    return 0;
+    return ada_konten ? 0 : 1;
 }
 
-/* ========================================================================== *
- *             KLASIFIKASI PERTANYAAN BERDASARKAN SPOK                         *
- * ========================================================================== */
-
 /*
- * klasifikasi_pertanyaan_akhir - Klasifikasi ulang tipe
- * pertanyaan berdasarkan analisis SPOK pada klausa
- * pertanyaan terakhir.
+ * Cek apakah input mengandung pola referensi
+ * kontekstual yang menandakan topik sebenarnya
+ * ada di kalimat lain atau sesi sebelumnya.
  *
- * Algoritma:
- * 1. Jika mengandung kata kunci penjelasan (jelaskan,
- *    jabarkan, dll) -> "penjelasan_lengkap".
- * 2. Jika mengandung kata kunci jenis (jenis, macam, tipe,
- *    varian) -> "jenis".
- * 3. Ekstrak klausa pertanyaan terakhir dari kalimat
- *    (untuk kalimat panjang yang mengandung banyak klausa).
- * 4. Analisis pola SPOK pada klausa tersebut berdasarkan
- *    posisi relatif "apa", "itu", dan kata topik.
- *
- * Contoh:
- *   "apa itu komputer?"                 -> definisi
- *   "komputer itu apa?"                 -> definisi
- *   "komputer apa itu?"                 -> jenis
- *   "jelaskan komputer"                  -> penjelasan_lengkap
- *   "teman saya ..., komputer itu apa?"   -> definisi
- *       (klausa terakhir: "komputer itu apa")
- *   "menurutmu komputer bagus itu apa,"
- *   "mengapa dan sebenarnya komputer itu apa?"
- *                                       -> definisi
- *       (klausa terakhir: "sebenarnya komputer itu apa")
- *
- * Mengembalikan: 1 jika sumber_data diubah, 0 jika tidak.
+ * Pola yang dideteksi: "tentang itu", "hal itu",
+ * "hal tersebut", "tentang hal", "mengenai hal",
+ * "soal itu", "lebih tentang", "lagi tentang".
  */
-static int klasifikasi_pertanyaan_akhir(
-    const char *input_normal,
-    char *sumber_data,
-    size_t ukuran_sumber)
+int mengandung_referensi(const char *input)
 {
-    char input_lo[MAX_INPUT_USER];
-    char klausa_terakhir[MAX_INPUT_USER];
+    char lo[MAX_INPUT_USER];
     int i;
 
-    /*
-     * Daftar kata kunci yang MENJADI PENJELASAN.
-     * Jika input mengandung salah satu, override ke
-     * penjelasan_lengkap (prioritas tertinggi).
-     */
-    static const char *kunci_penjelasan[] = {
-        "jelaskan", "jabarkan",
-        "beritahu lebih lanjut", "uraikan",
-        "deskripsikan", "ceritakan",
-        "tolong jelaskan", "jelaskan tentang",
-        "jabarkan tentang", "beritahu tentang",
-        "ceritakan tentang"
+    static const char *pola[] = {
+        "tentang itu",
+        "tentang hal itu",
+        "tentang hal",
+        "mengenai itu",
+        "mengenai hal",
+        "soal itu",
+        "masalah itu",
+        "hal tersebut",
+        "hal yang sama",
+        "lebih lanjut tentang",
+        "lebih tentang",
+        "lagi tentang",
+        "tentang dia",
+        "tentang mereka",
+        NULL
     };
-    static const int jml_kunci = 11;
 
-    if (!input_normal || !sumber_data
-        || ukuran_sumber == 0) {
-        return 0;
-    }
+    if (!input || !input[0]) return 0;
 
-    /* Buat salinan huruf kecil untuk pencarian */
-    snprintf(input_lo, sizeof(input_lo), "%s", input_normal);
-    to_lower_case(input_lo);
+    snprintf(lo, sizeof(lo), "%s", input);
+    to_lower_case(lo);
 
-    /* --- 1. Cek kata kunci penjelasan (prioritas tertinggi) --- */
-    for (i = 0; i < jml_kunci; i++) {
-        if (strstr(input_lo, kunci_penjelasan[i]) != NULL) {
-            snprintf(sumber_data, ukuran_sumber,
-                "penjelasan_lengkap");
+    for (i = 0; pola[i] != NULL; i++) {
+        if (strstr(lo, pola[i]) != NULL) {
             return 1;
         }
     }
+    return 0;
+}
 
-    /* --- 2. Cek kata kunci jenis (sebelum SPOK) --- */
-    if (strstr(input_lo, "jenis") != NULL
-        || strstr(input_lo, "macam") != NULL
-        || strstr(input_lo, "tipe") != NULL
-        || strstr(input_lo, "varian") != NULL) {
-        snprintf(sumber_data, ukuran_sumber, "jenis");
-        return 1;
-    }
+/*
+ * Cari topik nyata dari kalimat input yang berisi
+ * referensi kontekstual ("tentang hal itu",
+ * "sesuatu tentang itu", dll).
+ *
+ * Algoritma: hapus frasa referensi dan kata tanya
+ * dari kalimat, sisanya adalah topik kontekstual.
+ *
+ * Contoh:
+ * "saya sedang mencari tahu tentang jaringan,
+ *  apakah kamu tahu sesuatu tentang hal itu?"
+ * -> kalimat lengkap = "saya sedang mencari tahu
+ *    tentang jaringan apakah kamu tahu sesuatu
+ *    tentang hal itu"
+ * -> hapus klausa tanya + referensi ->
+ *    "saya sedang mencari tahu tentang jaringan"
+ * -> ekstrak kata bermakna -> "jaringan"
+ *
+ * Return 1 jika topik ditemukan, 0 jika tidak.
+ */
+int cari_topik_dari_konteks(
+    const char *input,
+    char *topik_out,
+    size_t ukuran)
+{
+    char buf[MAX_INPUT_USER];
+    char cleaned[MAX_INPUT_USER];
+    char *t;
+    int pertama, i, j, is_sw;
 
-    /* --- 3. Ekstrak klausa pertanyaan terakhir --- */
-    ekstrak_klausa_pertanyaan_terakhir(
-        input_normal,
-        klausa_terakhir,
-        sizeof(klausa_terakhir));
+    /*
+     * Daftar frasa referensi yang menandakan
+     * bagian belakang kalimat adalah referensi,
+     * bukan konten.
+     */
+    static const char *frasa_referensi[] = {
+        "tentang hal itu",
+        "tentang hal tersebut",
+        "tentang itu",
+        "tentang hal",
+        "mengenai hal itu",
+        "mengenai hal tersebut",
+        "mengenai itu",
+        "mengenai hal",
+        "soal itu",
+        "masalah itu",
+        "hal tersebut",
+        "hal yang sama",
+        NULL
+    };
 
-    if (klausa_terakhir[0] == '\0') {
+    char *pemotong;
+
+    if (!input || !topik_out || ukuran == 0)
         return 0;
+
+    snprintf(buf, sizeof(buf), "%s", input);
+    to_lower_case(buf);
+    trim(buf);
+
+    /*
+     * Langkah 1: Cari dan potong kalimat di
+     * pemisah klausa (koma + konjungsi).
+     * Ambil bagian SEBELUM pemisah yang
+     * mengandung referensi.
+     */
+    {
+        static const char *pemisah_ref[] = {
+            ", apakah kamu tahu",
+            ", kamu tahu",
+            ", bisa jelaskan",
+            ", jelaskan",
+            ", tolong jelaskan",
+            ", mohon jelaskan",
+            ", apa itu",
+            ", mengapa",
+            ", kenapa",
+            ", bagaimana",
+            NULL
+        };
+
+        for (i = 0; pemisah_ref[i] != NULL; i++) {
+            pemotong = strstr(buf, pemisah_ref[i]);
+            if (pemotong != NULL) {
+                *pemotong = '\0';
+                trim(buf);
+                break;
+            }
+        }
     }
 
-    /* --- 4. Analisis pola SPOK pada klausa --- */
-    if (analisis_pola_spok_pertanyaan(
-        klausa_terakhir,
-        sumber_data,
-        ukuran_sumber) != 0) {
+    /*
+     * Langkah 2: Hapus frasa pembuka yang bukan
+     * konten (saya sedang mencari, saya ingin tahu,
+     * dll).
+     */
+    {
+        static const char *pembuka[] = {
+            "saya sedang mencari",
+            "saya sedang kesulitan",
+            "saya sedang bingung",
+            "saya sedang belajar",
+            "saya ingin tahu",
+            "saya mau tahu",
+            "saya lagi cari",
+            "saya lagi mencari",
+            "saya sedang mempelajari",
+            "saya sedang memahami",
+            "saya sedang mengetahui",
+            "saya penasaran",
+            "saya butuh",
+            "saya perlukan",
+            "saya sedang memikirkan",
+            "tolong jelaskan",
+            "coba jelaskan",
+            NULL
+        };
+
+        for (i = 0; pembuka[i] != NULL; i++) {
+            if (strncmp(buf, pembuka[i],
+                strlen(pembuka[i])) == 0) {
+                size_t awal = strlen(pembuka[i]);
+                size_t sisa_buf =
+                    strlen(buf) - awal;
+                memmove(buf, buf + awal,
+                    sisa_buf + 1);
+                trim(buf);
+                break;
+            }
+        }
+    }
+
+    /*
+     * Langkah 3: Hapus frasa referensi tersisa
+     * dan kata lumpat sederhana.
+     */
+    for (i = 0; frasa_referensi[i] != NULL; i++) {
+        char *pos = strstr(buf, frasa_referensi[i]);
+        if (pos != NULL) {
+            size_t len_ref =
+                strlen(frasa_referensi[i]);
+            size_t len_after = strlen(pos)
+                - len_ref;
+            memmove(pos, pos + len_ref,
+                len_after + 1);
+            trim(buf);
+        }
+    }
+
+    /*
+     * Langkah 4: Ambil kata bermakna dari sisa
+     * teks. Gunakan daftar stopword sederhana.
+     */
+    {
+        static const char *sw[] = {
+            "saya", "kamu", "aku", "dia",
+            "tidak", "bukan", "belum", "sudah",
+            "sedang", "masih", "akan", "bisa",
+            "dapat", "mau", "ingin", "hendak",
+            "tentang", "untuk", "dari", "dengan",
+            "pada", "di", "oleh", "ke", "dalam",
+            "yang", "yg", "juga", "pun", "saja",
+            "hanya", "lagi", "ini", "itu",
+            "tersebut", "hal", "masalah",
+            "apa", "siapa", "bagaimana",
+            "mengapa", "kenapa", "kapan",
+            "apakah", "sesuatu", "sebuah",
+            "suatu", "seorang", "cari",
+            "tahu", "paham", "mengerti",
+            "mencari", "kesulitan",
+            "mempelajari", "memahami",
+            "menemukan", "mendapatkan",
+            "informasi", "data",
+            "mengenai", "soal",
+            NULL
+        };
+
+        cleaned[0] = '\0';
+        pertama = 1;
+        t = strtok(buf, " \t\n");
+        while (t != NULL) {
+            is_sw = 0;
+            for (j = 0; sw[j] != NULL; j++) {
+                if (strcmp(t, sw[j]) == 0) {
+                    is_sw = 1;
+                    break;
+                }
+            }
+            if (!is_sw && strlen(t) > 1) {
+                if (!pertama) {
+                    strncat(cleaned, " ",
+                        sizeof(cleaned)
+                            - strlen(cleaned) - 1);
+                }
+                strncat(cleaned, t,
+                    sizeof(cleaned)
+                        - strlen(cleaned) - 1);
+                pertama = 0;
+            }
+            t = strtok(NULL, " \t\n");
+        }
+        trim(cleaned);
+    }
+
+    if (cleaned[0] != '\0') {
+        snprintf(topik_out, ukuran, "%s", cleaned);
         return 1;
     }
 
-    /* --- 5. Tidak bisa klasifikasi, biarkan sumber_data --- */
     return 0;
 }
 
 /* ========================================================================== *
- *                  HANDLER PERTANYAAN JENIS BENDA                             *
- * ========================================================================== */
-
-/*
- * tangani_jenis_benda - Menangani pertanyaan tentang JENIS
- * suatu benda atau konsep.
- *
- * Contoh: "komputer apa itu?" -> jenis-jenis komputer.
- *
- * Sumber data (berurutan):
- * 1. pengetahuan_bertingkat dengan topik 'jenis'
- * 2. Relasi semantik dengan hubungan jenis_dari
- * 3. Stem, lalu ulangi relasi semantik
- * 4. Fallback: pesan belum tersedia
- */
-static void tangani_jenis_benda(
-    sqlite3 *db,
-    AjStmtCache *cache,
-    const char *topik,
-    char *output,
-    size_t ukuran_output)
-{
-    int rc, ada_hasil;
-    const char *poin_val;
-    const char *penjelasan_val;
-    const char *hub_relasi;
-    char buffer[MAX_RESPONS];
-    char kata_stem[MAX_PANJANG_TOKEN];
-
-    if (!db || !cache || !topik || !output
-        || ukuran_output == 0) {
-        return;
-    }
-
-    /* --- 1. Coba pengetahuan_bertingkat topik 'jenis' --- */
-    rc = sqlite3_reset(cache->stmt_pen_bertingkat_list);
-    if (rc == SQLITE_OK) {
-        sqlite3_bind_text(
-            cache->stmt_pen_bertingkat_list,
-            1, topik, -1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(
-            cache->stmt_pen_bertingkat_list,
-            2, "jenis", -1, SQLITE_TRANSIENT);
-
-        buffer[0] = '\0';
-        ada_hasil = 0;
-
-        while (sqlite3_step(
-            cache->stmt_pen_bertingkat_list)
-            == SQLITE_ROW) {
-            poin_val = (const char *)sqlite3_column_text(
-                cache->stmt_pen_bertingkat_list, 0);
-            penjelasan_val = (const char *)sqlite3_column_text(
-                cache->stmt_pen_bertingkat_list, 1);
-
-            if (poin_val && poin_val[0]) {
-                if (ada_hasil) {
-                    strncat(buffer, "\n",
-                        sizeof(buffer)
-                            - strlen(buffer) - 1);
-                }
-                strncat(buffer, "- ",
-                    sizeof(buffer)
-                        - strlen(buffer) - 1);
-                strncat(buffer, poin_val,
-                    sizeof(buffer)
-                        - strlen(buffer) - 1);
-                if (penjelasan_val
-                    && penjelasan_val[0]) {
-                    strncat(buffer, ": ",
-                        sizeof(buffer)
-                            - strlen(buffer) - 1);
-                    strncat(buffer, penjelasan_val,
-                        sizeof(buffer)
-                            - strlen(buffer) - 1);
-                }
-                ada_hasil = 1;
-            }
-        }
-
-        sqlite3_reset(cache->stmt_pen_bertingkat_list);
-
-        if (ada_hasil) {
-            snprintf(output, ukuran_output,
-                "Jenis-jenis %s:\n%s",
-                topik, buffer);
-            return;
-        }
-    }
-
-    /* --- 2. Coba relasi semantik jenis_dari --- */
-    rc = sqlite3_reset(cache->stmt_rel_semantik);
-    if (rc == SQLITE_OK) {
-        sqlite3_bind_text(
-            cache->stmt_rel_semantik,
-            1, topik, -1, SQLITE_TRANSIENT);
-
-        buffer[0] = '\0';
-        ada_hasil = 0;
-
-        while (sqlite3_step(
-            cache->stmt_rel_semantik)
-            == SQLITE_ROW) {
-            poin_val = (const char *)sqlite3_column_text(
-                cache->stmt_rel_semantik, 0);
-            hub_relasi = (const char *)sqlite3_column_text(
-                cache->stmt_rel_semantik, 1);
-
-            if (!poin_val || !poin_val[0]) continue;
-
-            /* Hanya ambil relasi yang mengandung 'jenis' */
-            if (hub_relasi
-                && strstr(hub_relasi, "jenis") != NULL) {
-                if (ada_hasil) {
-                    strncat(buffer, ", ",
-                        sizeof(buffer)
-                            - strlen(buffer) - 1);
-                }
-                strncat(buffer, poin_val,
-                    sizeof(buffer)
-                        - strlen(buffer) - 1);
-                ada_hasil = 1;
-            }
-        }
-
-        sqlite3_reset(cache->stmt_rel_semantik);
-
-        if (ada_hasil) {
-            snprintf(output, ukuran_output,
-                "Jenis-jenis %s: %s",
-                topik, buffer);
-            return;
-        }
-    }
-
-    /* --- 3. Stem, lalu ulangi relasi semantik --- */
-    if (stem_kata(db, topik, kata_stem,
-        (int)sizeof(kata_stem)) == 0
-        && ajudan_strcasecmp(kata_stem, topik) != 0) {
-        rc = sqlite3_reset(cache->stmt_rel_semantik);
-        if (rc == SQLITE_OK) {
-            sqlite3_bind_text(
-                cache->stmt_rel_semantik,
-                1, kata_stem, -1, SQLITE_TRANSIENT);
-
-            buffer[0] = '\0';
-            ada_hasil = 0;
-
-            while (sqlite3_step(
-                cache->stmt_rel_semantik)
-                == SQLITE_ROW) {
-                poin_val = (const char *)
-                    sqlite3_column_text(
-                    cache->stmt_rel_semantik, 0);
-                hub_relasi = (const char *)
-                    sqlite3_column_text(
-                    cache->stmt_rel_semantik, 1);
-
-                if (!poin_val || !poin_val[0]) continue;
-
-                if (hub_relasi
-                    && strstr(hub_relasi, "jenis") != NULL) {
-                    if (ada_hasil) {
-                        strncat(buffer, ", ",
-                            sizeof(buffer)
-                                - strlen(buffer) - 1);
-                    }
-                    strncat(buffer, poin_val,
-                        sizeof(buffer)
-                            - strlen(buffer) - 1);
-                    ada_hasil = 1;
-                }
-            }
-
-            sqlite3_reset(cache->stmt_rel_semantik);
-
-            if (ada_hasil) {
-                snprintf(output, ukuran_output,
-                    "Jenis-jenis %s: %s",
-                    topik, buffer);
-                return;
-            }
-        }
-    }
-
-    /* --- 4. Fallback --- */
-    snprintf(output, ukuran_output,
-        "Maaf, saya belum memiliki data mengenai "
-        "jenis-jenis '%s'. Coba tanyakan "
-        "\"jelaskan %s\" untuk informasi lebih "
-        "lengkap.",
-        topik, topik);
-}
-
-/* ========================================================================== *
- *                          PROSES UTAMA PERCAKAPAN                            *
+ *                      PROSES UTAMA PERCAKAPAN                               *
  * ========================================================================== */
 
 int proses_percakapan(
@@ -2574,7 +1848,6 @@ int proses_percakapan(
     AjStmtCache cache;
     int jml_token, sesi_id;
     int adalah_pertanyaan_lanjutan;
-    int pola_terdeteksi;
 
     if (!koneksi_db || !id_pengguna || !input_pengguna
         || !respon_bot || ukuran_respon == 0) {
@@ -2627,12 +1900,10 @@ int proses_percakapan(
      * "pengetahuan_umum" agar bot tetap mencoba mencari
      * informasi dari knowledge base.
      */
-    pola_terdeteksi = 0;
     if (deteksi_jenis_dan_sumber_dari_db(
         koneksi_db, &cache, input_normal,
         jenis_kalimat, sizeof(jenis_kalimat),
         sumber_data, sizeof(sumber_data)) == 0) {
-        pola_terdeteksi = 1;
         aj_log("Pola terdeteksi: jenis='%s' "
             "sumber='%s'\n",
             jenis_kalimat, sumber_data);
@@ -2686,8 +1957,10 @@ int proses_percakapan(
              * TERBAIK, bukan yang pertama ditemukan.
              *
              * Kriteria pemilihan:
-             * 1. Topik harus tidak kosong setelah difilter
-             * 2. Intent PENJELASAN diutamakan (paling spesifik)
+             * 1. Topik harus tidak kosong setelah
+             *    difilter
+             * 2. Intent PENJELASAN diutamakan
+             *    (paling spesifik)
              * 3. Topik yang lebih panjang diutamakan
              *    (lebih spesifik)
              * 4. Jika masih imbang, klausa terakhir
@@ -2713,7 +1986,8 @@ int proses_percakapan(
                 if (cur != INTENT_LAIN) {
                     /*
                      * Filter kata lumpat dari topik.
-                     * Contoh: "saya tidak mengerti komputer"
+                     * Contoh:
+                     * "saya tidak mengerti komputer"
                      * -> "komputer"
                      */
                     bersihkan_topik(cur_tdk);
@@ -2735,9 +2009,9 @@ int proses_percakapan(
                             && best_intent
                             != INTENT_PENJELASAN) {
                             /*
-                             * PENJELASAN lebih spesifik
-                             * dari DEFINISI/ARTI.
-                             * "jelaskan X" > "X itu apa"
+                             * PENJELASAN lebih
+                             * spesifik dari
+                             * DEFINISI/ARTI.
                              */
                             is_better = 1;
                         } else if (cur_len
@@ -2807,11 +2081,9 @@ int proses_percakapan(
             aj_log("Topik dari klausa: '%s'\n",
                 topik_klausa);
         }
-
     }
 
-    aj_log("sumber_data final: '%s'\n",
-        sumber_data);
+    aj_log("sumber_data final: '%s'\n", sumber_data);
 
     snprintf(hasil_spok.jenis_kalimat,
         sizeof(hasil_spok.jenis_kalimat), "%s",
@@ -2890,20 +2162,139 @@ int proses_percakapan(
     }
 
     /*
-     * Pencarian fuzzy optimal.
+     * RESOLUSI REFERENSI KONTEKSTUAL (pra-fuzzy):
+     *
+     * Jika topik_bersih kosong atau hanya berisi
+     * kata demonstratif ("itu", "hal itu", dll),
+     * langsung resolve sebelum fuzzy.
      */
-    if (cari_topik_optimal(
-        koneksi_db, &cache, topik_bersih,
-        topik_norm, (int)sizeof(topik_norm),
-        kandidat, 1) == 0) {
-        aj_log("Topik norm: '%s' (skor=%.2f)\n",
-            topik_norm,
-            kandidat[0].skor);
-    } else {
-        snprintf(topik_norm, sizeof(topik_norm),
-            "%s", topik_bersih);
-        aj_log("Topik norm: '%s' (eksak)\n",
-            topik_norm);
+    if (adalah_referensi_kosong(topik_bersih)) {
+        char topik_ctx[MAX_PANJANG_STRING];
+
+        aj_log("Topik kosong/referensi: '%s', "
+            "mencari dari konteks...\n",
+            topik_bersih);
+
+        topik_ctx[0] = '\0';
+        if (cari_topik_dari_konteks(
+            input_normal, topik_ctx,
+            sizeof(topik_ctx)) != 0) {
+            snprintf(topik_bersih,
+                sizeof(topik_bersih),
+                "%s", topik_ctx);
+            aj_log("Topik dari konteks: '%s'\n",
+                topik_bersih);
+        } else {
+            const char *topik_sesi =
+                sesi_aktif[sesi_id].topik_utama;
+            if (topik_sesi && topik_sesi[0]) {
+                snprintf(topik_bersih,
+                    sizeof(topik_bersih),
+                    "%s", topik_sesi);
+                aj_log("Topik dari sesi: '%s'\n",
+                    topik_bersih);
+            }
+        }
+    }
+
+    /*
+     * Pencarian fuzzy optimal.
+     * Jika fuzzy gagal DAN input mengandung pola
+     * referensi kontekstual, coba resolve dari
+     * kalimat atau sesi sebelumnya.
+     */
+    {
+        int fuzzy_ok = 0;
+        double fuzzy_skor = 0.0;
+
+        if (cari_topik_optimal(
+            koneksi_db, &cache, topik_bersih,
+            topik_norm, (int)sizeof(topik_norm),
+            kandidat, 1) == 0) {
+            fuzzy_ok = 1;
+            fuzzy_skor = kandidat[0].skor;
+            aj_log("Topik norm: '%s' "
+                "(skor=%.2f)\n",
+                topik_norm, fuzzy_skor);
+        }
+
+        /*
+         * Jika fuzzy gagal atau skor sangat rendah
+         * dan input mengandung pola referensi,
+         * coba resolve ulang dari konteks.
+         */
+        if ((!fuzzy_ok || fuzzy_skor < 0.7)
+            && mengandung_referensi(input_normal)) {
+            char topik_ctx[MAX_PANJANG_STRING];
+
+            aj_log("Fuzzy gagal/skor rendah "
+                "(%.2f), coba resolusi...\n",
+                fuzzy_skor);
+
+            topik_ctx[0] = '\0';
+            if (cari_topik_dari_konteks(
+                input_normal, topik_ctx,
+                sizeof(topik_ctx)) != 0) {
+                /*
+                 * Retry fuzzy dengan topik
+                 * dari konteks kalimat.
+                 */
+                if (cari_topik_optimal(
+                    koneksi_db, &cache,
+                    topik_ctx, topik_norm,
+                    (int)sizeof(topik_norm),
+                    kandidat, 1) == 0
+                    && kandidat[0].skor >= 0.7) {
+                    snprintf(topik_bersih,
+                        sizeof(topik_bersih),
+                        "%s", topik_ctx);
+                    fuzzy_ok = 1;
+                    aj_log("Resolve konteks: "
+                        "'%s' -> '%s' "
+                        "(skor=%.2f)\n",
+                        topik_ctx, topik_norm,
+                        kandidat[0].skor);
+                }
+            }
+
+            /*
+             * Jika masih gagal, coba topik sesi.
+             */
+            if (!fuzzy_ok) {
+                const char *topik_sesi =
+                    sesi_aktif[sesi_id]
+                        .topik_utama;
+                if (topik_sesi
+                    && topik_sesi[0]) {
+                    if (cari_topik_optimal(
+                        koneksi_db, &cache,
+                        topik_sesi, topik_norm,
+                        (int)sizeof(
+                            topik_norm),
+                        kandidat, 1) == 0
+                        && kandidat[0].skor
+                            >= 0.7) {
+                        snprintf(
+                            topik_bersih,
+                            sizeof(topik_bersih),
+                            "%s", topik_sesi);
+                        fuzzy_ok = 1;
+                        aj_log("Resolve sesi: "
+                            "'%s' -> '%s'\n",
+                            topik_sesi,
+                            topik_norm);
+                    }
+                }
+            }
+        }
+
+        if (!fuzzy_ok) {
+            snprintf(topik_norm,
+                sizeof(topik_norm),
+                "%s", topik_bersih);
+            aj_log("Topik norm: '%s' (eksak)\n",
+                topik_norm);
+        }
     }
 
     topik_stem[0] = '\0';
@@ -2922,91 +2313,87 @@ int proses_percakapan(
         hasil_ekstraksi.kuantitas);
 
     /* ============================================================ *
-     *  DISPATCH LENGKAP: Handler untuk semua tipe sumber_data
+     *  DISPATCH: Handler untuk semua tipe sumber_data
+     *  Setiap handler menerima HasilAnalisisSpok untuk
+     *  menghasilkan respon natural berbasis SPOK.
      * ============================================================ */
 
     if (strcmp(sumber_data, "sapaan") == 0) {
-        /* SAPAAN: salam khusus */
         tangani_sapaan(koneksi_db, &cache,
-            respon_bot, ukuran_respon);
-
+            input_normal, respon_bot,
+            ukuran_respon);
     } else if (strcmp(sumber_data, "definisi") == 0) {
-        /* DEFINISI SINGKAT: hanya judul + ringkasan */
         tangani_arti_singkat(koneksi_db, &cache,
-            topik_norm, respon_bot, ukuran_respon);
-
+            topik_norm, &hasil_spok,
+            respon_bot, ukuran_respon);
     } else if (strcmp(sumber_data, "jenis") == 0) {
-        /* JENIS: daftar jenis/varian suatu benda */
         tangani_jenis_benda(koneksi_db, &cache,
-            topik_norm, respon_bot, ukuran_respon);
-
-    } else if (strcmp(sumber_data, "penjelasan_lengkap") == 0
-        || strcmp(sumber_data, "gabungan_spok") == 0) {
-        /* PENJELASAN LENGKAP: judul+ringkasan+penjelasan+saran */
+            topik_norm, &hasil_spok,
+            respon_bot, ukuran_respon);
+    } else if (strcmp(sumber_data,
+            "penjelasan_lengkap") == 0
+        || strcmp(sumber_data,
+            "gabungan_spok") == 0) {
         tangani_permintaan_penjelasan(
             koneksi_db, &cache, topik_norm,
-            &hasil_spok, respon_bot, ukuran_respon);
-
+            &hasil_spok, respon_bot,
+            ukuran_respon);
     } else if (strcmp(sumber_data, "sebab") == 0
         || strcmp(sumber_data, "dampak") == 0) {
-        /* SEBAB/DAMPAK: analisis hubungan */
         tangani_pertanyaan_sebab(
             koneksi_db, &cache, &hasil_spok,
             respon_bot, ukuran_respon);
-
     } else if (strcmp(sumber_data, "langkah") == 0) {
-        /* LANGKAH: daftar bertahap */
         if (strlen(hasil_ekstraksi.sub_topik) > 0) {
-            snprintf(hasil_ekstraksi.sub_topik,
+            snprintf(
+                hasil_ekstraksi.sub_topik,
                 sizeof(hasil_ekstraksi.sub_topik),
                 "%s", "langkah");
         }
         tangani_permintaan_daftar(
-            koneksi_db, &cache, &hasil_ekstraksi,
+            koneksi_db, &cache,
+            &hasil_ekstraksi, &hasil_spok,
             respon_bot, ukuran_respon);
-
     } else if (strcmp(sumber_data, "fakta") == 0
         || strcmp(sumber_data, "sejarah") == 0
-        || strcmp(sumber_data, "pengetahuan_umum") == 0) {
-        /* FAKTA/SEJARAH/PENGETAHUAN UMUM: KB */
+        || strcmp(sumber_data,
+            "pengetahuan_umum") == 0) {
         tangani_permintaan_penjelasan(
             koneksi_db, &cache, topik_norm,
-            &hasil_spok, respon_bot, ukuran_respon);
-
+            &hasil_spok, respon_bot,
+            ukuran_respon);
     } else if (strcmp(sumber_data, "manfaat") == 0
         || strcmp(sumber_data, "fungsi") == 0) {
-        /* MANFAAT/FUNGSI: daftar manfaat */
         if (strlen(hasil_ekstraksi.sub_topik) > 0
             && strcmp(hasil_ekstraksi.sub_topik,
                 "manfaat") != 0) {
-            snprintf(hasil_ekstraksi.sub_topik,
+            snprintf(
+                hasil_ekstraksi.sub_topik,
                 sizeof(hasil_ekstraksi.sub_topik),
                 "%s", "manfaat");
         } else if (strlen(
-            hasil_ekstraksi.sub_topik) == 0) {
-            snprintf(hasil_ekstraksi.sub_topik,
+                hasil_ekstraksi.sub_topik)
+                == 0) {
+            snprintf(
+                hasil_ekstraksi.sub_topik,
                 sizeof(hasil_ekstraksi.sub_topik),
                 "%s", "manfaat");
         }
         tangani_permintaan_daftar(
-            koneksi_db, &cache, &hasil_ekstraksi,
+            koneksi_db, &cache,
+            &hasil_ekstraksi, &hasil_spok,
             respon_bot, ukuran_respon);
-
     } else if (strcmp(sumber_data, "perbedaan") == 0
         || strcmp(sumber_data, "analogi") == 0
         || strcmp(sumber_data, "ciri") == 0) {
-        /* PERBEDAAN/ANALOGI/CIRI: penjelasan KB */
         tangani_permintaan_penjelasan(
             koneksi_db, &cache, topik_norm,
-            &hasil_spok, respon_bot, ukuran_respon);
-
-    } else if (!pola_terdeteksi) {
-        tangani_arti_singkat(koneksi_db, &cache,
-            topik_norm, respon_bot, ukuran_respon);
-
+            &hasil_spok, respon_bot,
+            ukuran_respon);
     } else {
         tangani_arti_singkat(koneksi_db, &cache,
-            topik_norm, respon_bot, ukuran_respon);
+            topik_norm, &hasil_spok,
+            respon_bot, ukuran_respon);
     }
 
     aj_log("Respon siap.\n");
@@ -3017,7 +2404,3 @@ int proses_percakapan(
     aj_finalize_stmt_cache(&cache);
     return 0;
 }
-
-/* ========================================================================== *
- *                               AKHIR BERKAS                                 *
- * ========================================================================== */

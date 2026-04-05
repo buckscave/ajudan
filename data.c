@@ -394,6 +394,18 @@ int buat_tabel_hubungan(sqlite3 *db, InfoKesalahan *error) {
     return eksekusi_sql(db, sql, error);
 }
 
+int buat_tabel_templat_respon(sqlite3 *db, InfoKesalahan *error) {
+    const char *sql =
+        "CREATE TABLE IF NOT EXISTS templat_respon ("
+        "id INTEGER PRIMARY KEY, "
+        "tipe_intent TEXT NOT NULL, "
+        "templat TEXT NOT NULL, "
+        "prioritas INTEGER DEFAULT 1"
+        ");";
+    ajudan_logf("Buat tabel: %s", "templat_respon", NULL, NULL);
+    return eksekusi_sql(db, sql, error);
+}
+
 /* ========================================================================== *
  *                               INDEKS PERFORMA                              *
  * ========================================================================== */
@@ -440,7 +452,10 @@ int buat_indeks(sqlite3 *db, InfoKesalahan *error) {
         "CREATE INDEX IF NOT EXISTS idx_pengetahuan_bertingkat_bidang ON \
         pengetahuan_bertingkat(id_bidang);"
         "CREATE INDEX IF NOT EXISTS idx_pengetahuan_bertingkat_topik ON \
-        pengetahuan_bertingkat(topik);";
+        pengetahuan_bertingkat(topik);"
+        /* Templat respon */
+        "CREATE INDEX IF NOT EXISTS idx_templat_respon_tipe ON \
+        templat_respon(tipe_intent);";
     ajudan_logf("Membuat indeks performa", NULL, NULL, NULL);
     return eksekusi_sql(db, sql, error);
 }
@@ -476,6 +491,7 @@ int inisialisasi_basisdata(InfoKesalahan *error) {
     if (buat_tabel_morfologi(db, error) != 0) ok = -1;
     if (buat_tabel_semantik(db, error) != 0) ok = -1;
     if (buat_tabel_hubungan(db, error) != 0) ok = -1;
+    if (buat_tabel_templat_respon(db, error) != 0) ok = -1;
 
     if (buat_indeks(db, error) != 0) ok = -1;
 
@@ -1008,6 +1024,44 @@ int impor_jawaban_bawaan(const char *nama_berkas, InfoKesalahan *error) {
     }
     sqlite3_exec(db,"COMMIT;",NULL,NULL,NULL);
     sqlite3_finalize(st); fclose(fp); tutup_basisdata(db); return 0;
+}
+
+/* Templat respon natural */
+int impor_templat_respon(const char *nama_berkas, InfoKesalahan *error) {
+    FILE *fp; sqlite3 *db; sqlite3_stmt *st;
+    char baris[8192], *kolom[4];
+    int rc, n, header = 1;
+    fp = fopen(nama_berkas, "r");
+    if (!fp) return -1;
+    if (buka_basisdata(&db) != 0) {
+        fclose(fp); return -1;
+    }
+    rc = sqlite3_prepare_v2(db, "INSERT OR IGNORE INTO "
+        "templat_respon(tipe_intent,templat,prioritas) "
+        "VALUES(?,?,?);", -1, &st, NULL);
+    if (rc != SQLITE_OK) {
+        fclose(fp); tutup_basisdata(db); return -1;
+    }
+    sqlite3_exec(db, "BEGIN;", NULL, NULL, NULL);
+    while (fgets(baris, sizeof(baris), fp)) {
+        n = parse_baris_csv_kuat(baris, kolom, 4);
+        if (header) {
+            header = 0;
+            if (n > 0 && strcmp(kolom[0], "id") == 0)
+                continue;
+        }
+        if (n < 4) continue;
+        sqlite3_bind_text(st, 1, kolom[1], -1, SQLITE_STATIC);
+        sqlite3_bind_text(st, 2, kolom[2], -1, SQLITE_STATIC);
+        sqlite3_bind_int(st, 3, atoi(kolom[3]));
+        (void)sqlite3_step(st);
+        sqlite3_reset(st);
+    }
+    sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL);
+    sqlite3_finalize(st);
+    fclose(fp);
+    tutup_basisdata(db);
+    return 0;
 }
 
 /* Pengetahuan umum */

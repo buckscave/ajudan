@@ -145,6 +145,13 @@ static const char *DAFTAR_KATA_LUMPAT[] = {
     /* Verba umum yang bukan entitas */
     "mengajak", "menanyakan", "meminta", "memilih",
     "membeli", "berbelanja", "sampai",
+    /* Verba pencarian/pemahaman (bukan konten) */
+    "cari", "mencari", "kesulitan", "mendapatkan",
+    "menemukan", "mengetahui", "memahami",
+    /* Verba perujukan (bukan konten) */
+    "disebut", "dimaksud", "dikatakan", "dinamakan",
+    "disebutkan", "dimaksudkan", "diberi nama",
+    "dikenal", "dipanggil", "dimaksudkan",
     /* Determiner */
     "seorang", "sesuatu", "sebuah", "suatu",
     NULL

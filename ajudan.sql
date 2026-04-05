@@ -2151,3 +2151,55 @@ COMMIT;
 -- ========================================================================== --
 -- SELESAI                                                                      --
 -- ========================================================================== --
+
+-- ========================================================================== --
+-- 21. TEMPLAT RESPON NATURAL                                                  --
+-- ========================================================================== --
+-- Templat pembungkus respon agar bot terdengar lebih natural.
+-- Hanya menggunakan {ISI} karena isi respon sudah memuat
+-- format "Topik adalah ..." secara built-in.
+-- ========================================================================== --
+BEGIN TRANSACTION;
+INSERT OR IGNORE INTO templat_respon (tipe_intent, templat, prioritas) VALUES
+-- DEFINISI (apa itu X? / X apa?)
+('definisi', 'Ya, saya tahu tentang hal itu. {ISI}', 5),
+('definisi', 'Tentu, ini jawabannya. {ISI}', 4),
+('definisi', 'Oh, begitu ya. {ISI}', 3),
+('definisi', 'Baik, ini penjelasannya. {ISI}', 2),
+
+-- ARTI (arti X? / makna X?)
+('arti', 'Artinya sebagai berikut. {ISI}', 5),
+('arti', 'Berdasarkan yang saya ketahui. {ISI}', 4),
+('arti', '{ISI}', 3),
+
+-- JENIS (jenis X? / macam X?)
+('jenis', 'Ada beberapa yang saya ketahui. {ISI}', 5),
+('jenis', 'Berikut informasinya. {ISI}', 4),
+('jenis', 'Berikut jenis-jenisnya. {ISI}', 3),
+
+-- PENJELASAN (jelaskan X? / uraikan X?)
+('penjelasan', 'Baik, saya akan menjelaskan. {ISI}', 5),
+('penjelasan', 'Tentu, berikut penjelasannya. {ISI}', 4),
+('penjelasan', 'Mengenai hal itu, ini yang bisa saya sampaikan. {ISI}', 3),
+
+-- ALASAN (mengapa X? / kenapa X?)
+('alasan', 'Berdasarkan yang saya ketahui, {ISI}', 5),
+('alasan', 'Menurut informasi yang saya miliki, {ISI}', 4),
+('alasan', 'Sepertinya {ISI}', 3),
+('alasan', 'Yang saya pahami, {ISI}', 2),
+
+-- CARA (bagaimana X? / cara X?)
+('cara', 'Berikut caranya. {ISI}', 5),
+('cara', 'Begini penjelasannya. {ISI}', 4),
+('cara', 'Langkah-langkahnya adalah sebagai berikut. {ISI}', 3),
+
+-- PERBANDINGAN (perbedaan X dan Y?)
+('perbandingan', 'Tentang perbandingan tersebut. {ISI}', 5),
+('perbandingan', 'Berikut perbandingan yang bisa saya sampaikan. {ISI}', 4),
+('perbandingan', '{ISI}', 3),
+
+-- LAINNYA (fallback natural)
+('lainnya', '{ISI}', 3),
+('lainnya', 'Yang bisa saya sampaikan adalah sebagai berikut. {ISI}', 2),
+('lainnya', 'Berikut informasinya. {ISI}', 1);
+COMMIT;

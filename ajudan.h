@@ -3,7 +3,7 @@
  *
  * File header ini memuat semua deklarasi tipe data dan fungsi
  * untuk modul-modul: basisdata, basisaturan, stemming,
- * pencarian fuzzy, dan analisis kalimat.
+ * pencarian fuzzy, analisis kalimat, dan percakapan.
  *
  * Standar: C89, POSIX, SQLite3
  */
@@ -199,6 +199,7 @@ typedef struct {
 
 void trim(char *s);
 void to_lower_case(char *s);
+void kapitalisasi_awal(char *s);
 int parse_baris_csv_kuat(
     char *baris, char *kolom[], int max_kolom);
 int ajudan_strcasecmp(const char *s1, const char *s2);
@@ -271,7 +272,7 @@ int impor_kategori_kalimat(
     const char *nama_berkas, InfoKesalahan *error);
 
 /* ================================================================== *
- *             DEKLARASI MODUL RULEBASE (basisaturan.c)                  *
+ *             DEKLARASI MODUL RULEBASE (aturan.c)                       *
  * ================================================================== */
 
 int proses_percakapan(
@@ -304,22 +305,11 @@ KategoriPOS cari_kategori_fallback_dari_db(
 int isi_kategori_dari_database(
     sqlite3 *db, AjStmtCache *cache,
     TokenKalimat tokens[], int jml_token);
-int bangun_pohon_ketergantungan(
-    TokenKalimat tokens[], int jml_token,
-    SimpulKetergantungan *nodes, int verbose);
 int deteksi_jenis_dan_sumber_dari_db(
     sqlite3 *db, AjStmtCache *cache,
     const char *kalimat_norm,
     char *jenis, size_t ukuran_jenis,
     char *sumber, size_t ukuran_sumber);
-int analisis_struktur_spok(
-    sqlite3 *db,
-    TokenKalimat tokens[], int jml_token,
-    HasilAnalisisSpok *spok);
-void ekstrak_topik_utama(
-    sqlite3 *db,
-    TokenKalimat tokens[], int jml_token,
-    HasilEkstraksiTopik *hasil);
 int ambil_arti_kata(
     sqlite3 *db, AjStmtCache *cache,
     const char *lema,
@@ -331,6 +321,10 @@ int ambil_pengetahuan_umum(
     char *ringkasan, size_t ur,
     char *penjelasan, size_t up,
     char *saran, size_t us);
+int ambil_hubungan_semantik(
+    sqlite3 *db, AjStmtCache *cache,
+    const char *topik,
+    char *relasi, size_t ukuran);
 int ambil_respon_default_acak(
     sqlite3 *db, AjStmtCache *cache,
     char *output, size_t ukuran_output);
@@ -361,6 +355,63 @@ int pilih_kerangka_respon(
     sqlite3 *db,
     const char *hubungan,
     char *kerangka, size_t ukuran_kerangka);
+
+/* Fungsi bantu aturan.c (dipromosikan dari static) */
+int adalah_referensi_kosong(const char *topik);
+int mengandung_referensi(const char *input);
+int cari_topik_dari_konteks(
+    const char *input,
+    char *topik_out, size_t ukuran);
+int tokenisasi_dengan_stem(
+    sqlite3 *db,
+    const char *kalimat,
+    TokenKalimat tokens[], int max_tokens);
+int isi_kategori_dengan_stem(
+    sqlite3 *db, AjStmtCache *cache,
+    TokenKalimat tokens[], int jml_token);
+int cari_atau_buat_sesi_percakapan(
+    const char *user_id);
+void perbarui_sesi_percakapan(
+    int sesi_id, const char *topik_baru,
+    const char *tipe_list, const char *status,
+    const char *pertanyaan);
+void bersihkan_sesi_kadaluarsa(void);
+int ambil_jumlah_sesi(void);
+const char *ambil_topik_sesi(int sesi_id);
+
+/* ================================================================== *
+ *     DEKLARASI MODUL PERCAKAPAN (percakapan.c)                        *
+ * ================================================================== */
+
+void tangani_sapaan(
+    sqlite3 *db, AjStmtCache *cache,
+    const char *input,
+    char *output, size_t ukuran_output);
+void tangani_arti_singkat(
+    sqlite3 *db, AjStmtCache *cache,
+    const char *topik, HasilAnalisisSpok *spok,
+    char *output, size_t ukuran_output);
+void tangani_permintaan_penjelasan(
+    sqlite3 *db, AjStmtCache *cache,
+    const char *topik, HasilAnalisisSpok *spok,
+    char *output, size_t ukuran_output);
+void tangani_permintaan_daftar(
+    sqlite3 *db, AjStmtCache *cache,
+    HasilEkstraksiTopik *ekstraksi,
+    HasilAnalisisSpok *spok,
+    char *output, size_t ukuran_output);
+void tangani_pertanyaan_sebab(
+    sqlite3 *db, AjStmtCache *cache,
+    HasilAnalisisSpok *spok,
+    char *output, size_t ukuran_output);
+void tangani_jenis_benda(
+    sqlite3 *db, AjStmtCache *cache,
+    const char *topik, HasilAnalisisSpok *spok,
+    char *output, size_t ukuran_output);
+void tangani_pertanyaan_lanjutan(
+    sqlite3 *db, AjStmtCache *cache,
+    const char *input, int sesi_id,
+    char *output, size_t ukuran_output);
 
 /* ================================================================== *
  *           DEKLARASI MODUL STEMMING (ajudan_stem.c)                    *
