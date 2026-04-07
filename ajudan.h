@@ -1,15 +1,21 @@
 /*
- * ajudan.h - Header Terpadu AJUDAN 3.1
+ * ajudan.h - Header Terpadu AJUDAN 4.0
  *
  * File header ini memuat semua deklarasi tipe data dan fungsi
- * untuk modul-modul: basisdata, basisaturan, stemming,
- * pencarian fuzzy, analisis kalimat, dan percakapan.
+ * untuk modul-modul: basisdata, rulebase, stemming,
+ * pencarian fuzzy, analisis kalimat, percakapan,
+ * rangkaian respons, penalaran waktu, dan penalaran matematika.
  *
  * Standar: C89, POSIX, SQLite3
  */
 
 #ifndef AJUDAN_H
 #define AJUDAN_H
+
+/* snprintf diperlukan — POSIX.1-2001 */
+#if !defined(_POSIX_C_SOURCE) || _POSIX_C_SOURCE < 200112L
+#define _POSIX_C_SOURCE 200112L
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,8 +44,31 @@
 #define FUZZY_MIN_SKOR 0.6
 #define FUZZY_MAX_JARAK 2
 
+/* Batas cache linguistik */
+#define MAX_CACHE_KATA_LUMPAT 256
+#define MAX_CACHE_KATA_TANYA 32
+#define MAX_CACHE_PEMISAH_KLAUSA 32
+#define MAX_CACHE_MARKER_PENJELASAN 16
+#define MAX_CACHE_MARKER_IMPLISIT 16
+#define MAX_CACHE_POLA_REFERENSI 32
+#define MAX_CACHE_FRASA_PEMBUKA 32
+#define MAX_CACHE_PEMISAH_REF 16
+#define MAX_CACHE_SAPAAN_WAKTU 16
+#define MAX_CACHE_PENANDA_KALIMAT 64
+#define MAX_CACHE_AFFIX_POS_RULE 16
+#define MAX_CACHE_KATA_KOPULA 16
+#define MAX_CACHE_KONJUNGSI_RESPON 32
+#define MAX_CACHE_FALLBACK_RESPON 32
+#define MAX_CACHE_REFERENSI_WAKTU 32
+#define MAX_CACHE_HARI_MINGGU 16
+#define MAX_CACHE_KATA_BILANGAN 32
+#define MAX_CACHE_KATA_OPERASI_MAT 64
+#define MAX_CACHE_POLA_RESPON 64
+#define MAX_CACHE_KOMPONEN_RESPON 16
+#define MAX_LANGKAH_MAT 16
+
 /* ================================================================== *
- *                        ENUMERASI TIPE KALIMAT                         *
+ *                  ENUMERASI TIPE KALIMAT                              *
  * ================================================================== */
 
 typedef enum {
@@ -69,7 +98,19 @@ typedef enum {
 } PeranSPOK;
 
 /* ================================================================== *
- *                         TIPE DATA STUKTUR                             *
+ *                       ENUMERASI INTENT MATEMATIKA                     *
+ * ================================================================== */
+
+typedef enum {
+    MAT_OP_TAMBAH = 0,
+    MAT_OP_KURANG,
+    MAT_OP_KALI,
+    MAT_OP_BAGI,
+    MAT_OP_MODULUS
+} TipeOperasiMat;
+
+/* ================================================================== *
+ *                         TIPE DATA STRUKTUR                            *
  * ================================================================== */
 
 typedef struct {
@@ -101,10 +142,6 @@ typedef enum {
     SPOK_V
 } StrukturSpok;
 
-/* ================================================================== *
- *                   ENUMERASI TIPE INTENT PERTANYAAN                     *
- * ================================================================== */
-
 typedef enum {
     INTENT_LAIN = 0,
     INTENT_DEFINISI,
@@ -113,7 +150,9 @@ typedef enum {
     INTENT_ALASAN,
     INTENT_CARA,
     INTENT_PERBANDINGAN,
-    INTENT_ARTI
+    INTENT_ARTI,
+    INTENT_MATEMATIKA,
+    INTENT_WAKTU
 } TipeIntent;
 
 typedef struct {
@@ -194,6 +233,235 @@ typedef struct {
 } AjStmtCache;
 
 /* ================================================================== *
+ *           CACHE LINGUISTIK (memuat data dari DB ke memori)           *
+ * ================================================================== */
+
+typedef struct {
+    char kata[MAX_PANJANG_STRING];
+} CacheString;
+
+typedef struct {
+    char kata[MAX_PANJANG_STRING];
+    char intent_default[32];
+    char kategori[32];
+} CacheKataTanya;
+
+typedef struct {
+    char frasa[MAX_PANJANG_STRING];
+    char jenis[32];
+    int prioritas;
+} CachePemisahKlausa;
+
+typedef struct {
+    char frasa[MAX_PANJANG_STRING];
+    char intent[32];
+    int prioritas;
+} CacheMarkerPenjelasan;
+
+typedef struct {
+    char frasa[MAX_PANJANG_STRING];
+    int prioritas;
+} CacheMarkerImplisit;
+
+typedef struct {
+    char kata[MAX_PANJANG_STRING];
+    char kategori[32];
+} CacheKataLumpat;
+
+typedef struct {
+    char frasa[MAX_PANJANG_STRING];
+    int prioritas;
+} CachePolaReferensi;
+
+typedef struct {
+    char frasa[MAX_PANJANG_STRING];
+    int prioritas;
+} CacheFrasaPembuka;
+
+typedef struct {
+    char frasa[MAX_PANJANG_STRING];
+    int prioritas;
+} CachePemisahRef;
+
+typedef struct {
+    char frasa[MAX_PANJANG_STRING];
+    int jam_mulai;
+    int jam_akhir;
+    int prioritas;
+} CacheSapaanWaktu;
+
+typedef struct {
+    char jenis[32];
+    char kata[MAX_PANJANG_STRING];
+    char keterangan[64];
+    int prioritas;
+} CachePenandaKalimat;
+
+typedef struct {
+    char jenis[16];
+    char pola[16];
+    int kelas_hasil;
+    int panjang;
+    int prioritas;
+} CacheAffixPosRule;
+
+typedef struct {
+    char kata[MAX_PANJANG_STRING];
+    char ragam[32];
+    int prioritas;
+} CacheKataKopula;
+
+typedef struct {
+    char kata[MAX_PANJANG_STRING];
+    char jenis[32];
+    int prioritas;
+} CacheKonjungsiRespon;
+
+typedef struct {
+    char jenis[32];
+    char pesan[MAX_RESPONS];
+    int prioritas;
+} CacheFallbackRespon;
+
+typedef struct {
+    char frasa[MAX_PANJANG_STRING];
+    int offset_hari;
+    char kategori[32];
+    int prioritas;
+} CacheReferensiWaktu;
+
+typedef struct {
+    char nama[MAX_PANJANG_STRING];
+    int urutan;
+    char ragam[32];
+} CacheHariMinggu;
+
+typedef struct {
+    char kata[MAX_PANJANG_STRING];
+    int nilai;
+    char ragam[32];
+} CacheKataBilangan;
+
+typedef struct {
+    char kata[MAX_PANJANG_STRING];
+    char operasi[16];
+    char kategori[32];
+    int prioritas;
+} CacheKataOperasiMat;
+
+typedef struct {
+    int id;
+    char intent[32];
+    char konteks[32];
+    char ragam[32];
+    int prioritas;
+} CachePolaRespon;
+
+typedef struct {
+    int pola_id;
+    int posisi;
+    char peran_spok[32];
+    char sumber_data[64];
+    char konten_tetap[MAX_PANJANG_STRING];
+    char bentuk[32];
+    int spasi_sebelum;
+    int spasi_sesudah;
+} CacheKomponenRespon;
+
+/* Struktur cache utama (singleton) */
+typedef struct {
+    /* Data linguistik */
+    int n_kata_lumpat;
+    CacheKataLumpat kata_lumpat[MAX_CACHE_KATA_LUMPAT];
+
+    int n_kata_tanya;
+    CacheKataTanya kata_tanya[MAX_CACHE_KATA_TANYA];
+
+    int n_pemisah_klausa;
+    CachePemisahKlausa pemisah_klausa[MAX_CACHE_PEMISAH_KLAUSA];
+
+    int n_marker_penjelasan;
+    CacheMarkerPenjelasan marker_penjelasan[
+        MAX_CACHE_MARKER_PENJELASAN];
+
+    int n_marker_implisit;
+    CacheMarkerImplisit marker_implisit[
+        MAX_CACHE_MARKER_IMPLISIT];
+
+    int n_pola_referensi;
+    CachePolaReferensi pola_referensi[
+        MAX_CACHE_POLA_REFERENSI];
+
+    int n_frasa_pembuka;
+    CacheFrasaPembuka frasa_pembuka[
+        MAX_CACHE_FRASA_PEMBUKA];
+
+    int n_pemisah_ref;
+    CachePemisahRef pemisah_ref[MAX_CACHE_PEMISAH_REF];
+
+    int n_sapaan_waktu;
+    CacheSapaanWaktu sapaan_waktu[MAX_CACHE_SAPAAN_WAKTU];
+
+    int n_penanda_kalimat;
+    CachePenandaKalimat penanda_kalimat[
+        MAX_CACHE_PENANDA_KALIMAT];
+
+    int n_affix_pos_rule;
+    CacheAffixPosRule affix_pos_rule[
+        MAX_CACHE_AFFIX_POS_RULE];
+
+    int n_kata_kopula;
+    CacheKataKopula kata_kopula[MAX_CACHE_KATA_KOPULA];
+
+    int n_konjungsi_respon;
+    CacheKonjungsiRespon konjungsi_respon[
+        MAX_CACHE_KONJUNGSI_RESPON];
+
+    int n_fallback_respon;
+    CacheFallbackRespon fallback_respon[
+        MAX_CACHE_FALLBACK_RESPON];
+
+    /* Data penalaran */
+    int n_referensi_waktu;
+    CacheReferensiWaktu referensi_waktu[
+        MAX_CACHE_REFERENSI_WAKTU];
+
+    int n_hari_minggu;
+    CacheHariMinggu hari_minggu[MAX_CACHE_HARI_MINGGU];
+
+    int n_kata_bilangan;
+    CacheKataBilangan kata_bilangan[MAX_CACHE_KATA_BILANGAN];
+
+    int n_kata_operasi_mat;
+    CacheKataOperasiMat kata_operasi_mat[
+        MAX_CACHE_KATA_OPERASI_MAT];
+
+    /* Data respons SPOK */
+    int n_pola_respon;
+    CachePolaRespon pola_respon[MAX_CACHE_POLA_RESPON];
+
+    int n_komponen_respon;
+    CacheKomponenRespon komponen_respon[
+        MAX_CACHE_KOMPONEN_RESPON];
+
+    /* Tanda bahwa cache sudah dimuat */
+    int dimuat;
+} CacheLinguistik;
+
+/* Struktur langkah matematika */
+typedef struct {
+    char deskripsi[MAX_RESPONS];
+    int nilai;
+} LangkahMatematika;
+
+typedef struct {
+    int jumlah_langkah;
+    LangkahMatematika langkah[MAX_LANGKAH_MAT];
+    int hasil_akhir;
+    char satuan[MAX_PANJANG_STRING];
+} HasilPerhitunganMat;
+
+/* ================================================================== *
  *                     FUNGSI UTILITAS UMUM                              *
  * ================================================================== */
 
@@ -204,7 +472,6 @@ int parse_baris_csv_kuat(
     char *baris, char *kolom[], int max_kolom);
 int ajudan_strcasecmp(const char *s1, const char *s2);
 
-/* Logging */
 extern int g_log_on;
 void ajudan_logf(
     const char *fmt,
@@ -216,7 +483,7 @@ void aj_log(const char *fmt, ...);
 int aj_parse_cli_flags(int argc, char **argv);
 
 /* ================================================================== *
- *              DEKLARASI MODUL DATABASE (basisdata.c)                   *
+ *              DEKLARASI MODUL DATABASE (data.c)                       *
  * ================================================================== */
 
 int buka_basisdata(sqlite3 **db);
@@ -270,6 +537,12 @@ int impor_kategori_kata(
     const char *nama_berkas, InfoKesalahan *error);
 int impor_kategori_kalimat(
     const char *nama_berkas, InfoKesalahan *error);
+int impor_templat_respon(
+    const char *nama_berkas, InfoKesalahan *error);
+
+int muat_semua_cache(
+    sqlite3 *db, CacheLinguistik *cache);
+void bersihkan_cache(CacheLinguistik *cache);
 
 /* ================================================================== *
  *             DEKLARASI MODUL RULEBASE (aturan.c)                       *
@@ -277,6 +550,7 @@ int impor_kategori_kalimat(
 
 int proses_percakapan(
     sqlite3 *koneksi_db,
+    CacheLinguistik *cache,
     const char *id_pengguna,
     const char *input_pengguna,
     char *respon_bot,
@@ -300,8 +574,8 @@ int cari_topik_dengan_fuzzy(
 int tokenisasi_kalimat(
     const char *kalimat,
     TokenKalimat tokens[], int max_tokens);
-KategoriPOS cari_kategori_fallback_dari_db(
-    sqlite3 *db, const char *kata);
+KategoriPOS cari_kategori_fallback_dari_cache(
+    CacheLinguistik *cache, const char *kata);
 int isi_kategori_dari_database(
     sqlite3 *db, AjStmtCache *cache,
     TokenKalimat tokens[], int jml_token);
@@ -340,11 +614,6 @@ int cari_entitas_terkait_dengan_filter(
     const char *filter_gaya,
     EntitasTerkait hasil[],
     int max_hasil);
-void format_jawaban_analitik(
-    const char *topik,
-    const char *analisis,
-    const char *saran_verifikasi,
-    char *output, size_t ukuran_output);
 int format_respons_daftar(
     sqlite3 *db, AjStmtCache *cache,
     const char *kata,
@@ -356,10 +625,12 @@ int pilih_kerangka_respon(
     const char *hubungan,
     char *kerangka, size_t ukuran_kerangka);
 
-/* Fungsi bantu aturan.c (dipromosikan dari static) */
-int adalah_referensi_kosong(const char *topik);
-int mengandung_referensi(const char *input);
-int cari_topik_dari_konteks(
+int adalah_referensi_kosong(
+    CacheLinguistik *cache, const char *topik);
+int mengandung_referensi_cache(
+    CacheLinguistik *cache, const char *input);
+int cari_topik_dari_konteks_cache(
+    CacheLinguistik *cache,
     const char *input,
     char *topik_out, size_t ukuran);
 int tokenisasi_dengan_stem(
@@ -379,42 +650,57 @@ void bersihkan_sesi_kadaluarsa(void);
 int ambil_jumlah_sesi(void);
 const char *ambil_topik_sesi(int sesi_id);
 
+int adalah_kata_lumpat(
+    CacheLinguistik *cache, const char *kata);
+int cari_fallback_respon(
+    CacheLinguistik *cache,
+    const char *jenis,
+    char *output, size_t ukuran_output,
+    const char *arg1);
+
 /* ================================================================== *
  *     DEKLARASI MODUL PERCAKAPAN (percakapan.c)                        *
  * ================================================================== */
 
 void tangani_sapaan(
-    sqlite3 *db, AjStmtCache *cache,
+    sqlite3 *db, AjStmtCache *stmt_cache,
+    CacheLinguistik *cache,
     const char *input,
     char *output, size_t ukuran_output);
 void tangani_arti_singkat(
-    sqlite3 *db, AjStmtCache *cache,
+    sqlite3 *db, AjStmtCache *stmt_cache,
+    CacheLinguistik *cache,
     const char *topik, HasilAnalisisSpok *spok,
     char *output, size_t ukuran_output);
 void tangani_permintaan_penjelasan(
-    sqlite3 *db, AjStmtCache *cache,
+    sqlite3 *db, AjStmtCache *stmt_cache,
+    CacheLinguistik *cache,
     const char *topik, HasilAnalisisSpok *spok,
     char *output, size_t ukuran_output);
 void tangani_permintaan_daftar(
-    sqlite3 *db, AjStmtCache *cache,
+    sqlite3 *db, AjStmtCache *stmt_cache,
+    CacheLinguistik *cache,
     HasilEkstraksiTopik *ekstraksi,
     HasilAnalisisSpok *spok,
     char *output, size_t ukuran_output);
 void tangani_pertanyaan_sebab(
-    sqlite3 *db, AjStmtCache *cache,
+    sqlite3 *db, AjStmtCache *stmt_cache,
+    CacheLinguistik *cache,
     HasilAnalisisSpok *spok,
     char *output, size_t ukuran_output);
 void tangani_jenis_benda(
-    sqlite3 *db, AjStmtCache *cache,
+    sqlite3 *db, AjStmtCache *stmt_cache,
+    CacheLinguistik *cache,
     const char *topik, HasilAnalisisSpok *spok,
     char *output, size_t ukuran_output);
 void tangani_pertanyaan_lanjutan(
-    sqlite3 *db, AjStmtCache *cache,
+    sqlite3 *db, AjStmtCache *stmt_cache,
+    CacheLinguistik *cache,
     const char *input, int sesi_id,
     char *output, size_t ukuran_output);
 
 /* ================================================================== *
- *           DEKLARASI MODUL STEMMING (ajudan_stem.c)                    *
+ *           DEKLARASI MODUL STEMMING (potong.c)                        *
  * ================================================================== */
 
 int stem_indonesia(
@@ -435,7 +721,7 @@ void identifikasi_morfologi_kata(
     int *panjang_prefiks, int *panjang_sufiks);
 
 /* ================================================================== *
- *          DEKLARASI MODUL PENCARIAN (ajudan_cari.c)                    *
+ *          DEKLARASI MODUL PENCARIAN (cari.c)                          *
  * ================================================================== */
 
 int cari_topik_optimal(
@@ -447,12 +733,14 @@ int cari_topik_optimal(
 int inisialisasi_fts5_kata(sqlite3 *db);
 
 /* ================================================================== *
- *        DEKLARASI MODUL ANALISIS KALIMAT (ajudan_kal.c)                *
+ *        DEKLARASI MODUL ANALISIS KALIMAT (kalimat.c)                  *
  * ================================================================== */
 
 int kenali_tipe_kalimat(
+    const CacheLinguistik *cache,
     const TokenKalimat tokens[], int jml_token);
 int bangun_depensi_diperluas(
+    const CacheLinguistik *cache,
     const TokenKalimat tokens[], int jml_token,
     SimpulKetergantungan nodes[], int verbose);
 PeranSPOK klasifikasi_peran_token(
@@ -473,14 +761,87 @@ int ekstrak_topik_diperluas(
  * ================================================================== */
 
 int ekstrak_semua_klausa_pertanyaan(
+    CacheLinguistik *cache,
     const char *input,
     char klausa_out[][MAX_INPUT_USER],
     int max_klausa);
-int deteksi_pertanyaan_implisit(
+int deteksi_pertanyaan_implisit_cache(
+    CacheLinguistik *cache,
     const char *teks);
 TipeIntent klasifikasi_intent_klausa(
+    CacheLinguistik *cache,
     const char *klausa,
     char *topik_out, size_t ukuran_topik);
-void bersihkan_topik(char *topik);
+void bersihkan_topik_cache(
+    CacheLinguistik *cache,
+    char *topik);
+
+/* ================================================================== *
+ *     DEKLARASI MODUL RANGKAIAN RESPON (rangkaian.c)                   *
+ * ================================================================== */
+
+int rangkai_respon_spok(
+    CacheLinguistik *cache,
+    const char *intent,
+    const char *konteks,
+    const char *topik,
+    const char *ringkasan,
+    const char *penjelasan,
+    const char *keterangan,
+    char *output,
+    size_t ukuran_output);
+
+/* ================================================================== *
+ *     DEKLARASI MODUL PENALARAN WAKTU (waktu.c)                        *
+ * ================================================================== */
+
+int deteksi_intent_waktu(
+    CacheLinguistik *cache,
+    const char *input);
+int resolve_hari_dari_referensi(
+    CacheLinguistik *cache,
+    const char *frasa_waktu,
+    int *hari_hasil,
+    char *nama_hari,
+    size_t ukuran_nama);
+int hitung_hari_sekarang(int *urutan_hari);
+int cari_referensi_waktu_cache(
+    CacheLinguistik *cache,
+    const char *kata,
+    int *offset_hari);
+int cari_nama_hari_cache(
+    CacheLinguistik *cache,
+    int urutan,
+    char *nama, size_t ukuran_nama);
+int cari_urutan_hari_cache(
+    CacheLinguistik *cache,
+    const char *nama);
+int rangkai_respon_waktu(
+    CacheLinguistik *cache,
+    const char *frasa_waktu,
+    const char *hari_tebakan,
+    char *output,
+    size_t ukuran_output);
+
+/* ================================================================== *
+ *   DEKLARASI MODUL PENALARAN MATEMATIKA (matematika.c)                *
+ * ================================================================== */
+
+int deteksi_intent_matematika(
+    CacheLinguistik *cache,
+    const char *input);
+int konversi_kata_ke_angka(
+    CacheLinguistik *cache,
+    const char *kata,
+    int *nilai);
+int parse_soal_matematika(
+    CacheLinguistik *cache,
+    const char *input,
+    HasilPerhitunganMat *hasil);
+int rangkai_respon_matematika(
+    CacheLinguistik *cache,
+    const HasilPerhitunganMat *hasil,
+    char *output,
+    size_t ukuran_output);
 
 #endif

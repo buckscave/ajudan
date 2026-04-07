@@ -13,7 +13,7 @@
  *                                KONNSTANTA                                  *
  * ========================================================================== */
 
-#define NAMA_BASISDATA "basisdata.db"
+/* NAMA_BASISDATA sudah didefinisikan di ajudan.h */
 
 /* ========================================================================== *
  *                          KONFIGURASI & LOG INTERNAL                        *
@@ -464,13 +464,296 @@ int buat_indeks(sqlite3 *db, InfoKesalahan *error) {
  *                          INISIALISASI DATABASE                             *
  * ========================================================================== */
 
-int inisialisasi_basisdata(InfoKesalahan *error) {
+/*
+ * muat_sql_dari_file - Membaca dan mengeksekusi perintah SQL
+ * dari file teks. Digunakan untuk mengimpor skema v4
+ * yang berisi CREATE TABLE + INSERT data.
+ */
+static int muat_sql_dari_file(
+    sqlite3 *db, const char *nama_file)
+{
+    FILE *fp;
+    char baris[16384];
+    char sql_cek[65536];
+    int baris_nomor = 0;
+    int rc;
+
+    if (!db || !nama_file) return -1;
+
+    fp = fopen(nama_file, "r");
+    if (!fp) {
+        fprintf(stderr,
+            "[init] File tidak ditemukan: %s\n",
+            nama_file);
+        return -1;
+    }
+    fprintf(stderr,
+        "[init] Memuat seed: %s\n", nama_file);
+
+    sql_cek[0] = '\0';
+
+    while (fgets(baris, (int)sizeof(baris), fp) != NULL) {
+        baris_nomor++;
+
+        /* Lewati baris kosong, komentar, dan baris yang
+         * dimulai dengan '--' atau '-' saja */
+        trim(baris);
+        if (baris[0] == '\0') continue;
+        if (baris[0] == '-' && baris[1] == '-'
+            && baris[2] != ' ') continue;
+
+        /* Kumpulkan dan eksekusi SQL per pernyataan */
+        if (baris[strlen(baris) - 1] == ';') {
+            int len_sql = (int)strlen(sql_cek);
+            if (len_sql + (int)strlen(baris) + 2
+                < (int)sizeof(sql_cek)) {
+                strcat(sql_cek, baris);
+                rc = sqlite3_exec(
+                    db, sql_cek, NULL, NULL, NULL);
+                if (rc != SQLITE_OK) {
+                    fprintf(stderr,
+                        "[init] SQL error baris %d: %s\n",
+                        baris_nomor,
+                        sqlite3_errmsg(db));
+                }
+                sql_cek[0] = '\0';
+            }
+        } else {
+            int len_sql = (int)strlen(sql_cek);
+            if (len_sql + (int)strlen(baris) + 2
+                < (int)sizeof(sql_cek)) {
+                strcat(sql_cek, baris);
+                strcat(sql_cek, " ");
+            }
+        }
+    }
+
+    /* Eksekusi sisa jika ada */
+    if (sql_cek[0] != '\0') {
+        rc = sqlite3_exec(
+            db, sql_cek, NULL, NULL, NULL);
+        if (rc != SQLITE_OK) {
+            fprintf(stderr,
+                "[init] SQL error akhir: %s\n",
+                sqlite3_errmsg(db));
+        }
+    }
+
+    fclose(fp);
+    return 0;
+}
+
+/*
+ * buat_tabel_v4 - Membuat dan mengisi semua tabel v4
+ * untuk menghapus hardcode dari kode C.
+ * Tabel v4: kata_tanya, pemisah_klausa, marker_penjelasan,
+ * marker_implisit, kata_lumpat, pola_referensi, frasa_pembuka,
+ * pemisah_ref, fallback_respon, sapaan_waktu, penanda_kalimat,
+ * affix_pos_rule, kata_kopula, konjungsi_respon, referensi_waktu,
+ * hari_minggu, kata_bilangan, kata_operasi_mat, pola_respon,
+ * komponen_respon, tanda_baca.
+ */
+static int buat_tabel_v4(
+    sqlite3 *db, InfoKesalahan *error)
+{
+    const char *sql;
+
+    (void)error;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS kata_tanya ("
+        "id INTEGER PRIMARY KEY, "
+        "kata TEXT NOT NULL UNIQUE, "
+        "intent_default TEXT, "
+        "kategori TEXT, "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS pemisah_klausa ("
+        "id INTEGER PRIMARY KEY, "
+        "frasa TEXT NOT NULL UNIQUE, "
+        "jenis TEXT, "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS marker_penjelasan ("
+        "id INTEGER PRIMARY KEY, "
+        "frasa TEXT NOT NULL UNIQUE, "
+        "intent TEXT DEFAULT 'penjelasan', "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS marker_implisit ("
+        "id INTEGER PRIMARY KEY, "
+        "frasa TEXT NOT NULL UNIQUE, "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS kata_lumpat ("
+        "id INTEGER PRIMARY KEY, "
+        "kata TEXT NOT NULL UNIQUE, "
+        "kategori TEXT, "
+        "keterangan TEXT);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS pola_referensi ("
+        "id INTEGER PRIMARY KEY, "
+        "frasa TEXT NOT NULL UNIQUE, "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS frasa_pembuka ("
+        "id INTEGER PRIMARY KEY, "
+        "frasa TEXT NOT NULL UNIQUE, "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS pemisah_ref ("
+        "id INTEGER PRIMARY KEY, "
+        "frasa TEXT NOT NULL UNIQUE, "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS fallback_respon ("
+        "id INTEGER PRIMARY KEY, "
+        "jenis TEXT NOT NULL, "
+        "pesan TEXT NOT NULL, "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS sapaan_waktu ("
+        "id INTEGER PRIMARY KEY, "
+        "frasa TEXT NOT NULL UNIQUE, "
+        "jam_mulai INTEGER DEFAULT 0, "
+        "jam_akhir INTEGER DEFAULT 24, "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS penanda_kalimat ("
+        "id INTEGER PRIMARY KEY, "
+        "jenis TEXT NOT NULL, "
+        "kata TEXT NOT NULL, "
+        "keterangan TEXT, "
+        "prioritas INTEGER DEFAULT 1, "
+        "UNIQUE(jenis, kata));";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS affix_pos_rule ("
+        "id INTEGER PRIMARY KEY, "
+        "jenis TEXT NOT NULL, "
+        "pola TEXT NOT NULL, "
+        "kelas_hasil INTEGER, "
+        "panjang INTEGER DEFAULT 2, "
+        "prioritas INTEGER DEFAULT 1, "
+        "UNIQUE(jenis, pola));";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS kata_kopula ("
+        "id INTEGER PRIMARY KEY, "
+        "kata TEXT NOT NULL UNIQUE, "
+        "ragam TEXT DEFAULT 'baku', "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS konjungsi_respon ("
+        "id INTEGER PRIMARY KEY, "
+        "kata TEXT NOT NULL UNIQUE, "
+        "jenis TEXT, "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS tanda_baca ("
+        "id INTEGER PRIMARY KEY, "
+        "tanda TEXT NOT NULL UNIQUE, "
+        "konteks TEXT, "
+        "spasi_sebelum INTEGER DEFAULT 0, "
+        "spasi_sesudah INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS referensi_waktu ("
+        "id INTEGER PRIMARY KEY, "
+        "frasa TEXT NOT NULL UNIQUE, "
+        "offset_hari INTEGER, "
+        "kategori TEXT, "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS hari_minggu ("
+        "id INTEGER PRIMARY KEY, "
+        "nama TEXT NOT NULL UNIQUE, "
+        "urutan INTEGER NOT NULL, "
+        "ragam TEXT DEFAULT 'baku');";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS kata_bilangan ("
+        "id INTEGER PRIMARY KEY, "
+        "kata TEXT NOT NULL UNIQUE, "
+        "nilai INTEGER NOT NULL, "
+        "ragam TEXT DEFAULT 'baku');";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS kata_operasi_mat ("
+        "id INTEGER PRIMARY KEY, "
+        "kata TEXT NOT NULL UNIQUE, "
+        "operasi TEXT NOT NULL, "
+        "kategori TEXT, "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS pola_respon ("
+        "id INTEGER PRIMARY KEY, "
+        "intent TEXT NOT NULL, "
+        "konteks TEXT NOT NULL, "
+        "ragam TEXT DEFAULT 'baku', "
+        "prioritas INTEGER DEFAULT 1);";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    sql =
+        "CREATE TABLE IF NOT EXISTS komponen_respon ("
+        "id INTEGER PRIMARY KEY, "
+        "pola_id INTEGER NOT NULL, "
+        "posisi INTEGER NOT NULL, "
+        "peran_spok TEXT NOT NULL, "
+        "sumber_data TEXT, "
+        "konten_tetap TEXT, "
+        "bentuk TEXT DEFAULT 'dasar', "
+        "spasi_sebelum INTEGER DEFAULT 1, "
+        "spasi_sesudah INTEGER DEFAULT 1, "
+        "FOREIGN KEY(pola_id) "
+        "REFERENCES pola_respon(id));";
+    if (eksekusi_sql(db, sql, NULL) != 0) return -1;
+
+    return 0;
+}
+
+int inisialisasi_basisdata(InfoKesalahan *error)
+{
     sqlite3 *db = NULL;
     int ok = 0;
+
     if (buka_basisdata(&db) != 0) return -1;
     if (eksekusi_sql(db, "BEGIN;", NULL) != 0) ok = -1;
 
-    /* Buat semua tabel */
+    /* Buat semua tabel v3 */
     if (buat_tabel_kata(db, error) != 0) ok = -1;
     if (buat_tabel_arti_kata(db, error) != 0) ok = -1;
     if (buat_tabel_semantik_kata(db, error) != 0) ok = -1;
@@ -493,9 +776,13 @@ int inisialisasi_basisdata(InfoKesalahan *error) {
     if (buat_tabel_hubungan(db, error) != 0) ok = -1;
     if (buat_tabel_templat_respon(db, error) != 0) ok = -1;
 
+    /* Buat semua tabel v4 (database-driven) */
+    if (buat_tabel_v4(db, error) != 0) ok = -1;
+
     if (buat_indeks(db, error) != 0) ok = -1;
 
-    eksekusi_sql(db, ok == 0 ? "COMMIT;" : "ROLLBACK;", NULL);
+    eksekusi_sql(db, ok == 0 ? "COMMIT;"
+        : "ROLLBACK;", NULL);
     sqlite3_exec(db, "PRAGMA optimize;", NULL, NULL, NULL);
     tutup_basisdata(db);
     return ok == 0 ? 0 : -1;
@@ -1935,3 +2222,816 @@ int vacuum_basisdata(void) {
 /* ========================================================================== *
  *                        AKHIR BERKAS BASISDATA.C                            *
  * ========================================================================== */
+
+/* ================================================================== *
+ *               MODUL CACHE LINGUISTIK (AJUDAN 4.0)                        *
+ * ------------------------------------------------------------------ *
+ * Memuat semua data linguistik dari database ke struktur cache     *
+ * di memori untuk akses cepat tanpa query berulang.             *
+ * ================================================================== */
+
+void bersihkan_cache(CacheLinguistik *cache)
+{
+    if (!cache) return;
+    memset(cache, 0, sizeof(CacheLinguistik));
+}
+
+/*
+ * adalah_kata_lumpat - Cek apakah kata termasuk stop word
+ * dalam cache. Mengembalikan 1 jika ya, 0 jika tidak.
+ */
+int adalah_kata_lumpat(
+    CacheLinguistik *cache, const char *kata)
+{
+    int i;
+    char lo[MAX_PANJANG_STRING];
+
+    if (!cache || !kata || !cache->dimuat) return 0;
+    if (!kata[0]) return 0;
+
+    snprintf(lo, sizeof(lo), "%s", kata);
+    to_lower_case(lo);
+    trim(lo);
+
+    for (i = 0; i < cache->n_kata_lumpat; i++) {
+        if (ajudan_strcasecmp(
+            cache->kata_lumpat[i].kata, lo) == 0)
+            return 1;
+    }
+    return 0;
+}
+
+/*
+ * cari_fallback_respon - Mencari pesan fallback dari cache
+ * berdasarkan jenis. Mendukung satu placeholder %s.
+ */
+int cari_fallback_respon(
+    CacheLinguistik *cache,
+    const char *jenis,
+    char *output, size_t ukuran_output,
+    const char *arg1)
+{
+    int i;
+
+    if (!cache || !jenis || !output
+        || ukuran_output == 0) return -1;
+
+    for (i = 0; i < cache->n_fallback_respon; i++) {
+        if (ajudan_strcasecmp(
+            cache->fallback_respon[i].jenis,
+            jenis) == 0) {
+            if (arg1) {
+                snprintf(output, ukuran_output,
+                    cache->fallback_respon[i].pesan,
+                    arg1);
+            } else {
+                snprintf(output, ukuran_output, "%s",
+                    cache->fallback_respon[i].pesan);
+            }
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
+/*
+ * muat_semua_cache - Memuat semua data dari database ke
+ * struktur cache di memori. Dipanggil sekali saat startup.
+ */
+int muat_semua_cache(
+    sqlite3 *db, CacheLinguistik *cache)
+{
+    sqlite3_stmt *st;
+    int rc;
+    const char *sql;
+    int baris;
+
+    if (!db || !cache) return -1;
+
+    bersihkan_cache(cache);
+
+    /* ---- kata_lumpat ---- */
+    sql = "SELECT kata, kategori FROM kata_lumpat "
+           "ORDER BY kategori, kata;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_kata_lumpat
+                < MAX_CACHE_KATA_LUMPAT) {
+                snprintf(cache->kata_lumpat[
+                    cache->n_kata_lumpat].kata,
+                    sizeof(cache->kata_lumpat
+                    [cache->n_kata_lumpat].kata),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                snprintf(cache->kata_lumpat[
+                    cache->n_kata_lumpat].kategori,
+                    sizeof(cache->kata_lumpat
+                    [cache->n_kata_lumpat].kategori),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 1));
+                cache->n_kata_lumpat++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- kata_tanya ---- */
+    sql = "SELECT kata, intent_default, kategori "
+           "FROM kata_tanya ORDER BY prioritas;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_kata_tanya
+                < MAX_CACHE_KATA_TANYA) {
+                snprintf(cache->kata_tanya[
+                    cache->n_kata_tanya].kata,
+                    sizeof(cache->kata_tanya
+                    [cache->n_kata_tanya].kata),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                snprintf(cache->kata_tanya[
+                    cache->n_kata_tanya].intent_default,
+                    sizeof(cache->kata_tanya
+                    [cache->n_kata_tanya]
+                    .intent_default),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 1));
+                snprintf(cache->kata_tanya[
+                    cache->n_kata_tanya].kategori,
+                    sizeof(cache->kata_tanya
+                    [cache->n_kata_tanya]
+                    .kategori),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 2));
+                cache->n_kata_tanya++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- pemisah_klausa ---- */
+    sql = "SELECT frasa, jenis, prioritas "
+           "FROM pemisah_klausa "
+           "ORDER BY prioritas DESC, LENGTH(frasa) DESC;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_pemisah_klausa
+                < MAX_CACHE_PEMISAH_KLAUSA) {
+                snprintf(cache->pemisah_klausa[
+                    cache->n_pemisah_klausa].frasa,
+                    sizeof(cache->pemisah_klausa
+                    [cache->n_pemisah_klausa].frasa),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                snprintf(cache->pemisah_klausa[
+                    cache->n_pemisah_klausa].jenis,
+                    sizeof(cache->pemisah_klausa
+                    [cache->n_pemisah_klausa].jenis),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 1));
+                cache->pemisah_klausa[
+                    cache->n_pemisah_klausa].prioritas =
+                    sqlite3_column_int(st, 2);
+                cache->n_pemisah_klausa++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- marker_penjelasan ---- */
+    sql = "SELECT frasa, intent, prioritas "
+           "FROM marker_penjelasan "
+           "ORDER BY prioritas DESC;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_marker_penjelasan
+                < MAX_CACHE_MARKER_PENJELASAN) {
+                snprintf(cache->marker_penjelasan[
+                    cache->n_marker_penjelasan].frasa,
+                    sizeof(cache->marker_penjelasan
+                    [cache->n_marker_penjelasan]
+                    .frasa),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                snprintf(cache->marker_penjelasan[
+                    cache->n_marker_penjelasan].intent,
+                    sizeof(cache->marker_penjelasan
+                    [cache->n_marker_penjelasan]
+                    .intent),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 1));
+                cache->marker_penjelasan[
+                    cache->n_marker_penjelasan].prioritas =
+                    sqlite3_column_int(st, 2);
+                cache->n_marker_penjelasan++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- marker_implisit ---- */
+    sql = "SELECT frasa, prioritas "
+           "FROM marker_implisit ORDER BY prioritas DESC;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_marker_implisit
+                < MAX_CACHE_MARKER_IMPLISIT) {
+                snprintf(cache->marker_implisit[
+                    cache->n_marker_implisit].frasa,
+                    sizeof(cache->marker_implisit
+                    [cache->n_marker_implisit].frasa),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                cache->marker_implisit[
+                    cache->n_marker_implisit].prioritas =
+                    sqlite3_column_int(st, 1);
+                cache->n_marker_implisit++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- pola_referensi ---- */
+    sql = "SELECT frasa, prioritas "
+           "FROM pola_referensi ORDER BY prioritas;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_pola_referensi
+                < MAX_CACHE_POLA_REFERENSI) {
+                snprintf(cache->pola_referensi[
+                    cache->n_pola_referensi].frasa,
+                    sizeof(cache->pola_referensi
+                    [cache->n_pola_referensi].frasa),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                cache->pola_referensi[
+                    cache->n_pola_referensi].prioritas =
+                    sqlite3_column_int(st, 1);
+                cache->n_pola_referensi++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- frasa_pembuka ---- */
+    sql = "SELECT frasa, prioritas "
+           "FROM frasa_pembuka ORDER BY prioritas;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_frasa_pembuka
+                < MAX_CACHE_FRASA_PEMBUKA) {
+                snprintf(cache->frasa_pembuka[
+                    cache->n_frasa_pembuka].frasa,
+                    sizeof(cache->frasa_pembuka
+                    [cache->n_frasa_pembuka].frasa),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                cache->frasa_pembuka[
+                    cache->n_frasa_pembuka].prioritas =
+                    sqlite3_column_int(st, 1);
+                cache->n_frasa_pembuka++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- pemisah_ref ---- */
+    sql = "SELECT frasa, prioritas "
+           "FROM pemisah_ref ORDER BY prioritas DESC;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_pemisah_ref
+                < MAX_CACHE_PEMISAH_REF) {
+                snprintf(cache->pemisah_ref[
+                    cache->n_pemisah_ref].frasa,
+                    sizeof(cache->pemisah_ref
+                    [cache->n_pemisah_ref].frasa),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                cache->pemisah_ref[
+                    cache->n_pemisah_ref].prioritas =
+                    sqlite3_column_int(st, 1);
+                cache->n_pemisah_ref++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- sapaan_waktu ---- */
+    sql = "SELECT frasa, jam_mulai, jam_akhir, "
+           "prioritas FROM sapaan_waktu "
+           "ORDER BY prioritas;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_sapaan_waktu
+                < MAX_CACHE_SAPAAN_WAKTU) {
+                snprintf(cache->sapaan_waktu[
+                    cache->n_sapaan_waktu].frasa,
+                    sizeof(cache->sapaan_waktu
+                    [cache->n_sapaan_waktu].frasa),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                cache->sapaan_waktu[
+                    cache->n_sapaan_waktu
+                    ].jam_mulai =
+                    sqlite3_column_int(st, 1);
+                cache->sapaan_waktu[
+                    cache->n_sapaan_waktu
+                    ].jam_akhir =
+                    sqlite3_column_int(st, 2);
+                cache->sapaan_waktu[
+                    cache->n_sapaan_waktu].prioritas =
+                    sqlite3_column_int(st, 3);
+                cache->n_sapaan_waktu++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- penanda_kalimat ---- */
+    sql = "SELECT jenis, kata, keterangan, prioritas "
+           "FROM penanda_kalimat "
+           "ORDER BY jenis, prioritas;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_penanda_kalimat
+                < MAX_CACHE_PENANDA_KALIMAT) {
+                snprintf(cache->penanda_kalimat[
+                    cache->n_penanda_kalimat].jenis,
+                    sizeof(cache->penanda_kalimat
+                    [cache->n_penanda_kalimat].jenis),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                snprintf(cache->penanda_kalimat[
+                    cache->n_penanda_kalimat].kata,
+                    sizeof(cache->penanda_kalimat
+                    [cache->n_penanda_kalimat].kata),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 1));
+                snprintf(cache->penanda_kalimat[
+                    cache->n_penanda_kalimat
+                    ].keterangan,
+                    sizeof(cache->penanda_kalimat
+                    [cache->n_penanda_kalimat
+                    ].keterangan),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 2));
+                cache->penanda_kalimat[
+                    cache->n_penanda_kalimat].prioritas =
+                    sqlite3_column_int(st, 3);
+                cache->n_penanda_kalimat++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- affix_pos_rule ---- */
+    sql = "SELECT jenis, pola, kelas_hasil, panjang "
+           "FROM affix_pos_rule ORDER BY prioritas;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_affix_pos_rule
+                < MAX_CACHE_AFFIX_POS_RULE) {
+                snprintf(cache->affix_pos_rule[
+                    cache->n_affix_pos_rule].jenis,
+                    sizeof(cache->affix_pos_rule
+                    [cache->n_affix_pos_rule].jenis),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                snprintf(cache->affix_pos_rule[
+                    cache->n_affix_pos_rule].pola,
+                    sizeof(cache->affix_pos_rule
+                    [cache->n_affix_pos_rule].pola),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 1));
+                cache->affix_pos_rule[
+                    cache->n_affix_pos_rule].kelas_hasil =
+                    sqlite3_column_int(st, 2);
+                cache->affix_pos_rule[
+                    cache->n_affix_pos_rule].panjang =
+                    sqlite3_column_int(st, 3);
+                cache->affix_pos_rule[
+                    cache->n_affix_pos_rule].prioritas =
+                    sqlite3_column_int(st, 4);
+                cache->n_affix_pos_rule++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- kata_kopula ---- */
+    sql = "SELECT kata, ragam, prioritas "
+           "FROM kata_kopula ORDER BY prioritas;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_kata_kopula
+                < MAX_CACHE_KATA_KOPULA) {
+                snprintf(cache->kata_kopula[
+                    cache->n_kata_kopula].kata,
+                    sizeof(cache->kata_kopula
+                    [cache->n_kata_kopula].kata),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                snprintf(cache->kata_kopula[
+                    cache->n_kata_kopula].ragam,
+                    sizeof(cache->kata_kopula
+                    [cache->n_kata_kopula].ragam),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 1));
+                cache->kata_kopula[
+                    cache->n_kata_kopula].prioritas =
+                    sqlite3_column_int(st, 2);
+                cache->n_kata_kopula++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- konjungsi_respon ---- */
+    sql = "SELECT kata, jenis, prioritas "
+           "FROM konjungsi_respon ORDER BY prioritas;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_konjungsi_respon
+                < MAX_CACHE_KONJUNGSI_RESPON) {
+                snprintf(cache->konjungsi_respon[
+                    cache->n_konjungsi_respon].kata,
+                    sizeof(cache->konjungsi_respon
+                    [cache->n_konjungsi_respon].kata),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                snprintf(cache->konjungsi_respon[
+                    cache->n_konjungsi_respon].jenis,
+                    sizeof(cache->konjungsi_respon
+                    [cache->n_konjungsi_respon].jenis),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 1));
+                cache->konjungsi_respon[
+                    cache->n_konjungsi_respon].prioritas =
+                    sqlite3_column_int(st, 2);
+                cache->n_konjungsi_respon++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- fallback_respon ---- */
+    sql = "SELECT jenis, pesan, prioritas "
+           "FROM fallback_respon ORDER BY prioritas;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_fallback_respon
+                < MAX_CACHE_FALLBACK_RESPON) {
+                snprintf(cache->fallback_respon[
+                    cache->n_fallback_respon].jenis,
+                    sizeof(cache->fallback_respon
+                    [cache->n_fallback_respon].jenis),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                snprintf(cache->fallback_respon[
+                    cache->n_fallback_respon].pesan,
+                    sizeof(cache->fallback_respon
+                    [cache->n_fallback_respon].pesan),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 1));
+                cache->fallback_respon[
+                    cache->n_fallback_respon].prioritas =
+                    sqlite3_column_int(st, 2);
+                cache->n_fallback_respon++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- referensi_waktu ---- */
+    sql = "SELECT frasa, offset_hari, kategori, "
+           "prioritas FROM referensi_waktu "
+           "ORDER BY prioritas;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_referensi_waktu
+                < MAX_CACHE_REFERENSI_WAKTU) {
+                snprintf(cache->referensi_waktu[
+                    cache->n_referensi_waktu].frasa,
+                    sizeof(cache->referensi_waktu
+                    [cache->n_referensi_waktu].frasa),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                cache->referensi_waktu[
+                    cache->n_referensi_waktu
+                    ].offset_hari =
+                    sqlite3_column_int(st, 1);
+                snprintf(cache->referensi_waktu[
+                    cache->n_referensi_waktu].kategori,
+                    sizeof(cache->referensi_waktu
+                    [cache->n_referensi_waktu]
+                    .kategori),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 2));
+                cache->referensi_waktu[
+                    cache->n_referensi_waktu
+                    ].prioritas =
+                    sqlite3_column_int(st, 3);
+                cache->n_referensi_waktu++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- hari_minggu ---- */
+    sql = "SELECT nama, urutan, ragam "
+           "FROM hari_minggu ORDER BY urutan;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_hari_minggu
+                < MAX_CACHE_HARI_MINGGU) {
+                snprintf(cache->hari_minggu[
+                    cache->n_hari_minggu].nama,
+                    sizeof(cache->hari_minggu
+                    [cache->n_hari_minggu].nama),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                cache->hari_minggu[
+                    cache->n_hari_minggu].urutan =
+                    sqlite3_column_int(st, 1);
+                snprintf(cache->hari_minggu[
+                    cache->n_hari_minggu].ragam,
+                    sizeof(cache->hari_minggu
+                    [cache->n_hari_minggu].ragam),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 2));
+                cache->n_hari_minggu++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- kata_bilangan ---- */
+    sql = "SELECT kata, nilai, ragam "
+           "FROM kata_bilangan ORDER BY nilai;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_kata_bilangan
+                < MAX_CACHE_KATA_BILANGAN) {
+                snprintf(cache->kata_bilangan[
+                    cache->n_kata_bilangan].kata,
+                    sizeof(cache->kata_bilangan
+                    [cache->n_kata_bilangan].kata),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                cache->kata_bilangan[
+                    cache->n_kata_bilangan].nilai =
+                    sqlite3_column_int(st, 1);
+                snprintf(cache->kata_bilangan[
+                    cache->n_kata_bilangan].ragam,
+                    sizeof(cache->kata_bilangan
+                    [cache->n_kata_bilangan].ragam),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 2));
+                cache->n_kata_bilangan++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- kata_operasi_mat ---- */
+    sql = "SELECT kata, operasi, kategori, prioritas "
+           "FROM kata_operasi_mat "
+           "ORDER BY prioritas;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_kata_operasi_mat
+                < MAX_CACHE_KATA_OPERASI_MAT) {
+                snprintf(cache->kata_operasi_mat[
+                    cache->n_kata_operasi_mat].kata,
+                    sizeof(cache->kata_operasi_mat
+                    [cache->n_kata_operasi_mat].kata),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 0));
+                snprintf(cache->kata_operasi_mat[
+                    cache->n_kata_operasi_mat].operasi,
+                    sizeof(cache->kata_operasi_mat
+                    [cache->n_kata_operasi_mat].operasi),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 1));
+                snprintf(cache->kata_operasi_mat[
+                    cache->n_kata_operasi_mat].kategori,
+                    sizeof(cache->kata_operasi_mat
+                    [cache->n_kata_operasi_mat].kategori),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 2));
+                cache->kata_operasi_mat[
+                    cache->n_kata_operasi_mat].prioritas =
+                    sqlite3_column_int(st, 3);
+                cache->n_kata_operasi_mat++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- pola_respon ---- */
+    sql = "SELECT id, intent, konteks, ragam, "
+           "prioritas FROM pola_respon "
+           "ORDER BY prioritas;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_pola_respon
+                < MAX_CACHE_POLA_RESPON) {
+                cache->pola_respon[
+                    cache->n_pola_respon].id =
+                    sqlite3_column_int(st, 0);
+                snprintf(cache->pola_respon[
+                    cache->n_pola_respon].intent,
+                    sizeof(cache->pola_respon
+                    [cache->n_pola_respon].intent),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 1));
+                snprintf(cache->pola_respon[
+                    cache->n_pola_respon].konteks,
+                    sizeof(cache->pola_respon
+                    [cache->n_pola_respon].konteks),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 2));
+                snprintf(cache->pola_respon[
+                    cache->n_pola_respon].ragam,
+                    sizeof(cache->pola_respon
+                    [cache->n_pola_respon].ragam),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 3));
+                cache->pola_respon[
+                    cache->n_pola_respon].prioritas =
+                    sqlite3_column_int(st, 4);
+                cache->n_pola_respon++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    /* ---- komponen_respon ---- */
+    sql = "SELECT pola_id, posisi, peran_spok, "
+           "sumber_data, konten_tetap, bentuk, "
+           "spasi_sebelum, spasi_sesudah "
+           "FROM komponen_respon "
+           "ORDER BY pola_id, posisi;";
+    rc = sqlite3_prepare_v2(db, sql, -1, &st, NULL);
+    if (rc == SQLITE_OK) {
+        while (sqlite3_step(st) == SQLITE_ROW) {
+            if (cache->n_komponen_respon
+                < MAX_CACHE_KOMPONEN_RESPON) {
+                cache->komponen_respon[
+                    cache->n_komponen_respon
+                    ].pola_id =
+                    sqlite3_column_int(st, 0);
+                cache->komponen_respon[
+                    cache->n_komponen_respon
+                    ].posisi =
+                    sqlite3_column_int(st, 1);
+                snprintf(cache->komponen_respon[
+                    cache->n_komponen_respon
+                    ].peran_spok,
+                    sizeof(cache->komponen_respon
+                    [cache->n_komponen_respon
+                    ].peran_spok),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 2));
+                snprintf(cache->komponen_respon[
+                    cache->n_komponen_respon
+                    ].sumber_data,
+                    sizeof(cache->komponen_respon
+                    [cache->n_komponen_respon
+                    ].sumber_data),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 3));
+                snprintf(cache->komponen_respon[
+                    cache->n_komponen_respon
+                    ].konten_tetap,
+                    sizeof(cache->komponen_respon
+                    [cache->n_komponen_respon
+                    ].konten_tetap),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 4));
+                snprintf(cache->komponen_respon[
+                    cache->n_komponen_respon
+                    ].bentuk,
+                    sizeof(cache->komponen_respon
+                    [cache->n_komponen_respon
+                    ].bentuk),
+                    "%s",
+                    (const char *)sqlite3_column_text(
+                        st, 5));
+                cache->komponen_respon[
+                    cache->n_komponen_respon
+                    ].spasi_sebelum =
+                    sqlite3_column_int(st, 6);
+                cache->komponen_respon[
+                    cache->n_komponen_respon
+                    ].spasi_sesudah =
+                    sqlite3_column_int(st, 7);
+                cache->n_komponen_respon++;
+            }
+        }
+        sqlite3_finalize(st);
+    }
+
+    cache->dimuat = 1;
+
+    aj_log("Cache linguistik dimuat: "
+        "%d lumpat, "
+        "%d tanya, "
+        "%d pemisah, "
+        "%d marker, "
+        "%d referensi, "
+        "%d pembuka, "
+        "%d sapaan, "
+        "%d penanda, "
+        "%d affix, "
+        "%d kopula, "
+        "%d konjungsi, "
+        "%d fallback, "
+        "%d waktu, "
+        "%d hari, "
+        "%d bilangan, "
+        "%d operasi, "
+        "%d pola, "
+        "%d komponen\n",
+        cache->n_kata_lumpat,
+        cache->n_kata_tanya,
+        cache->n_pemisah_klausa,
+        cache->n_marker_penjelasan,
+        cache->n_marker_implisit,
+        cache->n_pola_referensi,
+        cache->n_frasa_pembuka,
+        cache->n_sapaan_waktu,
+        cache->n_penanda_kalimat,
+        cache->n_affix_pos_rule,
+        cache->n_kata_kopula,
+        cache->n_konjungsi_respon,
+        cache->n_fallback_respon,
+        cache->n_referensi_waktu,
+        cache->n_hari_minggu,
+        cache->n_kata_bilangan,
+        cache->n_kata_operasi_mat,
+        cache->n_pola_respon,
+        cache->n_komponen_respon);
+
+    return 0;
+}

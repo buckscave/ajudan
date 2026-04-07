@@ -6,64 +6,14 @@
  * penanda kalimat pasif, pola predikat adjektiva,
  * dan strategi ekstraksi topik multi-token.
  *
+ * Semua data linguistik Indonesia (penanda pasif, subjek,
+ * sifat, prefiks verbal, kata benda spesial) diambil dari
+ * CacheLinguistik -- tidak ada array hardcode.
+ *
  * Persyaratan: C89, SQLite3, ajudan.h
  */
 
 #include "ajudan.h"
-
-/* ================================================================== *
- *                         KONSTANTA INTERNAL                            *
- * ================================================================== */
-
-#define JUMLAH_PREFIKS_VERBAL 10
-#define JUMLAH_PENANDA_PASIF 3
-#define PANJANG_PENANDA_PASIF_MAX 8
-#define JUMLAH_PREDIKAT_SIFAT 4
-#define PANJANG_PREDIKAT_SIFAT_MAX 8
-#define JUMLAH_NOMINA_SUBJEK 5
-
-/* ================================================================== *
- *                        DATA TABEL PREFIKS VERBAL                      *
- * ================================================================== */
-
-static const char *PREFIKS_VERBAL[] = {
-    "meng", "meny", "men", "mem", "me",
-    "peng", "peny", "pen", "per", "pe"
-};
-static const int PANJANG_PREFIKS_VERBAL[] = {
-    4, 4, 3, 3, 2, 4, 4, 3, 3, 2
-};
-
-/* ================================================================== *
- *                         DATA PENANDA PASIF                             *
- * ================================================================== */
-
-static const char *PENANDA_PASIF[] = {
-    "diper", "di", "terper", "ter"
-};
-static const int PANJANG_PENANDA_PASIF[] = {
-    5, 2, 7, 3
-};
-
-/* ================================================================== *
- *                     DATA POLA PREDIKAT SIFAT                          *
- * ================================================================== */
-
-static const char *POLA_PREDIKAT_SIFAT[] = {
-    "sangat", "amat", "paling", "terlalu"
-};
-static const int PANJANG_POLA_SIFAT[] = {
-    6, 4, 6, 7
-};
-
-/* ================================================================== *
- *                    DATA PENANDA AWAL SUBJEK                            *
- * ================================================================== */
-
-static const char *PENANDA_AWAL_SUBJEK[] = {
-    "saya", "kami", "kita", "dia", "mereka",
-    "anda", "beliau", "ia", "aku"
-};
 
 /* ================================================================== *
  *                    FUNGSI UTILITAS PENGECEKAN                         *
@@ -81,70 +31,127 @@ static int mulai_dengan(const char *kata, const char *awalan)
     return 0;
 }
 
-static int adalah_kata_benda_spesial(const char *kata)
+/* Cari kata dalam cache->kata_lumpat berdasarkan kategori */
+static int cari_kata_lumpat_kategori(
+    const CacheLinguistik *cache,
+    const char *kata,
+    const char *kategori)
 {
     int i;
-    static const char *KB_SPESIAL[] = {
-        "ini", "itu", "tersebut", "hal", "masalah",
-        NULL
-    };
 
-    if (!kata || !kata[0]) return 0;
+    if (!cache || !kata || !kata[0]) return 0;
 
-    for (i = 0; KB_SPESIAL[i] != NULL; i++) {
-        if (ajudan_strcasecmp(kata, KB_SPESIAL[i]) == 0) {
+    for (i = 0; i < cache->n_kata_lumpat; i++) {
+        if (ajudan_strcasecmp(
+            cache->kata_lumpat[i].kategori,
+            kategori) == 0
+            && ajudan_strcasecmp(
+                cache->kata_lumpat[i].kata,
+                kata) == 0) {
             return 1;
         }
     }
     return 0;
 }
 
-static int adalah_penanda_awal_subjek(const char *kata)
+/* Cari kata dalam cache->penanda_kalimat berdasarkan jenis */
+static int cari_penanda_kalimat_jenis(
+    const CacheLinguistik *cache,
+    const char *kata,
+    const char *jenis)
 {
     int i;
-    static const int COUNT = 9;
 
-    if (!kata || !kata[0]) return 0;
+    if (!cache || !kata || !kata[0]) return 0;
 
-    for (i = 0; i < COUNT; i++) {
-        if (ajudan_strcasecmp(kata, PENANDA_AWAL_SUBJEK[i])
-            == 0) {
+    for (i = 0; i < cache->n_penanda_kalimat; i++) {
+        if (ajudan_strcasecmp(
+            cache->penanda_kalimat[i].jenis,
+            jenis) == 0
+            && ajudan_strcasecmp(
+                cache->penanda_kalimat[i].kata,
+                kata) == 0) {
             return 1;
         }
     }
     return 0;
 }
 
-static int adalah_penanda_pasif(const char *kata)
+/* Cari prefiks dalam cache->penanda_kalimat jenis
+   "prefiks_verbal", cocokkan awalan kata */
+static int adalah_prefiks_verbal_cache(
+    const CacheLinguistik *cache,
+    const char *kata)
 {
     int i;
 
-    if (!kata || !kata[0]) return 0;
+    if (!cache || !kata || !kata[0]) return 0;
 
-    for (i = 0; i < JUMLAH_PENANDA_PASIF; i++) {
-        if (mulai_dengan(kata, PENANDA_PASIF[i]) > 0) {
-            return 1;
+    for (i = 0; i < cache->n_penanda_kalimat; i++) {
+        if (ajudan_strcasecmp(
+            cache->penanda_kalimat[i].jenis,
+            "prefiks_verbal") == 0) {
+            if (mulai_dengan(kata,
+                cache->penanda_kalimat[i].kata)
+                > 0) {
+                return 1;
+            }
         }
     }
     return 0;
 }
 
-static int adalah_penanda_adjektiva(const char *kata)
+static int adalah_kata_benda_spesial(
+    const CacheLinguistik *cache,
+    const char *kata)
+{
+    if (!cache || !kata || !kata[0]) return 0;
+    return cari_kata_lumpat_kategori(
+        cache, kata, "benda_spesial");
+}
+
+static int adalah_penanda_awal_subjek(
+    const CacheLinguistik *cache,
+    const char *kata)
+{
+    if (!cache || !kata || !kata[0]) return 0;
+    return cari_penanda_kalimat_jenis(
+        cache, kata, "subjek");
+}
+
+static int adalah_penanda_pasif(
+    const CacheLinguistik *cache,
+    const char *kata)
 {
     int i;
 
-    if (!kata || !kata[0]) return 0;
+    if (!cache || !kata || !kata[0]) return 0;
 
-    for (i = 0; i < JUMLAH_PREDIKAT_SIFAT; i++) {
-        if (ajudan_strcasecmp(kata,
-            POLA_PREDIKAT_SIFAT[i]) == 0) {
-            return 1;
+    for (i = 0; i < cache->n_penanda_kalimat; i++) {
+        if (ajudan_strcasecmp(
+            cache->penanda_kalimat[i].jenis,
+            "pasif") == 0) {
+            if (mulai_dengan(kata,
+                cache->penanda_kalimat[i].kata)
+                > 0) {
+                return 1;
+            }
         }
     }
     return 0;
+}
+
+static int adalah_penanda_adjektiva(
+    const CacheLinguistik *cache,
+    const char *kata)
+{
+    if (!cache || !kata || !kata[0]) return 0;
+    return cari_penanda_kalimat_jenis(
+        cache, kata, "sifat");
 }
 
 static int adalah_nomina_setelah_predikat(
+    const CacheLinguistik *cache,
     const char *kata,
     KategoriPOS pos)
 {
@@ -154,7 +161,7 @@ static int adalah_nomina_setelah_predikat(
         return 1;
     }
 
-    if (adalah_kata_benda_spesial(kata)) {
+    if (adalah_kata_benda_spesial(cache, kata)) {
         return 1;
     }
 
@@ -170,35 +177,41 @@ static int adalah_nomina_setelah_predikat(
  * ================================================================== */
 
 int kenali_tipe_kalimat(
+    const CacheLinguistik *cache,
     const TokenKalimat tokens[],
     int jml_token)
 {
     int i, ada_tanda_tanya, ada_perintah;
 
-    if (!tokens || jml_token <= 0) return TIPE_KALIMAT_LAIN;
+    if (!cache || !tokens || jml_token <= 0)
+        return TIPE_KALIMAT_LAIN;
 
     ada_tanda_tanya = 0;
     ada_perintah = 0;
 
     if (jml_token > 0) {
         const char *takhir;
+        size_t len;
 
         takhir = tokens[jml_token - 1].teks;
-        if (strlen(takhir) > 0
-            && takhir[strlen(takhir) - 1] == '?') {
+        len = strlen(takhir);
+        if (len > 0 && takhir[len - 1] == '?') {
             ada_tanda_tanya = 1;
         }
     }
 
     if (tokens[0].pos == POS_VERBA
-        || adalah_penanda_pasif(tokens[0].teks)) {
-        if (ada_tanda_tanya) return TIPE_KALIMAT_TANYA_PASIF;
+        || adalah_penanda_pasif(
+            cache, tokens[0].teks)) {
+        if (ada_tanda_tanya)
+            return TIPE_KALIMAT_TANYA_PASIF;
         return TIPE_KALIMAT_PERINTAH;
     }
 
     for (i = 0; i < jml_token; i++) {
         if (tokens[i].pos == POS_VERBA
-            || adalah_penanda_pasif(tokens[i].teks)) {
+            || adalah_penanda_pasif(
+                cache, tokens[i].teks)) {
             if (ada_tanda_tanya) {
                 return TIPE_KALIMAT_TANYA_AKTIF;
             }
@@ -208,7 +221,8 @@ int kenali_tipe_kalimat(
 
     for (i = 0; i < jml_token; i++) {
         if (tokens[i].pos == POS_ADJEKTIVA
-            || adalah_penanda_adjektiva(tokens[i].teks)) {
+            || adalah_penanda_adjektiva(
+                cache, tokens[i].teks)) {
             if (ada_tanda_tanya) {
                 return TIPE_KALIMAT_TANYA_SIFAT;
             }
@@ -224,6 +238,7 @@ int kenali_tipe_kalimat(
  * ================================================================== */
 
 int bangun_depensi_diperluas(
+    const CacheLinguistik *cache,
     const TokenKalimat tokens[],
     int jml_token,
     SimpulKetergantungan nodes[],
@@ -232,7 +247,8 @@ int bangun_depensi_diperluas(
     int i, head_pred, head_subj, head_obj;
     int head_ket, head_mod, j;
 
-    if (!tokens || !nodes || jml_token <= 0) return -1;
+    if (!cache || !tokens || !nodes || jml_token <= 0)
+        return -1;
 
     head_pred = -1;
     head_subj = -1;
@@ -250,7 +266,9 @@ int bangun_depensi_diperluas(
     }
 
     for (i = 0; i < jml_token; i++) {
-        if (tokens[i].pos == POS_VERBA) {
+        if (tokens[i].pos == POS_VERBA
+            || adalah_prefiks_verbal_cache(
+                cache, tokens[i].teks)) {
             head_pred = i;
             break;
         }
@@ -259,7 +277,8 @@ int bangun_depensi_diperluas(
     if (head_pred < 0) {
         for (i = 0; i < jml_token; i++) {
             if (tokens[i].pos == POS_ADJEKTIVA
-                || adalah_penanda_adjektiva(tokens[i].teks)) {
+                || adalah_penanda_adjektiva(
+                    cache, tokens[i].teks)) {
                 head_pred = i;
                 break;
             }
@@ -273,15 +292,18 @@ int bangun_depensi_diperluas(
     if (head_pred >= 0) {
         nodes[head_pred].head_id = -1;
 
-        if (adalah_penanda_pasif(tokens[head_pred].teks)) {
+        if (adalah_penanda_pasif(
+            cache, tokens[head_pred].teks)) {
             snprintf(nodes[head_pred].relasi,
                 sizeof(nodes[head_pred].relasi),
                 "pred_pasif");
-        } else if (tokens[head_pred].pos == POS_VERBA) {
+        } else if (tokens[head_pred].pos
+            == POS_VERBA) {
             snprintf(nodes[head_pred].relasi,
                 sizeof(nodes[head_pred].relasi),
                 "predikat");
-        } else if (tokens[head_pred].pos == POS_ADJEKTIVA) {
+        } else if (tokens[head_pred].pos
+            == POS_ADJEKTIVA) {
             snprintf(nodes[head_pred].relasi,
                 sizeof(nodes[head_pred].relasi),
                 "pred_sifat");
@@ -295,20 +317,23 @@ int bangun_depensi_diperluas(
     if (head_pred >= 0 && head_pred == 0) {
         for (i = 1; i < jml_token; i++) {
             if (adalah_nomina_setelah_predikat(
+                cache,
                 tokens[i].teks, tokens[i].pos)) {
                 nodes[i].head_id = head_pred;
                 head_subj = i;
                 snprintf(nodes[i].relasi,
-                    sizeof(nodes[i].relasi), "subjek");
+                    sizeof(nodes[i].relasi),
+                    "subjek");
                 break;
             }
         }
 
         for (i = 1; i < jml_token; i++) {
             if (i == head_subj) continue;
-            if (isupper((unsigned char)tokens[i].teks[0])
+            if (isupper(
+                (unsigned char)tokens[i].teks[0])
                 && tokens[i].pos == POS_PROPER_NOUN
-                && !adalah_kata_benda_spesial(
+                && !adalah_kata_benda_spesial(cache,
                     tokens[i].teks)) {
                 if (head_subj < 0) {
                     nodes[i].head_id = head_pred;
@@ -327,6 +352,7 @@ int bangun_depensi_diperluas(
     } else if (head_pred > 0) {
         for (i = 0; i < head_pred; i++) {
             if (adalah_nomina_setelah_predikat(
+                cache,
                 tokens[i].teks, tokens[i].pos)) {
                 if (head_subj < 0) {
                     nodes[i].head_id = head_pred;
@@ -340,13 +366,15 @@ int bangun_depensi_diperluas(
                         sizeof(nodes[i].relasi),
                         "frasa_subjek");
                 }
-            } else if (tokens[i].pos == POS_ADJEKTIVA
+            } else if (tokens[i].pos
+                == POS_ADJEKTIVA
                 && head_subj >= 0) {
                 nodes[i].head_id = head_subj;
                 snprintf(nodes[i].relasi,
                     sizeof(nodes[i].relasi),
                     "modif_subjek");
-            } else if (tokens[i].pos == POS_NUMERALIA
+            } else if (tokens[i].pos
+                == POS_NUMERALIA
                 && head_subj >= 0) {
                 nodes[i].head_id = head_subj;
                 snprintf(nodes[i].relasi,
@@ -364,6 +392,7 @@ int bangun_depensi_diperluas(
     if (head_pred >= 0) {
         for (i = head_pred + 1; i < jml_token; i++) {
             if (adalah_nomina_setelah_predikat(
+                cache,
                 tokens[i].teks, tokens[i].pos)) {
                 if (head_obj < 0) {
                     nodes[i].head_id = head_pred;
@@ -377,7 +406,8 @@ int bangun_depensi_diperluas(
                         sizeof(nodes[i].relasi),
                         "frasa_objek");
                 }
-            } else if (tokens[i].pos == POS_NUMERALIA
+            } else if (tokens[i].pos
+                == POS_NUMERALIA
                 && head_obj >= 0) {
                 nodes[i].head_id = head_obj;
                 snprintf(nodes[i].relasi,
@@ -393,7 +423,8 @@ int bangun_depensi_diperluas(
     }
 
     for (i = 0; i < jml_token; i++) {
-        if (nodes[i].head_id == -1 && i != head_pred) {
+        if (nodes[i].head_id == -1
+            && i != head_pred) {
             nodes[i].head_id = (head_pred >= 0)
                 ? head_pred : 0;
             snprintf(nodes[i].relasi,
@@ -402,6 +433,9 @@ int bangun_depensi_diperluas(
     }
 
     (void)verbose;
+    (void)head_ket;
+    (void)head_mod;
+    (void)j;
     return 0;
 }
 
@@ -428,8 +462,10 @@ PeranSPOK klasifikasi_peran_token(
     if (nodes[indeks_token].head_id == -1) {
         relasi = nodes[indeks_token].relasi;
         if (ajudan_strcasecmp(relasi, "predikat") == 0
-            || ajudan_strcasecmp(relasi, "pred_pasif") == 0
-            || ajudan_strcasecmp(relasi, "pred_sifat") == 0
+            || ajudan_strcasecmp(relasi,
+                "pred_pasif") == 0
+            || ajudan_strcasecmp(relasi,
+                "pred_sifat") == 0
             || ajudan_strcasecmp(relasi, "akar") == 0) {
             return PERAN_PREDIKAT;
         }
@@ -446,7 +482,8 @@ PeranSPOK klasifikasi_peran_token(
     } else if (ajudan_strcasecmp(relasi,
         "modif_subjek") == 0) {
         peran = PERAN_MODIF_SUBJEK;
-    } else if (ajudan_strcasecmp(relasi, "objek") == 0) {
+    } else if (ajudan_strcasecmp(relasi,
+        "objek") == 0) {
         peran = PERAN_OBJEK;
     } else if (ajudan_strcasecmp(relasi,
         "frasa_objek") == 0) {
@@ -515,13 +552,17 @@ int analisis_spok_diperluas(
 
     for (i = 0; i < jml_token; i++) {
         if (nodes[i].head_id == -1
-            && (ajudan_strcasecmp(nodes[i].relasi,
+            && (ajudan_strcasecmp(
+                nodes[i].relasi,
                 "predikat") == 0
-                || ajudan_strcasecmp(nodes[i].relasi,
+                || ajudan_strcasecmp(
+                    nodes[i].relasi,
                     "pred_pasif") == 0
-                || ajudan_strcasecmp(nodes[i].relasi,
+                || ajudan_strcasecmp(
+                    nodes[i].relasi,
                     "pred_sifat") == 0
-                || ajudan_strcasecmp(nodes[i].relasi,
+                || ajudan_strcasecmp(
+                    nodes[i].relasi,
                     "akar") == 0)) {
             head_pred = i;
             break;
@@ -530,11 +571,14 @@ int analisis_spok_diperluas(
 
     if (head_pred < 0) {
         for (i = 0; i < jml_token; i++) {
-            if (ajudan_strcasecmp(nodes[i].relasi,
+            if (ajudan_strcasecmp(
+                nodes[i].relasi,
                 "predikat") == 0
-                || ajudan_strcasecmp(nodes[i].relasi,
+                || ajudan_strcasecmp(
+                    nodes[i].relasi,
                     "pred_pasif") == 0
-                || ajudan_strcasecmp(nodes[i].relasi,
+                || ajudan_strcasecmp(
+                    nodes[i].relasi,
                     "pred_sifat") == 0) {
                 head_pred = i;
                 break;
@@ -552,7 +596,8 @@ int analisis_spok_diperluas(
                     sizeof(spok->predikat)
                     - strlen(spok->predikat) - 1);
             }
-            strncat(spok->predikat, tokens[i].teks,
+            strncat(spok->predikat,
+                tokens[i].teks,
                 sizeof(spok->predikat)
                 - strlen(spok->predikat) - 1);
         } else if (peran == PERAN_SUBJEK
@@ -565,7 +610,8 @@ int analisis_spok_diperluas(
                     sizeof(frasa_subjek)
                     - strlen(frasa_subjek) - 1);
             }
-            strncat(frasa_subjek, tokens[i].teks,
+            strncat(frasa_subjek,
+                tokens[i].teks,
                 sizeof(frasa_subjek)
                 - strlen(frasa_subjek) - 1);
         } else if (peran == PERAN_OBJEK
@@ -578,7 +624,8 @@ int analisis_spok_diperluas(
                     sizeof(frasa_objek)
                     - strlen(frasa_objek) - 1);
             }
-            strncat(frasa_objek, tokens[i].teks,
+            strncat(frasa_objek,
+                tokens[i].teks,
                 sizeof(frasa_objek)
                 - strlen(frasa_objek) - 1);
         } else if (peran == PERAN_KETERANGAN) {
@@ -590,18 +637,21 @@ int analisis_spok_diperluas(
                     sizeof(frasa_ket)
                     - strlen(frasa_ket) - 1);
             }
-            strncat(frasa_ket, tokens[i].teks,
+            strncat(frasa_ket,
+                tokens[i].teks,
                 sizeof(frasa_ket)
                 - strlen(frasa_ket) - 1);
         }
     }
 
     if (strlen(frasa_subjek) > 0) {
-        snprintf(spok->subjek, sizeof(spok->subjek),
+        snprintf(spok->subjek,
+            sizeof(spok->subjek),
             "%s", frasa_subjek);
     }
     if (strlen(frasa_objek) > 0) {
-        snprintf(spok->objek, sizeof(spok->objek),
+        snprintf(spok->objek,
+            sizeof(spok->objek),
             "%s", frasa_objek);
     }
     if (strlen(frasa_ket) > 0) {
@@ -645,7 +695,8 @@ int ekstrak_topik_diperluas(
     sqlite3_stmt *stmt;
     int rc;
 
-    if (!tokens || jml_token <= 0 || !hasil) return -1;
+    if (!tokens || jml_token <= 0 || !hasil)
+        return -1;
 
     hasil->topik_utama[0] = '\0';
     hasil->sub_topik[0] = '\0';
@@ -738,7 +789,8 @@ int ekstrak_topik_diperluas(
                 peran = klasifikasi_peran_token(
                     tokens, jml_token, nodes, i);
                 if (peran == PERAN_SUBJEK
-                    || peran == PERAN_FRASA_SUBJEK) {
+                    || peran
+                        == PERAN_FRASA_SUBJEK) {
                     mulai_topik = i;
                     break;
                 }
@@ -746,16 +798,20 @@ int ekstrak_topik_diperluas(
         }
 
         if (mulai_topik >= 0) {
-            for (i = mulai_topik; i < jml_token; i++) {
+            for (i = mulai_topik;
+                i < jml_token; i++) {
                 peran = klasifikasi_peran_token(
                     tokens, jml_token, nodes, i);
 
                 if (peran == PERAN_OBJEK
                     || peran == PERAN_FRASA_OBJEK
                     || peran == PERAN_SUBJEK
-                    || peran == PERAN_FRASA_SUBJEK
-                    || peran == PERAN_MODIF_SUBJEK
-                    || peran == PERAN_KETERANGAN) {
+                    || peran
+                        == PERAN_FRASA_SUBJEK
+                    || peran
+                        == PERAN_MODIF_SUBJEK
+                    || peran
+                        == PERAN_KETERANGAN) {
                     if (bi > 0) {
                         buf[bi++] = ' ';
                         buf[bi] = '\0';
@@ -763,9 +819,11 @@ int ekstrak_topik_diperluas(
                     snprintf(buf + bi,
                         sizeof(buf) - (size_t)bi,
                         "%s", tokens[i].teks);
-                    bi += (int)strlen(tokens[i].teks);
+                    bi += (int)strlen(
+                        tokens[i].teks);
                 } else if (peran == PERAN_PREDIKAT
-                    || peran == PERAN_KUANTIFIKASI) {
+                    || peran
+                        == PERAN_KUANTIFIKASI) {
                     if (bi > 0) break;
                 }
             }
@@ -803,7 +861,8 @@ int ekstrak_topik_diperluas(
                     if (kk > 0) {
                         strncat(ngram, " ",
                             sizeof(ngram)
-                            - strlen(ngram) - 1);
+                            - strlen(ngram)
+                            - 1);
                     }
                     strncat(ngram,
                         tokens[ii + kk].teks,
@@ -816,16 +875,21 @@ int ekstrak_topik_diperluas(
 
                 stmt = NULL;
                 rc = sqlite3_prepare_v2(db,
-                    "SELECT 1 FROM pengetahuan_umum pu "
-                    "JOIN kata k ON pu.id_kata = k.id "
-                    "WHERE lower(k.kata) = lower(?) "
-                    "LIMIT 1;",
+                    "SELECT 1 FROM "
+                    "pengetahuan_umum pu "
+                    "JOIN kata k "
+                    "ON pu.id_kata = k.id "
+                    "WHERE lower(k.kata) "
+                    "= lower(?) LIMIT 1;",
                     -1, &stmt, NULL);
                 if (rc == SQLITE_OK) {
-                    sqlite3_bind_text(stmt, 1, ngram,
-                        -1, SQLITE_TRANSIENT);
-                    if (sqlite3_step(stmt) == SQLITE_ROW) {
-                        snprintf(buf, sizeof(buf),
+                    sqlite3_bind_text(stmt, 1,
+                        ngram, -1,
+                        SQLITE_TRANSIENT);
+                    if (sqlite3_step(stmt)
+                        == SQLITE_ROW) {
+                        snprintf(buf,
+                            sizeof(buf),
                             "%s", ngram);
                         ketemu = 1;
                     }

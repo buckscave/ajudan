@@ -1,2205 +1,1282 @@
--- ========================================================================== --
--- AJUDAN 3.0 - Seed Data Basis Data                                          --
--- ========================================================================== --
--- Jalankan setelah: ./ajudan -init                                           --
--- Atau langsung: sqlite3 basisdata.db < seed_ajudan.sql                     --
--- ========================================================================== --
-
-BEGIN TRANSACTION;
-
--- ========================================================================== --
--- 1. KELAS KATA (Master Referensi POS)                                       --
--- ========================================================================== --
-INSERT OR IGNORE INTO kelas_kata (id, nama, deskripsi) VALUES
-(1, 'nomina', 'Kata benda: menunjukkan nama orang, benda, tempat, atau konsep'),
-(2, 'verba', 'Kata kerja: menunjukkan kegiatan, perbuatan, atau keadaan'),
-(3, 'adjektiva', 'Kata sifat: menunjukkan sifat, ciri, atau keadaan benda'),
-(4, 'adverbia', 'Kata keterangan: menjelaskan kata kerja, kata sifat, atau adverbia lain'),
-(5, 'numeralia', 'Kata bilangan: menunjukkan jumlah atau bilangan'),
-(6, 'pronomina', 'Kata ganti: menggantikan nama orang atau benda'),
-(7, 'preposisi', 'Kata depan: menghubungkan kata benda dengan kata lain'),
-(8, 'konjungsi', 'Kata sambung: menghubungkan klausa atau kalimat'),
-(9, 'interjeksi', 'Kata seru: menyatakan perasaan atau reaksi emosional'),
-(10, 'partikel', 'Partikel: kata tambahan untuk penekanan atau fungsi tertentu'),
-(11, 'determiner', 'Kata penentu: menunjukkan referensi tertentu pada nomina');
-
--- ========================================================================== --
--- 2. RAGAM KATA                                                               --
--- ========================================================================== --
-INSERT OR IGNORE INTO ragam_kata (id, nama, deskripsi) VALUES
-(1, 'baku', 'Bentuk bahasa yang sesuai dengan kaidah resmi dan standar EYD'),
-(2, 'tidak_baku', 'Bentuk bahasa sehari-hari yang menyimpang dari kaidah EYD'),
-(3, 'formal', 'Ragam bahasa yang digunakan dalam situasi resmi dan akademik'),
-(4, 'informal', 'Ragam bahasa yang digunakan dalam percakapan santai'),
-(5, 'ilmiah', 'Ragam bahasa yang digunakan dalam penulisan ilmiah dan teknis'),
-(6, 'sehari_hari', 'Ragam bahasa yang digunakan dalam komunikasi harian'),
-(7, 'percakapan', 'Ragam bahasa lisan dalam interaksi antarpenutur'),
-(8, 'tulisan', 'Ragam bahasa yang digunakan dalam penulisan formal');
-
--- ========================================================================== --
--- 3. BIDANG PENGETAHUAN                                                      --
--- ========================================================================== --
-INSERT OR IGNORE INTO bidang (id, nama, deskripsi) VALUES
-(1, 'teknologi', 'Bidang yang berkaitan dengan pengembangan dan penerapan perangkat serta sistem teknis'),
-(2, 'sains', 'Bidang ilmu pengetahuan alam yang mempelajari fenomena alam melalui metode ilmiah'),
-(3, 'matematika', 'Bidang ilmu yang mempelajari bilangan, struktur, ruang, dan perubahan'),
-(4, 'budaya', 'Bidang yang berkaitan dengan kebudayaan, tradisi, dan kesenian masyarakat'),
-(5, 'sejarah', 'Bidang yang mempelajari peristiwa masa lampau dan perkembangan peradaban manusia'),
-(6, 'geografi', 'Bidang yang mempelajari permukaan bumi, iklim, dan interaksi manusia dengan lingkungan'),
-(7, 'bahasa', 'Bidang yang mempelajari struktur, penggunaan, dan perkembangan bahasa'),
-(8, 'filsafat', 'Bidang yang mempelajari hakikat realitas, pengetahuan, dan nilai kehidupan'),
-(9, 'seni', 'Bidang yang berkaitan dengan kreasi dan ekspresi estetika manusia'),
-(10, 'olahraga', 'Bidang yang berkaitan dengan aktivitas fisik dan kompetisi atletik'),
-(11, 'kesehatan', 'Bidang yang berkaitan dengan kesehatan tubuh, penyakit, dan pengobatan'),
-(12, 'pendidikan', 'Bidang yang berkaitan dengan proses belajar, mengajar, dan pengembangan ilmu'),
-(13, 'ekonomi', 'Bidang yang berkaitan dengan produksi, distribusi, dan konsumsi barang serta jasa'),
-(14, 'hukum', 'Bidang yang berkaitan dengan peraturan, norma, dan sistem peradilan'),
-(15, 'politik', 'Bidang yang berkaitan dengan tata kelola pemerintahan dan kekuasaan'),
-(16, 'lingkungan', 'Bidang yang berkaitan dengan ekosistem, konservasi, dan kelestarian alam'),
-(17, 'agama', 'Bidang yang berkaitan dengan kepercayaan, ibadah, dan ajaran spiritual'),
-(18, 'kuliner', 'Bidang yang berkaitan dengan makanan, minuman, dan tradisi kuliner'),
-(19, 'musik', 'Bidang yang berkaitan dengan seni suara dan komposisi musikal'),
-(20, 'biologi', 'Bidang yang mempelajari makhluk hidup dan proses kehidupan');
-
--- ========================================================================== --
--- 4. MORFOLOGI (Jenis Proses Morfologis)                                      --
--- ========================================================================== --
-INSERT OR IGNORE INTO morfologi (id, nama, deskripsi) VALUES
-(1, 'awalan', 'Penambahan afiks di awal kata dasar, misalnya meN-, ber-, di-, ter-'),
-(2, 'akhiran', 'Penambahan afiks di akhir kata dasar, misalnya -kan, -i, -an'),
-(3, 'konfiks', 'Kombinasi awalan dan akhiran sekaligus pada kata dasar, misalnya peN-...-an, per-...-an'),
-(4, 'imbuhan_berulang', 'Proses pengulangan kata dasar secara keseluruhan atau sebagian dengan variasi fonem'),
-(5, 'pelestarian', 'Penambahan partikel atau afiks yang tidak mengubah kelas kata secara signifikan'),
-(6, 'derivasi', 'Proses pembentukan kata baru dengan mengubah kelas kata dari kata dasarnya'),
-(7, 'infleksi', 'Proses pembentukan kata tanpa mengubah kelas kata asalnya'),
-(8, 'zero_derivasi', 'Pergantian kelas kata tanpa penambahan afiks, hanya melalui perubahan fungsi');
-
--- ========================================================================== --
--- 5. SEMANTIK (Jenis Relasi Semantik)                                        --
--- ========================================================================== --
-INSERT OR IGNORE INTO semantik (id, nama, deskripsi) VALUES
-(1, 'sinonim', 'Dua kata atau lebih yang memiliki makna sama atau sangat mirip'),
-(2, 'antonim', 'Dua kata yang memiliki makna berlawanan atau bertentangan'),
-(3, 'hiperonim', 'Kata yang maknanya lebih luas mencakup kata lain (superordinat)'),
-(4, 'hiponim', 'Kata yang maknanya lebih sempit termasuk dalam kategori kata lain (subordinat)'),
-(5, 'meronim', 'Kata yang menunjukkan bagian dari keseluruhan'),
-(6, 'holonim', 'Kata yang menunjukkan keseluruhan yang terdiri dari bagian-bagian'),
-(7, 'polisemi', 'Satu kata yang memiliki beberapa makna berbeda yang masih berhubungan'),
-(8, 'homonim', 'Dua kata berbeda yang memiliki bentuk dan pelafalan sama tetapi makna berbeda'),
-(9, 'troponim', 'Kata kerja yang menyatakan cara atau manner khusus dari verba lain'),
-(10, 'entailment', 'Relasi implikasi makna di mana kebenaran satu proposisi menjamin kebenaran proposisi lain');
-
--- ========================================================================== --
--- 6. HUBUNGAN (Tipe Relasi Antar-Konsep)                                     --
--- ========================================================================== --
-INSERT OR IGNORE INTO hubungan (id, nama, kategori) VALUES
-(1, 'sinonim', 'semantik'),
-(2, 'antonim', 'semantik'),
-(3, 'sebab_akibat', 'logis'),
-(4, 'bagian_dari', 'meronimi'),
-(5, 'jenis_dari', 'taksonomi'),
-(6, 'terkait', 'asosiatif'),
-(7, 'definisi', 'referensial'),
-(8, 'sebab', 'logis'),
-(9, 'fakta', 'referensial'),
-(10, 'langkah', 'prosedural'),
-(11, 'manfaat', 'evaluatif'),
-(12, 'sejarah', 'temporal'),
-(13, 'analogi', 'perbandingan'),
-(14, 'dampak', 'evaluatif'),
-(15, 'ciri', 'deskriptif'),
-(16, 'gabungan_spok', 'struktural'),
-(17, 'pertanyaan', 'pragmatik'),
-(18, 'sapaan', 'pragmatik'),
-(19, 'fungsi', 'referensial'),
-(20, 'perbedaan', 'perbandingan');
-
-COMMIT;
-
--- ========================================================================== --
--- 7. KATA (Kosakata Utama Bahasa Indonesia)                                   --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO kata (kata, kelas_id, ragam_id, bidang_id) VALUES
--- === Kata Ganti (pronomina) ===
-('saya', 6, 1, NULL),
-('kamu', 6, 6, NULL),
-('dia', 6, 1, NULL),
-('kita', 6, 1, NULL),
-('mereka', 6, 1, NULL),
-('ia', 6, 1, NULL),
-('kami', 6, 1, NULL),
-('beliau', 6, 3, NULL),
-('anda', 6, 3, NULL),
-('ini', 6, 1, NULL),
-('itu', 6, 1, NULL),
-('siapa', 6, 1, NULL),
-('apa', 6, 1, NULL),
-('mana', 6, 1, NULL),
-('diri', 6, 1, NULL),
-
--- === Kata Tanya ===
-('mengapa', 4, 1, NULL),
-('bagaimana', 4, 1, NULL),
-('kapan', 4, 1, NULL),
-('dimana', 4, 2, NULL),
-('berapa', 5, 1, NULL),
-
--- === Kata Sambung (konjungsi) ===
-('dan', 8, 1, NULL),
-('atau', 8, 1, NULL),
-('tetapi', 8, 1, NULL),
-('namun', 8, 1, NULL),
-('karena', 8, 1, NULL),
-('sehingga', 8, 1, NULL),
-('walaupun', 8, 1, NULL),
-('meskipun', 8, 1, NULL),
-('sedangkan', 8, 1, NULL),
-('tetapi', 8, 1, NULL),
-('namun', 8, 1, NULL),
-('maupun', 8, 1, NULL),
-('serta', 8, 1, NULL),
-('setelah', 8, 1, NULL),
-('sebelum', 8, 1, NULL),
-('ketika', 8, 1, NULL),
-('jika', 8, 1, NULL),
-('kalau', 8, 6, NULL),
-('supaya', 8, 1, NULL),
-('agar', 8, 1, NULL),
-('lalu', 8, 1, NULL),
-('kemudian', 8, 1, NULL),
-('selain', 8, 1, NULL),
-('padahal', 8, 1, NULL),
-('sementara', 8, 1, NULL),
-('sambil', 8, 1, NULL),
-('sambil', 8, 1, NULL),
-
--- === Kata Depan (preposisi) ===
-('di', 7, 1, NULL),
-('ke', 7, 1, NULL),
-('dari', 7, 1, NULL),
-('pada', 7, 1, NULL),
-('dengan', 7, 1, NULL),
-('untuk', 7, 1, NULL),
-('tentang', 7, 1, NULL),
-('dalam', 7, 1, NULL),
-('oleh', 7, 1, NULL),
-('atas', 7, 1, NULL),
-('bawah', 7, 1, NULL),
-('antara', 7, 1, NULL),
-('sebagai', 7, 1, NULL),
-('tanpa', 7, 1, NULL),
-('menurut', 7, 1, NULL),
-('melalui', 7, 1, NULL),
-('sejak', 7, 1, NULL),
-('hingga', 7, 1, NULL),
-('dari', 7, 1, NULL),
-('kepada', 7, 1, NULL),
-
--- === Numeralia ===
-('satu', 5, 1, NULL),
-('dua', 5, 1, NULL),
-('tiga', 5, 1, NULL),
-('empat', 5, 1, NULL),
-('lima', 5, 1, NULL),
-('enam', 5, 1, NULL),
-('tujuh', 5, 1, NULL),
-('delapan', 5, 1, NULL),
-('sembilan', 5, 1, NULL),
-('sepuluh', 5, 1, NULL),
-('seratus', 5, 1, NULL),
-('seribu', 5, 1, NULL),
-('sejuta', 5, 1, NULL),
-('ribuan', 5, 1, NULL),
-('jutaan', 5, 1, NULL),
-('puluh', 5, 1, NULL),
-('ratus', 5, 1, NULL),
-('pertama', 5, 1, NULL),
-('kedua', 5, 1, NULL),
-('ketiga', 5, 1, NULL),
-
--- === Partikel ===
-('pun', 10, 1, NULL),
-('lah', 10, 1, NULL),
-('kah', 10, 1, NULL),
-('tah', 10, 1, NULL),
-('dong', 10, 6, NULL),
-('sih', 10, 6, NULL),
-('kok', 10, 6, NULL),
-('ya', 10, 1, NULL),
-('juga', 10, 1, NULL),
-('saja', 10, 1, NULL),
-('bahkan', 10, 1, NULL),
-('hanya', 10, 1, NULL),
-('paling', 10, 1, NULL),
-('sangat', 10, 1, NULL),
-('lebih', 10, 1, NULL),
-('cukup', 10, 1, NULL),
-('amat', 10, 1, NULL),
-('sungguh', 10, 1, NULL),
-('telah', 10, 1, NULL),
-('sudah', 10, 1, NULL),
-('belum', 10, 1, NULL),
-('sedang', 10, 1, NULL),
-('akan', 10, 1, NULL),
-('masih', 10, 1, NULL),
-('pernah', 10, 1, NULL),
-('belum', 10, 1, NULL),
-('makin', 10, 1, NULL),
-('semakin', 10, 1, NULL),
-('mungkin', 10, 1, NULL),
-('tentu', 10, 1, NULL),
-('pasti', 10, 1, NULL),
-
--- === Interjeksi ===
-('hai', 9, 6, NULL),
-('halo', 9, 6, NULL),
-('aduh', 9, 6, NULL),
-('wah', 9, 6, NULL),
-('astaga', 9, 6, NULL),
-('cantik', 9, 6, NULL),
-('bagus', 9, 6, NULL),
-
--- === Kata Kerja Dasar (verba) ===
-('makan', 2, 1, NULL),
-('minum', 2, 1, NULL),
-('tidur', 2, 1, NULL),
-('bangun', 2, 1, NULL),
-('berjalan', 2, 1, NULL),
-('berlari', 2, 1, NULL),
-('berenang', 2, 1, NULL),
-('terbang', 2, 1, NULL),
-('menulis', 2, 1, NULL),
-('membaca', 2, 1, NULL),
-('melihat', 2, 1, NULL),
-('mendengar', 2, 1, NULL),
-('berbicara', 2, 1, NULL),
-('berkata', 2, 1, NULL),
-('mengambil', 2, 1, NULL),
-('melempar', 2, 1, NULL),
-('menangkap', 2, 1, NULL),
-('memberi', 2, 1, NULL),
-('menerima', 2, 1, NULL),
-('membuat', 2, 1, NULL),
-('menghapus', 2, 1, NULL),
-('mencari', 2, 1, NULL),
-('menemukan', 2, 1, NULL),
-('memilih', 2, 1, NULL),
-('mengetahui', 2, 1, NULL),
-('mengerti', 2, 1, NULL),
-('belajar', 2, 1, NULL),
-('mengajar', 2, 1, NULL),
-('bekerja', 2, 1, NULL),
-('bermain', 2, 1, NULL),
-('berpikir', 2, 1, NULL),
-('merasa', 2, 1, NULL),
-('ingin', 2, 1, NULL),
-('butuh', 2, 1, NULL),
-('suka', 2, 1, NULL),
-('benci', 2, 1, NULL),
-('cinta', 2, 1, NULL),
-('takut', 2, 1, NULL),
-('percaya', 2, 1, NULL),
-('harap', 2, 1, NULL),
-('doa', 2, 1, NULL),
-('tolong', 2, 1, NULL),
-('bantu', 2, 1, NULL),
-('simpan', 2, 1, NULL),
-('pakai', 2, 6, NULL),
-('pakai', 2, 6, NULL),
-('gunakan', 2, 1, NULL),
-('mulai', 2, 1, NULL),
-('selesai', 2, 1, NULL),
-('lanjut', 2, 1, NULL),
-('hentikan', 2, 1, NULL),
-('ganti', 2, 1, NULL),
-('tambah', 2, 1, NULL),
-('kurang', 2, 1, NULL),
-('hitung', 2, 1, NULL),
-('ukur', 2, 1, NULL),
-('banding', 2, 1, NULL),
-('hubung', 2, 1, NULL),
-('putus', 2, 1, NULL),
-('sambung', 2, 1, NULL),
-('kirim', 2, 1, NULL),
-('terima', 2, 1, NULL),
-('bawa', 2, 1, NULL),
-('ambil', 2, 1, NULL),
-('tulis', 2, 1, NULL),
-('baca', 2, 1, NULL),
-('lihat', 2, 1, NULL),
-('dengar', 2, 1, NULL),
-('bicara', 2, 1, NULL),
-('kata', 2, 1, NULL),
-('jadi', 2, 1, NULL),
-('ada', 2, 1, NULL),
-('punya', 2, 6, NULL),
-('miliki', 2, 1, NULL),
-('miliki', 2, 1, NULL),
-('yakinkan', 2, 1, NULL),
-('jelaskan', 2, 1, NULL),
-('sebutkan', 2, 1, NULL),
-('definisikan', 2, 1, NULL),
-('ceritakan', 2, 1, NULL),
-('deskripsikan', 2, 1, NULL),
-
--- === Kata Kerja Berimbuhan (verba) ===
-('menuliskan', 2, 1, NULL),
-('membacakan', 2, 1, NULL),
-('memperbaiki', 2, 1, NULL),
-('menyebutkan', 2, 1, NULL),
-('menjelaskan', 2, 1, NULL),
-('mengembangkan', 2, 1, NULL),
-('memproses', 2, 1, 1),
-('mengolah', 2, 1, NULL),
-('menyimpan', 2, 1, NULL),
-('mengirim', 2, 1, NULL),
-('menerima', 2, 1, NULL),
-('menyediakan', 2, 1, NULL),
-('menghasilkan', 2, 1, NULL),
-('mengurangi', 2, 1, NULL),
-('meningkatkan', 2, 1, NULL),
-('menjalankan', 2, 1, NULL),
-('melaksanakan', 2, 1, NULL),
-('memecahkan', 2, 1, NULL),
-('menganalisis', 2, 1, NULL),
-('menghitung', 2, 1, NULL),
-('mengukur', 2, 1, NULL),
-('membuktikan', 2, 1, NULL),
-('menyatakan', 2, 1, NULL),
-('mendefinisikan', 2, 1, NULL),
-('mengidentifikasi', 2, 1, NULL),
-('menyebarkan', 2, 1, NULL),
-('memperoleh', 2, 1, NULL),
-('memanfaatkan', 2, 1, NULL),
-('mendukung', 2, 1, NULL),
-('mengatasi', 2, 1, NULL),
-('menangani', 2, 1, NULL),
-('merancang', 2, 1, NULL),
-('merealisasikan', 2, 1, NULL),
-('mengimplementasikan', 2, 1, NULL),
-('memprogram', 2, 1, 1),
-('merancang', 2, 1, 1),
-('mendesain', 2, 1, 1),
-('menguji', 2, 1, NULL),
-('memperbarui', 2, 1, NULL),
-
--- === Kata Benda Dasar (nomina) ===
-('air', 1, 1, 2),
-('api', 1, 1, 2),
-('bumi', 1, 1, 6),
-('matahari', 1, 1, 2),
-('bulan', 1, 1, 2),
-('angin', 1, 1, 2),
-('hujan', 1, 1, 16),
-('tanah', 1, 1, 6),
-('langit', 1, 1, 2),
-('gunung', 1, 1, 6),
-('laut', 1, 1, 6),
-('hutan', 1, 1, 16),
-('sungai', 1, 1, 6),
-('pohon', 1, 1, 20),
-('bunga', 1, 1, 20),
-('daun', 1, 1, 20),
-('buah', 1, 1, 20),
-('akar', 1, 1, 20),
-('batu', 1, 1, 6),
-('pasir', 1, 1, 6),
-('rumah', 1, 1, NULL),
-('gedung', 1, 1, NULL),
-('jalan', 1, 1, NULL),
-('jembatan', 1, 1, NULL),
-('mobil', 1, 1, NULL),
-('sepeda', 1, 1, NULL),
-('kapal', 1, 1, NULL),
-('pesawat', 1, 1, 1),
-('kereta', 1, 1, NULL),
-('meja', 1, 1, NULL),
-('kursi', 1, 1, NULL),
-('buku', 1, 1, 12),
-('kertas', 1, 1, NULL),
-('pensil', 1, 1, NULL),
-('tinta', 1, 1, NULL),
-
--- === Kata Benda Bidang Teknologi ===
-('komputer', 1, 1, 1),
-('laptop', 1, 1, 1),
-('telepon', 1, 1, 1),
-('internet', 1, 1, 1),
-('website', 1, 2, 1),
-('aplikasi', 1, 1, 1),
-('sistem', 1, 1, 1),
-('program', 1, 1, 1),
-('data', 1, 1, 1),
-('informasi', 1, 1, 1),
-('jaringan', 1, 1, 1),
-('server', 1, 2, 1),
-('prosesor', 1, 1, 1),
-('memori', 1, 1, 1),
-('database', 1, 2, 1),
-('algoritma', 1, 5, 3),
-('robot', 1, 1, 1),
-('kecerdasan', 1, 1, 1),
-('otomatis', 1, 1, 1),
-('digital', 1, 1, 1),
-('elektronik', 1, 1, 1),
-('perangkat', 1, 1, 1),
-('perangkat_lunak', 1, 1, 1),
-('perangkat_keras', 1, 1, 1),
-('kode', 1, 1, 1),
-('bahasa_pemrograman', 1, 1, 1),
-
--- === Kata Benda Bidang Biologi ===
-('manusia', 1, 1, 20),
-('hewan', 1, 1, 20),
-('tumbuhan', 1, 1, 20),
-('sel', 1, 1, 20),
-('organ', 1, 1, 20),
-('jaringan', 1, 1, 20),
-('otak', 1, 1, 20),
-('jantung', 1, 1, 20),
-('paru_paru', 1, 1, 20),
-('darah', 1, 1, 20),
-('tulang', 1, 1, 20),
-('otot', 1, 1, 20),
-('kulit', 1, 1, 20),
-('mata', 1, 1, 20),
-('telinga', 1, 1, 20),
-('hidung', 1, 1, 20),
-('mulut', 1, 1, 20),
-('gigi', 1, 1, 20),
-('rambut', 1, 1, 20),
-('kuku', 1, 1, 20),
-('kucing', 1, 1, 20),
-('anjing', 1, 1, 20),
-('burung', 1, 1, 20),
-('ikan', 1, 1, 20),
-('serangga', 1, 1, 20),
-('ular', 1, 1, 20),
-('katak', 1, 1, 20),
-('kupu_kupu', 1, 1, 20),
-('bakteri', 1, 1, 20),
-('virus', 1, 1, 20),
-('vitamin', 1, 1, 11),
-
--- === Kata Benda Bidang Bahasa ===
-('bahasa', 1, 1, 7),
-('kata', 1, 1, 7),
-('kalimat', 1, 1, 7),
-('huruf', 1, 1, 7),
-('abjad', 1, 1, 7),
-('vokal', 1, 1, 7),
-('konsonan', 1, 1, 7),
-('suku_kata', 1, 1, 7),
-('frasa', 1, 1, 7),
-('klausa', 1, 1, 7),
-('paragraf', 1, 1, 7),
-('imbuhan', 1, 1, 7),
-('awalan', 1, 1, 7),
-('akhiran', 1, 1, 7),
-('kata_benda', 1, 1, 7),
-('kata_kerja', 1, 1, 7),
-('kata_sifat', 1, 1, 7),
-('sinonim', 1, 1, 7),
-('antonim', 1, 1, 7),
-('majas', 1, 1, 7),
-
--- === Kata Benda Bidang Budaya/Sejarah ===
-('indonesia', 1, 1, 4),
-('jakarta', 1, 1, 6),
-('bali', 1, 1, 4),
-('java', 1, 1, 1),
-('batik', 1, 1, 4),
-('gamelan', 1, 1, 19),
-('wayang', 1, 1, 4),
-('keris', 1, 1, 4),
-('temple', 1, 1, 4),
-('borobudur', 1, 1, 4),
-('prambanan', 1, 1, 4),
-('budaya', 1, 1, 4),
-('tradisi', 1, 1, 4),
-('adat', 1, 1, 4),
-('kesenian', 1, 1, 4),
-('sejarah', 1, 1, 5),
-('peradaban', 1, 1, 5),
-('kerajaan', 1, 1, 5),
-('kolonialisme', 1, 1, 5),
-('kemerdekaan', 1, 1, 5),
-
--- === Kata Benda Bidang Sains ===
-('gravitasi', 1, 1, 2),
-('energi', 1, 1, 2),
-('cahaya', 1, 1, 2),
-('panas', 1, 1, 2),
-('dingin', 1, 1, 2),
-('elektrik', 1, 1, 2),
-('magnet', 1, 1, 2),
-('atom', 1, 1, 2),
-('molekul', 1, 1, 2),
-('oksigen', 1, 1, 2),
-('karbon', 1, 1, 2),
-('hidrogen', 1, 1, 2),
-('nitrogen', 1, 1, 2),
-('fotosintesis', 1, 1, 2),
-('evolusi', 1, 1, 2),
-('ekosistem', 1, 1, 16),
-('habitat', 1, 1, 20),
-('populasi', 1, 1, 20),
-('spesies', 1, 1, 20),
-('genetika', 1, 1, 20),
-('dna', 1, 1, 20),
-('protein', 1, 1, 20),
-
--- === Kata Benda Bidang Matematika ===
-('angka', 1, 1, 3),
-('bilangan', 1, 1, 3),
-('matematika', 1, 1, 3),
-('geometri', 1, 1, 3),
-('aljabar', 1, 1, 3),
-('statistika', 1, 1, 3),
-('rumus', 1, 1, 3),
-('persamaan', 1, 1, 3),
-('fungsi', 1, 1, 3),
-('grafik', 1, 1, 3),
-('tabel', 1, 1, 3),
-
--- === Kata Benda Umum Lainnya ===
-('waktu', 1, 1, NULL),
-('tempat', 1, 1, NULL),
-('orang', 1, 1, NULL),
-('keluarga', 1, 1, NULL),
-('sekolah', 1, 1, 12),
-('universitas', 1, 1, 12),
-('guru', 1, 1, 12),
-('murid', 1, 1, 12),
-('dokter', 1, 1, 11),
-('polisi', 1, 1, 14),
-('tentara', 1, 1, 15),
-('petani', 1, 1, 13),
-('pedagang', 1, 1, 13),
-('nelayan', 1, 1, 13),
-('masakan', 1, 1, 18),
-('makanan', 1, 1, 18),
-('minuman', 1, 1, 18),
-('nasi', 1, 1, 18),
-('gula', 1, 1, 18),
-('garam', 1, 1, 18),
-('cabai', 1, 1, 18),
-('bawang', 1, 1, 18),
-('kunyit', 1, 1, 18),
-('jahe', 1, 1, 18),
-('temulawak', 1, 1, 18),
-('kendaraan', 1, 1, NULL),
-('bangunan', 1, 1, NULL),
-('pengetahuan', 1, 1, 12),
-('ilmu', 1, 1, 12),
-('pendidikan', 1, 1, 12),
-('kesehatan', 1, 1, 11),
-('ekonomi', 1, 1, 13),
-('uang', 1, 1, 13),
-('harga', 1, 1, 13),
-('pasar', 1, 1, 13),
-('toko', 1, 1, 13),
-('perusahaan', 1, 1, 13),
-('pabrik', 1, 1, 13),
-('kantor', 1, 1, NULL),
-('rumah_sakit', 1, 1, 11),
-('obat', 1, 1, 11),
-('penyakit', 1, 1, 11),
-('vaksin', 1, 1, 11),
-('operasi', 1, 1, 11),
-('terapi', 1, 1, 11),
-
--- === Kata Benda Hasil Derivasi ===
-('penulis', 1, 1, 12),
-('pembaca', 1, 1, 12),
-('pengirim', 1, 1, NULL),
-('penerima', 1, 1, NULL),
-('pembuat', 1, 1, NULL),
-('pencari', 1, 1, NULL),
-('penemu', 1, 1, NULL),
-('pemimpin', 1, 1, 15),
-('pengikut', 1, 1, NULL),
-('pekerja', 1, 1, NULL),
-('pendidik', 1, 1, 12),
-('pelajar', 1, 1, 12),
-('pengajar', 1, 1, 12),
-('penyanyi', 1, 1, 19),
-('pemain', 1, 1, 10),
-('pembeli', 1, 1, 13),
-('penjual', 1, 1, 13),
-('penumpang', 1, 1, NULL),
-('pengemudi', 1, 1, NULL),
-('petani', 1, 1, 13),
-('tulisan', 1, 1, 12),
-('bacaan', 1, 1, 12),
-('kirim_an', 1, 1, NULL),
-('lihat_an', 1, 1, NULL),
-('dengar_an', 1, 1, NULL),
-('makan_an', 1, 1, NULL),
-('minum_an', 1, 1, NULL),
-('pekerjaan', 1, 1, NULL),
-('pendidikan', 1, 1, 12),
-('pengajaran', 1, 1, 12),
-('pembangunan', 1, 1, NULL),
-('pengembangan', 1, 1, NULL),
-('peningkatan', 1, 1, NULL),
-('pengurangan', 1, 1, NULL),
-('penambahan', 1, 1, NULL),
-('penghapusan', 1, 1, NULL),
-('penciptaan', 1, 1, NULL),
-('penerapan', 1, 1, NULL),
-('pemecahan', 1, 1, NULL),
-('penyelesaian', 1, 1, NULL),
-('perbaikan', 1, 1, NULL),
-('pertumbuhan', 1, 1, 20),
-('perkembangan', 1, 1, NULL),
-('kemajuan', 1, 1, NULL),
-('kemunduran', 1, 1, NULL),
-
--- === Kata Sifat (adjektiva) ===
-('besar', 3, 1, NULL),
-('kecil', 3, 1, NULL),
-('tinggi', 3, 1, NULL),
-('rendah', 3, 1, NULL),
-('panjang', 3, 1, NULL),
-('pendek', 3, 1, NULL),
-('lebar', 3, 1, NULL),
-('sempit', 3, 1, NULL),
-('tebal', 3, 1, NULL),
-('tipis', 3, 1, NULL),
-('berat', 3, 1, NULL),
-('ringan', 3, 1, NULL),
-('cepat', 3, 1, NULL),
-('lambat', 3, 1, NULL),
-('kuat', 3, 1, NULL),
-('lemah', 3, 1, NULL),
-('baik', 3, 1, NULL),
-('buruk', 3, 1, NULL),
-('indah', 3, 1, NULL),
-('jelek', 3, 1, NULL),
-('cantik', 3, 1, NULL),
-('tampan', 3, 1, NULL),
-('pintar', 3, 1, NULL),
-('bodoh', 3, 1, NULL),
-('cerdas', 3, 1, NULL),
-('bijak', 3, 1, NULL),
-('rajin', 3, 1, NULL),
-('malas', 3, 1, NULL),
-('jujur', 3, 1, NULL),
-('dusta', 3, 1, NULL),
-('sabar', 3, 1, NULL),
-('marah', 3, 1, NULL),
-('sedih', 3, 1, NULL),
-('senang', 3, 1, NULL),
-('bahagia', 3, 1, NULL),
-('takut', 3, 1, NULL),
-('berani', 3, 1, NULL),
-('pemalu', 3, 1, NULL),
-('ramah', 3, 1, NULL),
-('sombong', 3, 1, NULL),
-('kaya', 3, 1, NULL),
-('miskin', 3, 1, NULL),
-('muda', 3, 1, NULL),
-('tua', 3, 1, NULL),
-('baru', 3, 1, NULL),
-('lama', 3, 1, NULL),
-('hangat', 3, 1, NULL),
-('segar', 3, 1, NULL),
-('enak', 3, 1, NULL),
-('lezat', 3, 1, NULL),
-('penting', 3, 1, NULL),
-('sederhana', 3, 1, NULL),
-('rumit', 3, 1, NULL),
-('mudah', 3, 1, NULL),
-('sulit', 3, 1, NULL),
-('aman', 3, 1, NULL),
-('berbahaya', 3, 1, NULL),
-('sehat', 3, 1, NULL),
-('sakit', 3, 1, NULL),
-('bersih', 3, 1, NULL),
-('kotor', 3, 1, NULL),
-('rapi', 3, 1, NULL),
-('berantakan', 3, 1, NULL),
-('terang', 3, 1, NULL),
-('gelap', 3, 1, NULL),
-('tenang', 3, 1, NULL),
-('ramai', 3, 1, NULL),
-('sunyi', 3, 1, NULL),
-('asli', 3, 1, NULL),
-('palsu', 3, 1, NULL),
-('benar', 3, 1, NULL),
-('salah', 3, 1, NULL),
-('cocok', 3, 1, NULL),
-('tidak_cocok', 3, 1, NULL),
-
--- === Kata Adjektiva Berimbuhan ===
-('kebesaran', 3, 1, NULL),
-('kecilan', 3, 1, NULL),
-('kemungkinan', 3, 1, NULL),
-('ketertarikan', 3, 1, NULL),
-('keindahan', 3, 1, NULL),
-('kebaikan', 3, 1, NULL),
-('keburukan', 3, 1, NULL),
-('kepentingan', 3, 1, NULL),
-('kesederhanaan', 3, 1, NULL),
-('keamanan', 3, 1, NULL),
-('kesehatan', 3, 1, 11),
-('kebersihan', 3, 1, NULL),
-('ketenangan', 3, 1, NULL),
-
--- === Adverbia ===
-('hari_ini', 4, 1, NULL),
-('besok', 4, 1, NULL),
-('kemarin', 4, 1, NULL),
-('sekarang', 4, 1, NULL),
-('tadi', 4, 1, NULL),
-('nanti', 4, 1, NULL),
-('sering', 4, 1, NULL),
-('jarang', 4, 1, NULL),
-('selalu', 4, 1, NULL),
-('tidak_pernah', 4, 1, NULL),
-('kadang', 4, 1, NULL),
-('umumnya', 4, 1, NULL),
-('biasanya', 4, 1, NULL),
-('sebenarnya', 4, 1, NULL),
-('seharusnya', 4, 1, NULL),
-('sepertinya', 4, 1, NULL),
-('mungkin', 4, 1, NULL),
-('tentu', 4, 1, NULL),
-('pasti', 4, 1, NULL),
-('rupanya', 4, 1, NULL),
-('nyatanya', 4, 1, NULL),
-('sangat', 4, 1, NULL),
-('amat', 4, 1, NULL),
-('cukup', 4, 1, NULL),
-('begitu', 4, 1, NULL),
-('demikian', 4, 1, NULL),
-('di_sini', 4, 1, NULL),
-('di_sana', 4, 1, NULL),
-('di_mana', 4, 1, NULL),
-('ke_sana', 4, 1, NULL),
-('ke_mari', 4, 1, NULL),
-('dari_sana', 4, 1, NULL),
-('jauh', 4, 1, NULL),
-('dekat', 4, 1, NULL),
-
--- === Determiner ===
-('ini', 11, 1, NULL),
-('itu', 11, 1, NULL),
-('tersebut', 11, 1, NULL),
-('tersebut', 11, 1, NULL),
-('sendiri', 11, 1, NULL),
-('setiap', 11, 1, NULL),
-('semua', 11, 1, NULL),
-('beberapa', 11, 1, NULL),
-('segala', 11, 1, NULL),
-('tiap', 11, 1, NULL),
-('masing_masing', 11, 1, NULL),
-('salah_satu', 11, 1, NULL),
-
--- === Nomina Proper ===
-('Indonesia', 1, 1, 4),
-('Jakarta', 1, 1, 6),
-('Bali', 1, 1, 4),
-('Jawa', 1, 1, 6),
-('Sumatera', 1, 1, 6),
-('Kalimantan', 1, 1, 6),
-('Sulawesi', 1, 1, 6),
-('Papua', 1, 1, 6),
-('Asia', 1, 1, 6),
-('Eropa', 1, 1, 6),
-('Amerika', 1, 1, 6),
-('Afrika', 1, 1, 6),
-('Java', 1, 1, 1),
-('Python', 1, 1, 1),
-('Linux', 1, 1, 1),
-('Google', 1, 1, 1),
-('Microsoft', 1, 1, 1),
-('Apple', 1, 1, 1);
-
-COMMIT;
-
--- ========================================================================== --
--- 8. ARTI KATA (Definisi Kata)                                                --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO arti_kata (id_kata, arti) VALUES
--- Teknologi
-((SELECT id FROM kata WHERE kata='komputer'),
- 'Mesin elektronik yang mampu menerima, memproses, menyimpan, dan menghasilkan data sesuai instruksi program yang diberikan oleh pengguna'),
-((SELECT id FROM kata WHERE kata='internet'),
- 'Jaringan komputer global yang saling terhubung menggunakan protokol standar untuk bertukar data dan informasi di seluruh dunia'),
-((SELECT id FROM kata WHERE kata='algoritma'),
- 'Sekumpulan langkah-langkah terstruktur dan logis yang digunakan untuk menyelesaikan suatu masalah komputasi secara sistematis'),
-((SELECT id FROM kata WHERE kata='program'),
- 'Rangkaian instruksi tertulis dalam bahasa pemrograman yang dapat dieksekusi oleh komputer untuk melakukan tugas tertentu'),
-((SELECT id FROM kata WHERE kata='database'),
- 'Sistem penyimpanan data terstruktur yang terorganisir sehingga memudahkan pengelolaan, pencarian, dan pengambilan informasi'),
-((SELECT id FROM kata WHERE kata='robot'),
- 'Mesin yang dapat diprogram untuk melakukan tugas secara otomatis, baik secara otonom maupun dengan kendali jarak jauh'),
-((SELECT id FROM kata WHERE kata='kecerdasan'),
- 'Kemampuan untuk belajar, memahami, dan menerapkan pengetahuan dalam menghadapi situasi baru serta memecahkan masalah'),
-((SELECT id FROM kata WHERE kata='sistem'),
- 'Sekumpulan komponen yang saling berhubungan dan bekerja bersama untuk mencapai tujuan tertentu secara terintegrasi'),
-((SELECT id FROM kata WHERE kata='aplikasi'),
- 'Perangkat lunak yang dirancang untuk membantu pengguna menyelesaikan tugas tertentu pada perangkat komputer atau mobile'),
-((SELECT id FROM kata WHERE kata='jaringan'),
- 'Sistem yang menghubungkan dua atau lebih perangkat komputer agar dapat saling bertukar data dan berbagi sumber daya'),
-((SELECT id FROM kata WHERE kata='data'),
- 'Fakta atau informasi mentah yang dikumpulkan dan dapat diolah menjadi bentuk yang bermakna untuk pengambilan keputusan'),
-((SELECT id FROM kata WHERE kata='informasi'),
- 'Data yang telah diolah, diorganisir, dan disajikan sehingga memiliki makna dan nilai bagi penerimanya'),
-
--- Sains Alam
-((SELECT id FROM kata WHERE kata='air'),
- 'Zat cair jernih tanpa warna dan rasa yang tersusun dari molekul hidrogen dan oksigen, merupakan kebutuhan esensial bagi seluruh makhluk hidup'),
-((SELECT id FROM kata WHERE kata='bumi'),
- 'Planet ketiga dari Matahari dan satu-satunya planet yang diketahui memiliki kehidupan, dengan permukaan yang sebagian besar tertutup air'),
-((SELECT id FROM kata WHERE kata='matahari'),
- 'Bintang pusat tata surya yang menghasilkan energi melalui reaksi fusi nuklir, menjadi sumber cahaya dan panas utama bagi planet-planet di sekitarnya'),
-((SELECT id FROM kata WHERE kata='bulan'),
- 'Satelit alami Bumi yang mengorbit pada jarak rata-rata 384.400 kilometer, mempengaruhi pasang surut laut dan pencahayaan malam'),
-((SELECT id FROM kata WHERE kata='gravitasi'),
- 'Gaya tarik-menarik antarmassa yang menyebabkan benda saling menarik, menjaga planet pada orbitnya, dan membuat benda jatuh ke permukaan Bumi'),
-((SELECT id FROM kata WHERE kata='energi'),
- 'Kemampuan untuk melakukan usaha atau menggerakkan benda, yang dapat berwujud panas, cahaya, gerak, listrik, kimia, atau nuklir'),
-((SELECT id FROM kata WHERE kata='cahaya'),
- 'Bentuk radiasi elektromagnetik yang dapat dilihat oleh mata manusia, merambat dengan kecepatan 299.792 kilometer per detik dalam ruang hampa'),
-((SELECT id FROM kata WHERE kata='fotosintesis'),
- 'Proses biokimia yang dilakukan tumbuhan hijau untuk mengubah karbon dioksida dan air menjadi glukosa dan oksigen menggunakan energi cahaya matahari'),
-((SELECT id FROM kata WHERE kata='evolusi'),
- 'Proses perubahan bertahap pada sifat-sifat populasi makhluk hidup dari generasi ke generasi melalui seleksi alam dan variasi genetik'),
-((SELECT id FROM kata WHERE kata='ekosistem'),
- 'Satuan ekologi yang terbentuk dari interaksi antara makhluk hidup dengan lingkungan fisiknya dalam suatu area tertentu'),
-((SELECT id FROM kata WHERE kata='atom'),
- 'Satuan dasar materi yang terdiri dari inti atom berisi proton dan neutron serta elektron yang mengelilinginya'),
-((SELECT id FROM kata WHERE kata='oksigen'),
- 'Unsur kimia gas tidak berwarna dan tidak berbau yang sangat penting bagi kehidupan, merupakan sekitar 21 persen dari atmosfer Bumi'),
-
--- Biologi
-((SELECT id FROM kata WHERE kata='manusia'),
- 'Spesies Homo sapiens yang merupakan makhluk hidup paling maju dengan kemampuan berpikir abstrak, berbahasa, dan membuat alat'),
-((SELECT id FROM kata WHERE kata='sel'),
- 'Satuan struktural dan fungsional terkecil dari makhluk hidup yang mampu melakukan metabolisme, pertumbuhan, dan reproduksi secara mandiri'),
-((SELECT id FROM kata WHERE kata='hewan'),
- 'Organisme eukariotik multiseluler yang tidak mampu melakukan fotosintesis, mendapatkan energi dengan mengonsumsi bahan organik lain'),
-((SELECT id FROM kata WHERE kata='tumbuhan'),
- 'Organisme multiseluler eukariotik yang mengandung klorofil dan mampu melakukan fotosintesis untuk menghasilkan makanannya sendiri'),
-((SELECT id FROM kata WHERE kata='vitamin'),
- 'Senyawa organik yang dibutuhkan tubuh dalam jumlah kecil untuk menjalankan berbagai fungsi metabolisme dan menjaga kesehatan secara optimal'),
-((SELECT id FROM kata WHERE kata='otak'),
- 'Organ pusat sistem saraf pada vertebrata yang mengendalikan seluruh fungsi tubuh, pemikiran, ingatan, emosi, dan kesadaran'),
-((SELECT id FROM kata WHERE kata='jantung'),
- 'Otot berongga yang berkontraksi secara ritmis untuk memompa darah ke seluruh tubuh melalui pembuluh darah arteri dan vena'),
-
--- Bahasa Indonesia
-((SELECT id FROM kata WHERE kata='bahasa'),
- 'Sistem lambang bunyi yang digunakan oleh suatu kelompok masyarakat untuk berkomunikasi, menyampaikan gagasan, dan berekspresi'),
-((SELECT id FROM kata WHERE kata='kata'),
- 'Satuan bahasa terkecil yang dapat berdiri sendiri dan memiliki makna dalam komunikasi lisan maupun tulisan'),
-((SELECT id FROM kata WHERE kata='kalimat'),
- 'Satuan bahasa yang mengandung pikiran utuh dan diakhiri dengan tanda baca, terdiri dari subjek, predikat, dan bisa disertai objek atau keterangan'),
-((SELECT id FROM kata WHERE kata='sinonim'),
- 'Kata yang memiliki makna sama atau sangat mirip dengan kata lain, memungkinkan variasi penggunaan dalam kalimat tanpa mengubah arti'),
-((SELECT id FROM kata WHERE kata='antonim'),
- 'Kata yang memiliki makna berlawanan atau bertentangan dengan kata lain, digunakan untuk menyatakan perbedaan atau kontras'),
-((SELECT id FROM kata WHERE kata='imbuhan'),
- 'Afiks atau bagian tambahan yang ditempelkan pada kata dasar untuk membentuk kata baru dengan makna atau fungsi gramatikal tertentu'),
-
--- Budaya dan Sejarah
-((SELECT id FROM kata WHERE kata='indonesia'),
- 'Negara kepulauan terbesar di dunia yang terletak di Asia Tenggara dengan lebih dari 17.000 pulau dan lebih dari 270 juta penduduk'),
-((SELECT id FROM kata WHERE kata='batik'),
- 'Seni menghias kain dengan cara membubuhkan malam pada kain tersebut, kemudian dicelup warna, merupakan warisan budaya Indonesia'),
-((SELECT id FROM kata WHERE kata='budaya'),
- 'Seluruh sistem nilai, norma, kepercayaan, dan ekspresi kreatif yang dimiliki bersama oleh suatu kelompok masyarakat'),
-((SELECT id FROM kata WHERE kata='sejarah'),
- 'Ilmu yang mempelajari dan mencatat peristiwa-peristiwa masa lampau serta perkembangan peradaban manusia dari waktu ke waktu'),
-
--- Matematika
-((SELECT id FROM kata WHERE kata='matematika'),
- 'Ilmu yang mempelajari bilangan, struktur, ruang, dan perubahan melalui penalaran logis dan notasi simbolis yang terstruktur'),
-((SELECT id FROM kata WHERE kata='angka'),
- 'Simbol atau tanda yang digunakan untuk menyatakan bilangan dalam sistem bilangan tertentu'),
-((SELECT id FROM kata WHERE kata='aljabar'),
- 'Cabang matematika yang menggunakan simbol dan huruf untuk merepresentasikan bilangan dalam persamaan dan memecahkan masalah abstrak'),
-
--- Geografi
-((SELECT id FROM kata WHERE kata='gunung'),
- 'Bentuklahan alam yang menonjol dari permukaan tanah sekitarnya dengan ketinggian yang signifikan, terbentuk dari proses geologi'),
-((SELECT id FROM kata WHERE kata='laut'),
- 'Massa air asin yang luas menutupi sebagian besar permukaan Bumi, menjadi habitat bagi berbagai ekosistem laut'),
-((SELECT id FROM kata WHERE kata='hutan'),
- 'Kawasan yang ditumbuhi pepohonan dengan kerapatan tertentu, berfungsi sebagai paru-paru dunia dan habitat keanekaragaman hayati'),
-
--- Lainnya
-((SELECT id FROM kata WHERE kata='pengetahuan'),
- 'Segala sesuatu yang diketahui atau dipelajari manusia melalui pengalaman, pendidikan, dan penyelidikan ilmiah'),
-((SELECT id FROM kata WHERE kata='pendidikan'),
- 'Proses sistematis untuk mengembangkan pengetahuan, keterampilan, karakter, dan kecerdasan individu melalui pengajaran dan pelatihan'),
-((SELECT id FROM kata WHERE kata='kesehatan'),
- 'Keadaan sejahtera secara fisik, mental, dan sosial yang tidak hanya berarti bebas dari penyakit tetapi juga mencakup kualitas hidup'),
-((SELECT id FROM kata WHERE kata='ekonomi'),
- 'Ilmu yang mempelajari produksi, distribusi, dan konsumsi barang serta jasa serta interaksi antara individu, bisnis, dan pemerintah'),
-((SELECT id FROM kata WHERE kata='uang'),
- 'Alat tukar yang diterima secara umum sebagai pembayaran barang dan jasa, berfungsi sebagai satuan hitung dan penyimpan nilai'),
-((SELECT id FROM kata WHERE kata='obat'),
- 'Zat atau bahan yang digunakan untuk mencegah, meringankan, atau menyembuhkan penyakit serta memulihkan kesehatan tubuh'),
-((SELECT id FROM kata WHERE kata='olahraga'),
- 'Aktivitas fisik yang terstruktur dan kompetitif untuk menjaga kebugaran, meningkatkan keterampilan, dan memberikan hiburan'),
-((SELECT id FROM kata WHERE kata='musik'),
- 'Seni mengatur bunyi dalam waktu melalui ritme, melodi, dan harmoni untuk mengekspresikan emosi dan gagasan secara estetis'),
-((SELECT id FROM kata WHERE kata='makanan'),
- 'Zat padat atau cair yang dikonsumsi makhluk hidup untuk memenuhi kebutuhan nutrisi, energi, dan pertumbuhan tubuh'),
-((SELECT id FROM kata WHERE kata='rumah'),
- 'Bangunan yang digunakan sebagai tempat tinggal keluarga atau individu, memberikan perlindungan dari cuaca dan lingkungan luar');
-
-COMMIT;
-
--- ========================================================================== --
--- 9. MORFOLOGI KATA (Pemetaan Bentuk → Kata Dasar untuk Stemming)             --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO morfologi_kata (id_kata_dasar, id_kata_bentuk, id_morfologi, id_hubungan) VALUES
--- === meN- (awalan, derivasi → verba) ===
-((SELECT id FROM kata WHERE kata='tulis'), (SELECT id FROM kata WHERE kata='menulis'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='baca'), (SELECT id FROM kata WHERE kata='membaca'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='ambil'), (SELECT id FROM kata WHERE kata='mengambil'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='lempar'), (SELECT id FROM kata WHERE kata='melempar'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='tangkap'), (SELECT id FROM kata WHERE kata='menangkap'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='beri'), (SELECT id FROM kata WHERE kata='memberi'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='terima'), (SELECT id FROM kata WHERE kata='menerima'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='buat'), (SELECT id FROM kata WHERE kata='membuat'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='hapus'), (SELECT id FROM kata WHERE kata='menghapus'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='cari'), (SELECT id FROM kata WHERE kata='mencari'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='temu'), (SELECT id FROM kata WHERE kata='menemukan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='pilih'), (SELECT id FROM kata WHERE kata='memilih'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='tahu'), (SELECT id FROM kata WHERE kata='mengetahui'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='erti'), (SELECT id FROM kata WHERE kata='mengerti'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='ajar'), (SELECT id FROM kata WHERE kata='mengajar'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='olah'), (SELECT id FROM kata WHERE kata='mengolah'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='simpan'), (SELECT id FROM kata WHERE kata='menyimpan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='kirim'), (SELECT id FROM kata WHERE kata='mengirim'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='sebut'), (SELECT id FROM kata WHERE kata='menyebutkan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='jelaskan'), (SELECT id FROM kata WHERE kata='menjelaskan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='kembang'), (SELECT id FROM kata WHERE kata='mengembangkan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='hasil'), (SELECT id FROM kata WHERE kata='menghasilkan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='kurang'), (SELECT id FROM kata WHERE kata='mengurangi'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='tingkat'), (SELECT id FROM kata WHERE kata='meningkatkan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='jalankan'), (SELECT id FROM kata WHERE kata='menjalankan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='hitung'), (SELECT id FROM kata WHERE kata='menghitung'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='ukur'), (SELECT id FROM kata WHERE kata='mengukur'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='buktikan'), (SELECT id FROM kata WHERE kata='membuktikan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='nyata'), (SELECT id FROM kata WHERE kata='menyatakan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='definisikan'), (SELECT id FROM kata WHERE kata='mendefinisikan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='identifikasi'), (SELECT id FROM kata WHERE kata='mengidentifikasi'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='sebar'), (SELECT id FROM kata WHERE kata='menyebarkan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='peroleh'), (SELECT id FROM kata WHERE kata='memperoleh'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='manfaat'), (SELECT id FROM kata WHERE kata='memanfaatkan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='dukung'), (SELECT id FROM kata WHERE kata='mendukung'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='atasi'), (SELECT id FROM kata WHERE kata='mengatasi'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='tangani'), (SELECT id FROM kata WHERE kata='menangani'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='rancang'), (SELECT id FROM kata WHERE kata='merancang'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='uji'), (SELECT id FROM kata WHERE kata='menguji'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='barui'), (SELECT id FROM kata WHERE kata='memperbarui'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='proses'), (SELECT id FROM kata WHERE kata='memproses'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='sedia'), (SELECT id FROM kata WHERE kata='menyediakan'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='analisis'), (SELECT id FROM kata WHERE kata='menganalisis'), 1, 'derivasi'),
-
--- === di- (awalan pasif, infleksi → verba) ===
-((SELECT id FROM kata WHERE kata='tulis'), (SELECT id FROM kata WHERE kata='ditulis'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='baca'), (SELECT id FROM kata WHERE kata='dibaca'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='ambil'), (SELECT id FROM kata WHERE kata='diambil'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='buat'), (SELECT id FROM kata WHERE kata='dibuat'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='hapus'), (SELECT id FROM kata WHERE kata='dihapus'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='cari'), (SELECT id FROM kata WHERE kata='dicari'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='temu'), (SELECT id FROM kata WHERE kata='ditemukan'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='kembang'), (SELECT id FROM kata WHERE kata='dikembangkan'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='jalankan'), (SELECT id FROM kata WHERE kata='dijalankan'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='proses'), (SELECT id FROM kata WHERE kata='diproses'), 1, 'infleksi'),
-
--- === ter- (awalan, infleksi/derivasi) ===
-((SELECT id FROM kata WHERE kata='tulis'), (SELECT id FROM kata WHERE kata='tertulis'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='baca'), (SELECT id FROM kata WHERE kata='terbaca'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='bangun'), (SELECT id FROM kata WHERE kata='terbangun'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='sembunyi'), (SELECT id FROM kata WHERE kata='tersembunyi'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='tinggal'), (SELECT id FROM kata WHERE kata='tertinggal'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='kubur'), (SELECT id FROM kata WHERE kata='terkubur'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='hubung'), (SELECT id FROM kata WHERE kata='terhubung'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='lindung'), (SELECT id FROM kata WHERE kata='terlindung'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='kenal'), (SELECT id FROM kata WHERE kata='terkenal'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='baik'), (SELECT id FROM kata WHERE kata='terbaik'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='buruk'), (SELECT id FROM kata WHERE kata='terburuk'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='besar'), (SELECT id FROM kata WHERE kata='terbesar'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='kecil'), (SELECT id FROM kata WHERE kata='terkecil'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='diri'), (SELECT id FROM kata WHERE kata='terdiri'), 1, 'infleksi'),
-
--- === ber- (awalan, derivasi/infleksi → verba/nomina) ===
-((SELECT id FROM kata WHERE kata='jalan'), (SELECT id FROM kata WHERE kata='berjalan'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='lari'), (SELECT id FROM kata WHERE kata='berlari'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='renang'), (SELECT id FROM kata WHERE kata='berenang'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='bicara'), (SELECT id FROM kata WHERE kata='berbicara'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='kata'), (SELECT id FROM kata WHERE kata='berkata'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='main'), (SELECT id FROM kata WHERE kata='bermain'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='pikir'), (SELECT id FROM kata WHERE kata='berpikir'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='kerja'), (SELECT id FROM kata WHERE kata='bekerja'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='belajar'), (SELECT id FROM kata WHERE kata='belajar'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='sedia'), (SELECT id FROM kata WHERE kata='beresedia'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='usaha'), (SELECT id FROM kata WHERE kata='berusaha'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='siap'), (SELECT id FROM kata WHERE kata='bersiap'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='ubah'), (SELECT id FROM kata WHERE kata='berubah'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='bahaya'), (SELECT id FROM kata WHERE kata='berbahaya'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='harga'), (SELECT id FROM kata WHERE kata='berharga'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='arti'), (SELECT id FROM kata WHERE kata='berarti'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='kait'), (SELECT id FROM kata WHERE kata='berkaitan'), 1, 'infleksi'),
-((SELECT id FROM kata WHERE kata='dasar'), (SELECT id FROM kata WHERE kata='berdasarkan'), 1, 'infleksi'),
-
--- === peN- (awalan, derivasi → nomina pelaku) ===
-((SELECT id FROM kata WHERE kata='tulis'), (SELECT id FROM kata WHERE kata='penulis'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='baca'), (SELECT id FROM kata WHERE kata='pembaca'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='kirim'), (SELECT id FROM kata WHERE kata='pengirim'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='terima'), (SELECT id FROM kata WHERE kata='penerima'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='buat'), (SELECT id FROM kata WHERE kata='pembuat'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='cari'), (SELECT id FROM kata WHERE kata='pencari'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='temu'), (SELECT id FROM kata WHERE kata='penemu'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='pimpin'), (SELECT id FROM kata WHERE kata='pemimpin'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='ikut'), (SELECT id FROM kata WHERE kata='pengikut'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='kerja'), (SELECT id FROM kata WHERE kata='pekerja'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='didik'), (SELECT id FROM kata WHERE kata='pendidik'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='ajar'), (SELECT id FROM kata WHERE kata='pengajar'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='jual'), (SELECT id FROM kata WHERE kata='penjual'), 1, 'derivasi'),
-((SELECT id FROM kata WHERE kata='beli'), (SELECT id FROM kata WHERE kata='pembeli'), 1, 'derivasi'),
-
--- === -an (akhiran, derivasi → nomina) ===
-((SELECT id FROM kata WHERE kata='tulis'), (SELECT id FROM kata WHERE kata='tulisan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='baca'), (SELECT id FROM kata WHERE kata='bacaan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='makan'), (SELECT id FROM kata WHERE kata='makan_an'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='minum'), (SELECT id FROM kata WHERE kata='minum_an'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='kerja'), (SELECT id FROM kata WHERE kata='pekerjaan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='didik'), (SELECT id FROM kata WHERE kata='pendidikan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='ajar'), (SELECT id FROM kata WHERE kata='pengajaran'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='bangun'), (SELECT id FROM kata WHERE kata='pembangunan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='kembang'), (SELECT id FROM kata WHERE kata='pengembangan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='tingkat'), (SELECT id FROM kata WHERE kata='peningkatan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='kurang'), (SELECT id FROM kata WHERE kata='pengurangan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='tambah'), (SELECT id FROM kata WHERE kata='penambahan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='hapus'), (SELECT id FROM kata WHERE kata='penghapusan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='cipta'), (SELECT id FROM kata WHERE kata='penciptaan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='terap'), (SELECT id FROM kata WHERE kata='penerapan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='pecah'), (SELECT id FROM kata WHERE kata='pemecahan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='selesai'), (SELECT id FROM kata WHERE kata='penyelesaian'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='baik'), (SELECT id FROM kata WHERE kata='perbaikan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='tumbuh'), (SELECT id FROM kata WHERE kata='pertumbuhan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='kembang'), (SELECT id FROM kata WHERE kata='perkembangan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='majuan'), (SELECT id FROM kata WHERE kata='kemajuan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='aman'), (SELECT id FROM kata WHERE kata='keamanan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='bersih'), (SELECT id FROM kata WHERE kata='kebersihan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='tenang'), (SELECT id FROM kata WHERE kata='ketenangan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='indah'), (SELECT id FROM kata WHERE kata='keindahan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='baik'), (SELECT id FROM kata WHERE kata='kebaikan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='buruk'), (SELECT id FROM kata WHERE kata='keburukan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='penting'), (SELECT id FROM kata WHERE kata='kepentingan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='mungkin'), (SELECT id FROM kata WHERE kata='kemungkinan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='sehat'), (SELECT id FROM kata WHERE kata='kesehatan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='muda'), (SELECT id FROM kata WHERE kata='kemudaan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='besar'), (SELECT id FROM kata WHERE kata='kebesaran'), 2, 'derivasi'),
-
--- === -kan (akhiran, derivasi → verba kausatif/lokatif) ===
-((SELECT id FROM kata WHERE kata='tuliskan'), (SELECT id FROM kata WHERE kata='menuliskan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='bacakan'), (SELECT id FROM kata WHERE kata='membacakan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='baik'), (SELECT id FROM kata WHERE kata='memperbaiki'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='sebutkan'), (SELECT id FROM kata WHERE kata='menyebutkan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='jelaskan'), (SELECT id FROM kata WHERE kata='menjelaskan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='definisikan'), (SELECT id FROM kata WHERE kata='mendefinisikan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='ceritakan'), (SELECT id FROM kata WHERE kata='ceritakan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='deskripsikan'), (SELECT id FROM kata WHERE kata='deskripsikan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='yakinkan'), (SELECT id FROM kata WHERE kata='yakinkan'), 2, 'derivasi'),
-((SELECT id FROM kata WHERE kata='hentikan'), (SELECT id FROM kata WHERE kata='hentikan'), 2, 'derivasi'),
-
--- === per-...-an (konfiks, derivasi → nomina) ===
-((SELECT id FROM kata WHERE kata='baik'), (SELECT id FROM kata WHERE kata='perbaikan'), 3, 'derivasi'),
-((SELECT id FROM kata WHERE kata='ubahan'), (SELECT id FROM kata WHERE kata='perubahan'), 3, 'derivasi'),
-((SELECT id FROM kata WHERE kata='kenalan'), (SELECT id FROM kata WHERE kata='perkenalan'), 3, 'derivasi'),
-((SELECT id FROM kata WHERE kata='bandingan'), (SELECT id FROM kata WHERE kata='perbandingan'), 3, 'derivasi'),
-((SELECT id FROM kata WHERE kata='satu'), (SELECT id FROM kata WHERE kata='persatuan'), 3, 'derivasi'),
-((SELECT id FROM kata WHERE kata='data'), (SELECT id FROM kata WHERE kata='perdata'), 3, 'derivasi');
-
-COMMIT;
-
--- ========================================================================== --
--- 10. KATA FUNGSIONAL (Stopwords)                                             --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO kata_fungsional (id_kata, tipe, id_hubungan, id_ragam) VALUES
--- Kata hubung subordinatif
-((SELECT id FROM kata WHERE kata='karena'), 'konjungsi', 'sebab_akibat', 1),
-((SELECT id FROM kata WHERE kata='sehingga'), 'konjungsi', 'sebab_akibat', 1),
-((SELECT id FROM kata WHERE kata='walaupun'), 'konjungsi', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='meskipun'), 'konjungsi', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='jika'), 'konjungsi', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='kalau'), 'konjungsi', 'pertanyaan', 2),
-((SELECT id FROM kata WHERE kata='ketika'), 'konjungsi', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='setelah'), 'konjungsi', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='sebelum'), 'konjungsi', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='sedangkan'), 'konjungsi', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='padahal'), 'konjungsi', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='sementara'), 'konjungsi', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='supaya'), 'konjungsi', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='agar'), 'konjungsi', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='lalu'), 'konjungsi', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='kemudian'), 'konjungsi', 'pertanyaan', 1),
--- Kata hubung koordinatif
-((SELECT id FROM kata WHERE kata='dan'), 'konjungsi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='atau'), 'konjungsi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='tetapi'), 'konjungsi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='namun'), 'konjungsi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='maupun'), 'konjungsi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='serta'), 'konjungsi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='selain'), 'konjungsi', 'terkait', 1),
--- Kata depan
-((SELECT id FROM kata WHERE kata='di'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='ke'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='dari'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='pada'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='dengan'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='untuk'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='tentang'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='dalam'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='oleh'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='atas'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='antara'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='sebagai'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='tanpa'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='menurut'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='melalui'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='sejak'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='hingga'), 'preposisi', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='kepada'), 'preposisi', 'terkait', 1),
--- Partikel dan adverbial
-((SELECT id FROM kata WHERE kata='sudah'), 'partikel_waktu', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='belum'), 'partikel_waktu', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='sedang'), 'partikel_waktu', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='akan'), 'partikel_waktu', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='telah'), 'partikel_waktu', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='pernah'), 'partikel_waktu', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='masih'), 'partikel_waktu', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='juga'), 'partikel_tekanan', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='saja'), 'partikel_tekanan', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='hanya'), 'partikel_tekanan', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='bahkan'), 'partikel_tekanan', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='sangat'), 'partikel_tekanan', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='lebih'), 'partikel_tekanan', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='paling'), 'partikel_tekanan', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='cukup'), 'partikel_tekanan', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='mungkin'), 'partikel_modality', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='tentu'), 'partikel_modality', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='pasti'), 'partikel_modality', 'pertanyaan', 1),
--- Kata ganti
-((SELECT id FROM kata WHERE kata='saya'), 'pronomina_persona', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='kamu'), 'pronomina_persona', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='dia'), 'pronomina_persona', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='kita'), 'pronomina_persona', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='mereka'), 'pronomina_persona', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='ia'), 'pronomina_persona', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='kami'), 'pronomina_persona', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='anda'), 'pronomina_persona', 'terkait', 3),
-((SELECT id FROM kata WHERE kata='ini'), 'pronomina_demonstratif', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='itu'), 'pronomina_demonstratif', 'terkait', 1),
--- Kata tanya
-((SELECT id FROM kata WHERE kata='apa'), 'pronomina_tanya', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='mengapa'), 'pronomina_tanya', 'sebab', 1),
-((SELECT id FROM kata WHERE kata='bagaimana'), 'pronomina_tanya', 'langkah', 1),
-((SELECT id FROM kata WHERE kata='siapa'), 'pronomina_tanya', 'fakta', 1),
-((SELECT id FROM kata WHERE kata='kapan'), 'pronomina_tanya', 'fakta', 1),
-((SELECT id FROM kata WHERE kata='dimana'), 'pronomina_tanya', 'fakta', 1),
-((SELECT id FROM kata WHERE kata='mana'), 'pronomina_tanya', 'fakta', 1),
-((SELECT id FROM kata WHERE kata='berapa'), 'pronomina_tanya', 'fakta', 1),
--- Kata kerja bantu/auxiliary
-((SELECT id FROM kata WHERE kata='ada'), 'verba_aux', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='bisa'), 'verba_modality', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='dapat'), 'verba_modality', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='harus'), 'verba_modality', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='ingin'), 'verba_modality', 'pertanyaan', 1),
-((SELECT id FROM kata WHERE kata='butuh'), 'verba_modality', 'pertanyaan', 1),
--- Kata relasional
-((SELECT id FROM kata WHERE kata='yang'), 'relatif', 'terkait', 1),
-((SELECT id FROM kata WHERE kata='adalah'), 'kopula', 'definisi', 1),
-((SELECT id FROM kata WHERE kata='merupakan'), 'kopula', 'definisi', 1);
-
-COMMIT;
-
--- ========================================================================== --
--- 11. KELAS CADANGAN (Aturan Imbuhan → Kelas Kata)                            --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO kelas_cadangan (awalan, akhiran, kelas_hasil) VALUES
--- Awalan → Verba
-('me', '', 2),
-('men', '', 2),
-('meny', '', 2),
-('meng', '', 2),
-('menge', '', 2),
-('mem', '', 2),
-('ber', '', 2),
-('di', '', 2),
-('ter', '', 2),
-('ke', '', 2),
--- Awalan → Nomina
-('pe', '', 1),
-('pen', '', 1),
-('pem', '', 1),
-('peny', '', 1),
-('peng', '', 1),
-('penge', '', 1),
-('per', '', 1),
-('je', '', 1),
--- Akhiran → Verba
-('', 'kan', 2),
-('', 'i', 2),
-('', 'lah', 2),
-('', 'pun', 2),
--- Akhiran → Nomina
-('', 'an', 1),
-('', 'is', 1),
-('', 'man', 1),
-('', 'wati', 1),
-('', 'wan', 1),
-('', 'ita', 1),
--- Konfiks → Nomina
-('pe', 'an', 1),
-('pen', 'an', 1),
-('pem', 'an', 1),
-('peny', 'an', 1),
-('peng', 'an', 1),
-('per', 'an', 1),
-('ke', 'an', 1),
-('ber', 'an', 1),
-('se', 'an', 1),
--- Konfiks → Adjektiva
-('ke', 'an', 3),
-('ter', 'an', 3),
-('se', 'nya', 4),
-('ber', '', 2),
-('me', 'kan', 2),
-('me', 'i', 2),
-('di', 'kan', 2),
-('di', 'i', 2),
-('ter', 'kan', 2),
-('ter', 'i', 2),
-('memper', '', 2),
-('memper', 'kan', 2),
-('memper', 'i', 2);
-
-COMMIT;
-
--- ========================================================================== --
--- 12. JENIS KALIMAT (Hierarki Tipe Kalimat)                                   --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO jenis_kalimat (id, nama, id_parent, deskripsi) VALUES
-(1, 'pertanyaan', NULL, 'Kalimat yang digunakan untuk menanyakan sesuatu'),
-(2, 'pertanyaan_apa', 1, 'Pertanyaan yang menanyakan tentang sesuatu hal, benda, atau konsep'),
-(3, 'pertanyaan_siapa', 1, 'Pertanyaan yang menanyakan tentang identitas orang atau pelaku'),
-(4, 'pertanyaan_mengapa', 1, 'Pertanyaan yang menanyakan tentang alasan, sebab, atau penyebab'),
-(5, 'pertanyaan_bagaimana', 1, 'Pertanyaan yang menanyakan tentang cara, proses, atau metode'),
-(6, 'pertanyaan_kapan', 1, 'Pertanyaan yang menanyakan tentang waktu kejadian'),
-(7, 'pertanyaan_dimana', 1, 'Pertanyaan yang menanyakan tentang tempat atau lokasi'),
-(8, 'pertanyaan_berapa', 1, 'Pertanyaan yang menanyakan tentang jumlah atau bilangan'),
-(9, 'pernyataan', NULL, 'Kalimat yang menyatakan suatu fakta, pendapat, atau informasi'),
-(10, 'perintah', NULL, 'Kalimat yang berisi perintah, permintaan, atau instruksi'),
-(11, 'sapaan', NULL, 'Kalimat yang digunakan untuk menyapa atau membuka percakapan'),
-(12, 'penjelasan', NULL, 'Kalimat yang bertujuan menjelaskan atau mendeskripsikan sesuatu secara rinci'),
-(13, 'pertanyaan_fakta', 1, 'Pertanyaan yang menanyakan fakta atau informasi spesifik'),
-(14, 'pertanyaan_manfaat', 1, 'Pertanyaan yang menanyakan tentang kegunaan atau manfaat sesuatu'),
-(15, 'pertanyaan_perbedaan', 1, 'Pertanyaan yang menanyakan tentang perbedaan antara dua hal atau lebih');
-
-COMMIT;
-
--- ========================================================================== --
--- 13. DETEKSI POLA (Pola Teks → Jenis Kalimat)                               --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO deteksi_pola (pola_teks, id_jenis, id_hubungan, prioritas) VALUES
--- Definisi singkat (hanya judul + ringkasan/arti)
-('apa itu', 2, 'definisi', 10),
-('itu apa', 2, 'definisi', 9),
-('itu apa ya', 2, 'definisi', 8),
-('itu apakah', 2, 'definisi', 8),
-('apa yang dimaksud', 2, 'definisi', 9),
-('apa yang dimaksud dengan', 2, 'definisi', 10),
-('definisikan', 2, 'definisi', 8),
-('jelaskan pengertian', 2, 'definisi', 9),
-('pengertian dari', 2, 'definisi', 8),
-('pengertian', 2, 'definisi', 6),
-('artinya apa', 2, 'definisi', 9),
-('arti apa', 2, 'definisi', 8),
-('arti dari', 2, 'definisi', 9),
--- Penjelasan lengkap (judul + ringkasan + penjelasan + saran)
-('jelaskan tentang', 12, 'penjelasan_lengkap', 9),
-('jabarkan', 12, 'penjelasan_lengkap', 8),
-('jabarkan tentang', 12, 'penjelasan_lengkap', 9),
-('deskripsikan', 12, 'penjelasan_lengkap', 8),
-('beritahu lebih lanjut', 12, 'penjelasan_lengkap', 9),
-('beritahu tentang', 12, 'penjelasan_lengkap', 8),
-('ceritakan tentang', 12, 'penjelasan_lengkap', 8),
-('ceritakan', 12, 'penjelasan_lengkap', 7),
-('jelaskan', 12, 'penjelasan_lengkap', 7),
-('tolong jelaskan', 12, 'penjelasan_lengkap', 8),
--- Pertanyaan mengapa/sebab
-('mengapa', 4, 'sebab', 8),
-('kenapa', 4, 'sebab', 8),
-('alasan', 4, 'sebab', 7),
-('penyebab', 4, 'sebab', 7),
-('sebab', 4, 'sebab', 6),
--- Pertanyaan bagaimana/cara/langkah
-('bagaimana cara', 5, 'langkah', 10),
-('bagaimana', 5, 'langkah', 7),
-('cara', 5, 'langkah', 6),
-('langkah', 5, 'langkah', 8),
-('proses', 5, 'langkah', 7),
-('tahapan', 5, 'langkah', 8),
--- Pertanyaan siapa
-('siapa', 3, 'fakta', 8),
--- Pertanyaan kapan
-('kapan', 6, 'fakta', 7),
--- Pertanyaan dimana
-('dimana', 7, 'fakta', 7),
-('di mana', 7, 'fakta', 7),
--- Pertanyaan berapa
-('berapa', 8, 'fakta', 7),
--- Pertanyaan fakta
-('apa saja', 13, 'fakta', 6),
-('hal apa', 13, 'fakta', 6),
-('sebutkan', 13, 'fakta', 7),
--- Manfaat
-('manfaat', 14, 'manfaat', 8),
-('kegunaan', 14, 'manfaat', 8),
-('fungsi', 14, 'manfaat', 7),
-('untuk apa', 14, 'manfaat', 8),
--- Perbedaan
-('perbedaan', 15, 'perbedaan', 8),
-('bedanya', 15, 'perbedaan', 8),
-('apa bedanya', 15, 'perbedaan', 9),
--- Penjelasan/Perintah (fallback jika tidak tertangkap di atas)
-('penjelasan', 12, 'gabungan_spok', 5),
--- Sapaan
-('halo', 11, 'sapaan', 10),
-('hai', 11, 'sapaan', 10),
-('selamat', 11, 'sapaan', 8),
-('terima kasih', 11, 'sapaan', 5);
-
-COMMIT;
-
--- ========================================================================== --
--- 14. NORMALISASI FRASA (Normalisasi Singkatan & Variasi)                      --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO normalisasi_frasa (frasa_asli, frasa_hasil) VALUES
--- Ekspresi penjelasan lengkap
-('beritahu lebih lanjut tentang', 'jelaskan tentang'),
--- Ekspresi sinonim/antonim
-('disebut juga', 'sinonim'),
-('berlawanan dengan', 'antonim'),
-('sama arti', 'sinonim'),
-('berlawanan arti', 'antonim'),
--- Ekspresi cara/langkah
-('bagaimana cara', 'cara'),
-('gimana cara', 'cara'),
-('gimana', 'bagaimana'),
--- Ekspresi sebab
-('kenapa', 'mengapa'),
-('ngapain', 'mengapa'),
-('alasannya apa', 'mengapa'),
-('penyebabnya apa', 'mengapa'),
--- Ekspresi sinonim/antonim
-('disebut juga', 'sinonim'),
-('berlawanan dengan', 'antonim'),
-('sama arti', 'sinonim'),
-('berlawanan arti', 'antonim'),
--- Ekspresi lainnya
-('buat apa', 'fungsi'),
-('fungsi dari', 'fungsi'),
-('kegunaan', 'manfaat'),
-('manfaat dari', 'manfaat'),
-('keuntungan', 'manfaat'),
--- Singkatan informal
-('yg', 'yang'),
-('dgn', 'dengan'),
-('utk', 'untuk'),
-('dr', 'dari'),
-('dlm', 'dalam'),
-('krn', 'karena'),
-('sbab', 'sebab'),
-('mksh', 'terima kasih'),
-('trims', 'terima kasih'),
-('thx', 'terima kasih'),
-('makasih', 'terima kasih'),
-('knp', 'mengapa'),
-('tdk', 'tidak'),
-('blm', 'belum'),
-('udah', 'sudah'),
-('udh', 'sudah'),
-('plis', 'tolong'),
-('pls', 'tolong'),
-('bgt', 'banget'),
-('banget', 'sangat'),
-('smoga', 'semoga'),
-('gak', 'tidak'),
-('ga', 'tidak'),
-('nggak', 'tidak'),
-('ngga', 'tidak'),
-('ndak', 'tidak'),
-('emang', 'memang'),
-('jg', 'juga'),
-('dah', 'sudah'),
-('bbrp', 'beberapa'),
-('td', 'tadi'),
-('bsk', 'besok'),
-('kmrn', 'kemarin'),
-('skrg', 'sekarang'),
-('sy', 'saya'),
-('kmu', 'kamu'),
-('lo', 'kamu'),
-('lu', 'kamu'),
-('gw', 'saya'),
-('aku', 'saya'),
-('ente', 'kamu'),
-('koe', 'kamu'),
-('ciee', 'selamat'),
-('hadeh', 'aduh'),
-('anjir', 'aduh'),
-('kontol', 'aduh'),
--- Normalisasi formal
-('dikatakan', 'disebut'),
-('dirupakan', 'merupakan'),
-('dimaksudkan', 'dimaksud'),
-('merujuk kepada', 'tentang');
-
-COMMIT;
-
--- ========================================================================== --
--- 15. JAWABAN BAWAAN (Respons Default)                                        --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO jawaban_bawaan (jawaban, tipe, prioritas) VALUES
--- === SAPAAN ===
-('Halo! Saya AJUDAN 3.0, asisten virtual Anda. Silakan bertanya tentang komputer, internet, teknologi, atau topik umum lainnya.', 'sapaan', 10),
-('Hai! Ada yang bisa saya bantu? Anda bisa bertanya tentang berbagai topik seperti komputer, sains, atau teknologi.', 'sapaan', 9),
-('Halo! Saya siap membantu. Coba tanyakan sesuatu tentang komputer, internet, atau topik lain yang menarik.', 'sapaan', 8),
-('Selamat datang! Saya AJUDAN, bot pengetahuan umum. Ketik pertanyaan Anda dan saya akan berusaha menjawab sebaik mungkin.', 'sapaan', 7),
-('Halo! Senang bertemu dengan Anda. Apa yang ingin Anda ketahui hari ini?', 'sapaan', 6),
--- === FALLBACK ===
-('Maaf, saya belum memiliki informasi tentang itu. Coba tanyakan dengan cara lain atau gunakan kata kunci yang lebih spesifik.', 'fallback', 10),
-('Saya tidak yakin tentang topik tersebut. Bisakah Anda memberikan konteks lebih atau menanyakan dengan kata yang berbeda?', 'fallback', 9),
-('Hmm, pertanyaan yang menarik. Sayangnya saya belum mempelajari hal itu secara mendalam.', 'fallback', 8),
-('Maaf, pengetahuan saya masih terbatas tentang hal tersebut. Coba tanyakan topik lain yang berkaitan.', 'fallback', 8),
-('Saya belum bisa menjawab pertanyaan itu dengan baik. Silakan coba gunakan kata kunci yang lebih umum atau tanyakan kembali nanti.', 'fallback', 7),
-('Topik tersebut belum ada dalam basis data saya. Anda bisa mencoba bertanya tentang teknologi, sains, atau bahasa Indonesia.', 'fallback', 7),
-('Saya sedang terus belajar. Untuk pertanyaan itu, saya sarankan Anda mencari informasi dari sumber yang lebih terpercaya.', 'fallback', 6),
-('Terima kasih atas pertanyaannya, namun saya belum memiliki data yang cukup untuk memberikan jawaban yang akurat.', 'fallback', 6),
-('Wah, itu di luar pengetahuan saya saat ini. Mungkin Anda bisa mencoba tanya tentang komputer, internet, atau topik umum lainnya.', 'fallback', 5),
-('Pertanyaan bagus! Tapi sayangnya saya belum tahu jawabannya. Yuk cari tahu bersama atau coba tanya yang lain dulu.', 'fallback', 5),
-('Maaf, saya tidak dapat memproses pertanyaan tersebut. Pastikan kalimat yang Anda masukkan sudah jelas dan benar ejaannya.', 'fallback', 4),
-('Sepertinya saya perlu belajar lebih banyak tentang hal itu. Coba tanyakan sesuatu yang sudah saya kuasai dulu ya.', 'fallback', 4),
-('Saya mengerti pertanyaan Anda, tetapi belum memiliki data yang relevan. Coba tanyakan dengan frasa yang berbeda.', 'fallback', 3),
-('Hmm, sepertinya ada kesalahan dalam pemrosesan. Bisa diulang dengan kalimat yang lebih sederhana?', 'fallback', 3),
-('Terima kasih atas pertanyaan Anda. Saat ini saya hanya mampu menjawab pertanyaan terbatas tentang beberapa topik utama.', 'fallback', 2);
-
-COMMIT;
-
--- ========================================================================== --
--- 16. PENGETAHUAN UMUM (Ensiklopedia Bot)                                     --
--- ========================================================================== --
-BEGIN TRANSACTION;
+/* ================================================================== *
+ * AJUDAN 4.0 - Skema & Data Baru (Database-Driven)                   *
+ *                                                                    *
+ * File ini berisi semua tabel dan data seed untuk                     *
+ * menghapus seluruh hardcode string dari kode C.                      *
+ *                                                                    *
+ * Standar: SQLite3                                                   *
+ * ================================================================== */
+
+/* ================================================================== *
+ * 1. KATA TANYA (menggantikan array di klausa.c)                     *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS kata_tanya (
+    id INTEGER PRIMARY KEY,
+    kata TEXT NOT NULL UNIQUE,
+    intent_default TEXT,
+    kategori TEXT,
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO kata_tanya
+    (kata, intent_default, kategori, prioritas) VALUES
+('apa',         'definisi',  'umum',       1),
+('siapa',       'definisi',  'orang',      2),
+('mengapa',     'alasan',    'sebab',      1),
+('kenapa',      'alasan',    'sebab',      2),
+('bagaimana',   'cara',      'metode',     1),
+('kapan',       'cara',      'waktu',      2),
+('dimana',      'definisi',  'tempat',     2),
+('di mana',     'definisi',  'tempat',     3),
+('berapa',      'definisi',  'jumlah',     2),
+('mana',        'definisi',  'pilihan',    3),
+('macam apa',   'definisi',  'jenis',      2);
+
+/* ================================================================== *
+ * 2. PEMISAH KLAUSA (menggantikan DAFTAR_PEMISAH di klausa.c)       *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS pemisah_klausa (
+    id INTEGER PRIMARY KEY,
+    frasa TEXT NOT NULL UNIQUE,
+    jenis TEXT,
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO pemisah_klausa
+    (frasa, jenis, prioritas) VALUES
+('sedangkan',    'kontras',        10),
+('sambil',       'temporal',        9),
+('sebelum',      'temporal',        8),
+('setelah',      'temporal',        8),
+('walaupun',     'kontras',         9),
+('meskipun',     'kontras',         9),
+('padahal',      'kontras',         8),
+('saatnya',      'temporal',        6),
+('kemudian',     'sekuensial',      5),
+('maupun',       'konjungsi',       5),
+('menurutmu',    'opini',           7),
+('menurut kamu', 'opini',           7),
+('menurutku',    'opini',           7),
+('namun',        'kontras',         6),
+('lalu',         'sekuensial',      4),
+('sedang',       'temporal',        5),
+('atau',         'alternatif',      4),
+('tetapi',       'kontras',         5),
+('dan',          'koordinatif',     3),
+('ketika',       'temporal',        6);
+
+/* ================================================================== *
+ * 3. MARKER PENJELASAN (imperatif penjelasan)                        *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS marker_penjelasan (
+    id INTEGER PRIMARY KEY,
+    frasa TEXT NOT NULL UNIQUE,
+    intent TEXT DEFAULT 'penjelasan',
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO marker_penjelasan
+    (frasa, intent, prioritas) VALUES
+('jelaskan',            'penjelasan',  5),
+('jabarkan',            'penjelasan',  5),
+('beritahu lebih lanjut', 'penjelasan', 4),
+('uraikan',             'penjelasan',  5),
+('deskripsikan',        'penjelasan',  5),
+('ceritakan',           'penjelasan',  4),
+('tolong jelaskan',     'penjelasan',  6),
+('jelaskan tentang',    'penjelasan',  6),
+('jabarkan tentang',    'penjelasan',  6),
+('beritahu tentang',    'penjelasan',  5),
+('ceritakan tentang',   'penjelasan',  5);
+
+/* ================================================================== *
+ * 4. MARKER IMPLISIT (pertanyaan tanpa tanda ?)                      *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS marker_implisit (
+    id INTEGER PRIMARY KEY,
+    frasa TEXT NOT NULL UNIQUE,
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO marker_implisit
+    (frasa, prioritas) VALUES
+('menurutmu',     3),
+('menurut kamu',  3),
+('menurutku',     3),
+('kira-kira',     2),
+('kirakira',      2),
+('boleh tahu',    4),
+('bolehkah',      3),
+('mohon penjelasan', 5),
+('bisa jelaskan', 4);
+
+/* ================================================================== *
+ * 5. KATA LUMPAT / STOP WORDS (gabungan klausa + aturan)             *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS kata_lumpat (
+    id INTEGER PRIMARY KEY,
+    kata TEXT NOT NULL UNIQUE,
+    kategori TEXT,
+    keterangan TEXT
+);
+
+INSERT OR IGNORE INTO kata_lumpat
+    (kata, kategori, keterangan) VALUES
+('saya',        'pronomina',    'orang pertama tunggal'),
+('kamu',        'pronomina',    'orang kedua tunggal'),
+('aku',         'pronomina',    'orang pertama tunggal informal'),
+('dia',         'pronomina',    'orang ketiga tunggal'),
+('mereka',      'pronomina',    'orang ketiga jamak'),
+('kita',        'pronomina',    'orang pertama jamak inklusif'),
+('kami',        'pronomina',    'orang pertama jamak eksklusif'),
+('anda',        'pronomina',    'orang kedua formal'),
+('beliau',      'pronomina',    'orang ketiga hormat'),
+('ia',          'pronomina',    'orang ketiga tunggal singkat'),
+('nya',         'pronomina',    'klitik posesif'),
+('mu',          'pronomina',    'klitik orang kedua'),
+('ku',          'pronomina',    'klitik orang pertama'),
+('padaku',      'pronomina',    'kepadaku'),
+('padamu',      'pronomina',    'kepadamu'),
+('buatku',      'pronomina',    'untukku'),
+('buatmu',      'pronomina',    'untukmu'),
+('tidak',       'negasi',       'penolakan'),
+('bukan',       'negasi',       'penolakan predikat'),
+('belum',       'negasi',       'belum terjadi'),
+('sudah',       'temporal',     'telah terjadi'),
+('telah',       'temporal',     'telah terjadi formal'),
+('akan',        'temporal',     'akan terjadi'),
+('sedang',      'temporal',     'sedang berlangsung'),
+('masih',       'temporal',     'berkelanjutan'),
+('pernah',      'temporal',     'pengalaman masa lalu'),
+('bisa',        'modalitas',    'kemampuan'),
+('dapat',       'modalitas',    'kemampuan formal'),
+('mampu',       'modalitas',    'kemampuan kuat'),
+('mau',         'modalitas',    'keinginan informal'),
+('ingin',       'modalitas',    'keinginan'),
+('hendak',      'modalitas',    'keinginan formal'),
+('mengerti',    'kognisi',      'pemahaman'),
+('tahu',        'kognisi',      'pengetahuan'),
+('paham',       'kognisi',      'pemahaman'),
+('bingung',     'kognisi',      'ketidakpahaman'),
+('tentang',     'preposisi',    'topik'),
+('untuk',       'preposisi',    'tujuan'),
+('dari',        'preposisi',    'asal'),
+('dengan',      'preposisi',    'instrumen'),
+('pada',        'preposisi',    'lokasi abstrak'),
+('di',          'preposisi',    'lokasi konkret'),
+('oleh',        'preposisi',    'agen pasif'),
+('bagi',        'preposisi',    'penerima'),
+('kepada',      'preposisi',    'tujuan orang'),
+('ke',          'preposisi',    'arah'),
+('dalam',       'preposisi',    'kontainer'),
+('agar',        'konjungsi',    'tujuan'),
+('supaya',      'konjungsi',    'tujuan'),
+('karena',      'konjungsi',    'sebab'),
+('kalau',       'konjungsi',    'syarat informal'),
+('jika',        'konjungsi',    'syarat formal'),
+('waktu',       'temporal',     'waktu umum'),
+('saat',        'temporal',     'saat tertentu'),
+('dimana',      'temporal',     'lokasi pertanyaan'),
+('kemana',      'temporal',     'arah pertanyaan'),
+('darimana',    'temporal',     'asal pertanyaan'),
+('juga',        'partikel',     'penambahan'),
+('pun',         'partikel',     'penekanan'),
+('saja',        'partikel',     'pembatasan'),
+('hanya',       'partikel',     'pembatasan'),
+('lagi',        'partikel',     'kelanjutan'),
+('yang',        'partikel',     'relatif'),
+('yg',          'partikel',     'relatif singkat'),
+('ini',         'demonstratif', 'deiktik dekat'),
+('itu',         'demonstratif', 'deiktik jauh'),
+('tersebut',    'demonstratif', 'referensi sebelumnya'),
+('hal',         'demonstratif', 'perkara'),
+('masalah',     'demonstratif', 'permasalahan'),
+('apa',         'tanya',        'pertanyaan umum'),
+('siapa',       'tanya',        'pertanyaan orang'),
+('bagaimana',   'tanya',        'pertanyaan cara'),
+('mengapa',     'tanya',        'pertanyaan sebab'),
+('kenapa',      'tanya',        'pertanyaan sebab informal'),
+('kapan',       'tanya',        'pertanyaan waktu'),
+('di mana',     'tanya',        'pertanyaan tempat'),
+('berapa',      'tanya',        'pertanyaan jumlah'),
+('mana',        'tanya',        'pertanyaan pilihan'),
+('macam',       'tanya',        'pertanyaan jenis'),
+('apakah',      'tanya',        'pertanyaan ya/tidak'),
+('jelaskan',    'imperatif',    'perintah jelaskan'),
+('jabarkan',    'imperatif',    'perintah jabarkan'),
+('beritahu',    'imperatif',    'perintah beritahu'),
+('tolong',      'imperatif',    'permintaan tolong'),
+('uraikan',     'imperatif',    'perintah uraikan'),
+('deskripsikan','imperatif',    'perintah deskripsikan'),
+('ceritakan',   'imperatif',    'perintah ceritakan'),
+('mohon',       'imperatif',    'permintaan hormat'),
+('berikan',     'imperatif',    'perintah berikan'),
+('lebih',       'penegas',      'perbandingan'),
+('lanjut',      'penegas',      'kelanjutan'),
+('artinya',     'penegas',      'penjelasan makna'),
+('maknanya',    'penegas',      'penjelasan makna'),
+('kok',         'penegas',      'rasa ingin tahu'),
+('ya',          'penegas',      'persetujuan'),
+('yah',         'penegas',      'persetujuan informal'),
+('dong',        'penegas',      'tekanan informal'),
+('deh',         'penegas',      'penutup informal'),
+('sih',         'penegas',      'penekanan'),
+('lah',         'penegas',      'penekanan akhir'),
+('punya',       'posesif',      ' kepemilikan informal'),
+('punyaku',     'posesif',      'kepemilikan orang pertama'),
+('punyamu',     'posesif',      'kepemilikan orang kedua'),
+('mengajak',    'verba_nonentitas','ajakan'),
+('menanyakan',  'verba_nonentitas','tanya'),
+('meminta',     'verba_nonentitas','permintaan'),
+('memilih',     'verba_nonentitas','pemilihan'),
+('membeli',     'verba_nonentitas','pembelian'),
+('berbelanja',  'verba_nonentitas','pembelian'),
+('cari',        'verba_nonentitas','pencarian'),
+('mencari',     'verba_nonentitas','pencarian'),
+('kesulitan',   'verba_nonentitas','masalah'),
+('mendapatkan', 'verba_nonentitas','perolehan'),
+('menemukan',   'verba_nonentitas','penemuan'),
+('mengetahui',  'verba_nonentitas','pengetahuan'),
+('memahami',    'verba_nonentitas','pemahaman'),
+('disebut',     'verba_perujukan','referensi pasif'),
+('dimaksud',    'verba_perujukan','referensi pasif'),
+('dikatakan',   'verba_perujukan','referensi pasif'),
+('dinamakan',   'verba_perujukan','referensi pasif'),
+('disebutkan',  'verba_perujukan','referensi pasif'),
+('dimaksudkan', 'verba_perujukan','referensi pasif'),
+('diberi nama', 'verba_perujukan','referensi pasif'),
+('dikenal',     'verba_perujukan','referensi pasif'),
+('dipanggil',   'verba_perujukan','referensi pasif'),
+('seorang',     'determiner',   'penanda orang'),
+('sesuatu',     'determiner',   'penanda benda umum'),
+('sebuah',      'determiner',   'penanda benda'),
+('suatu',       'determiner',   'penanda benda formal'),
+('informasi',   'abstrak',      'non-entitas'),
+('data',        'abstrak',      'non-entitas'),
+('mengenai',    'preposisi',    'tentang formal'),
+('soal',        'demonstratif', 'topik informal');
+
+/* ================================================================== *
+ * 6. POLA REFERENSI (frasa "tentang itu" di aturan.c)                *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS pola_referensi (
+    id INTEGER PRIMARY KEY,
+    frasa TEXT NOT NULL UNIQUE,
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO pola_referensi
+    (frasa, prioritas) VALUES
+('tentang itu',          5),
+('tentang hal itu',      6),
+('tentang hal',          4),
+('mengenai itu',         5),
+('mengenai hal',         4),
+('mengenai hal itu',     6),
+('soal itu',             5),
+('masalah itu',          5),
+('hal tersebut',         4),
+('hal yang sama',        3),
+('lebih lanjut tentang', 4),
+('lebih tentang',        3),
+('lagi tentang',         3),
+('tentang dia',          3),
+('tentang mereka',       3);
+
+/* ================================================================== *
+ * 7. FRASA PEMBUKA (kalimat pembuka konteks)                         *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS frasa_pembuka (
+    id INTEGER PRIMARY KEY,
+    frasa TEXT NOT NULL UNIQUE,
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO frasa_pembuka
+    (frasa, prioritas) VALUES
+('saya sedang mencari',       3),
+('saya sedang kesulitan',     3),
+('saya sedang bingung',       3),
+('saya sedang belajar',       3),
+('saya ingin tahu',           4),
+('saya mau tahu',             4),
+('saya lagi cari',            3),
+('saya lagi mencari',         3),
+('saya sedang mempelajari',   3),
+('saya sedang memahami',      3),
+('saya sedang mengetahui',    3),
+('saya penasaran',            4),
+('saya butuh',                4),
+('saya perlukan',             4),
+('saya sedang memikirkan',    3),
+('tolong jelaskan',           5),
+('coba jelaskan',             5);
+
+/* ================================================================== *
+ * 8. PEMISAH REFERENSI (pemisah klausa konteks)                      *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS pemisah_ref (
+    id INTEGER PRIMARY KEY,
+    frasa TEXT NOT NULL UNIQUE,
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO pemisah_ref
+    (frasa, prioritas) VALUES
+(', apakah kamu tahu',    6),
+(', kamu tahu',           5),
+(', bisa jelaskan',       5),
+(', jelaskan',            5),
+(', tolong jelaskan',     6),
+(', mohon jelaskan',      6),
+(', apa itu',             4),
+(', mengapa',             4),
+(', kenapa',              4),
+(', bagaimana',           4);
+
+/* ================================================================== *
+ * 9. FALLBACK RESPON (pesan fallback)                                *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS fallback_respon (
+    id INTEGER PRIMARY KEY,
+    jenis TEXT NOT NULL,
+    pesan TEXT NOT NULL,
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO fallback_respon
+    (jenis, pesan, prioritas) VALUES
+('tidak_tahu',
+ 'Maaf, saya belum tahu tentang ''%s''.',                  1),
+('tidak_ditemukan',
+ 'Maaf, saya tidak menemukan informasi mengenai ''%s''.',  1),
+('data_kurang',
+ 'Maaf, saya tidak memiliki cukup data untuk menjelaskan ''%s''.', 1),
+('daftar_kosong',
+ 'Maaf, daftar ''%s%s%s'' belum tersedia.',                 1),
+('jenis_kosong',
+ 'Maaf, saya belum memiliki data mengenai jenis-jenis ''%s''. Coba tanyakan "jelaskan %s" untuk informasi lebih lengkap.', 1),
+('sesi_tidak_ada',
+ 'Maaf, sesi percakapan tidak ditemukan.',                 1),
+('topik_lupa',
+ 'Maksud Anda topik apa? Saya lupa topik pembicaraan kita sebelumnya.', 1),
+('konteks_tidak_jelas',
+ 'Maaf, saya tidak yakin apa yang Anda maksud dengan ''%s'' dalam konteks ini.', 1),
+('kalimat_kosong',
+ 'Maaf, kalimat kosong.',                                  1),
+('sistem_belum_siap',
+ 'Maaf, sistem belum siap.',                               1),
+('input_gagal',
+ 'Maaf, input tidak dapat diproses.',                      1),
+('perintah_darab',
+ 'Perintah tidak dikenali.',                                1),
+('matematika_gagal',
+ 'Maaf, saya tidak bisa menghitung dari informasi yang diberikan.', 1),
+('matematika_nol',
+ 'Maaf, tidak dapat melakukan pembagian dengan nol.',      1),
+('waktu_konfirmasi',
+ '%s memang %s.',                                          1),
+('waktu_koreksi',
+ 'sekarang adalah hari %s, jadi %s bukan %s melainkan %s.', 1),
+('waktu_informasi',
+ 'sekarang adalah hari %s, jadi %s adalah hari %s.', 1);
+
+/* ================================================================== *
+ * 10. SAPAAN WAKTU (sapaan berbasis waktu)                           *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS sapaan_waktu (
+    id INTEGER PRIMARY KEY,
+    frasa TEXT NOT NULL UNIQUE,
+    jam_mulai INTEGER DEFAULT 0,
+    jam_akhir INTEGER DEFAULT 24,
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO sapaan_waktu
+    (frasa, jam_mulai, jam_akhir, prioritas) VALUES
+('selamat pagi',       5,  10,  1),
+('selamat siang',     10,  15,  1),
+('selamat sore',      15,  17,  1),
+('selamat malam',     18,   5,  2),
+('selamat subuh',      4,   6,  3),
+('selamat tengah hari',11, 13,  2),
+('selamat petang',    16,  18,  2);
+
+/* ================================================================== *
+ * 11. PENANDA KALIMAT (dari kalimat.c + aturan.c)                   *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS penanda_kalimat (
+    id INTEGER PRIMARY KEY,
+    jenis TEXT NOT NULL,
+    kata TEXT NOT NULL,
+    keterangan TEXT,
+    prioritas INTEGER DEFAULT 1,
+    UNIQUE(jenis, kata)
+);
+
+INSERT OR IGNORE INTO penanda_kalimat
+    (jenis, kata, keterangan, prioritas) VALUES
+('prefiks_verbal',  'meng',   'awalan verba aktif',    1),
+('prefiks_verbal',  'meny',   'awalan verba aktif',    1),
+('prefiks_verbal',  'men',    'awalan verba aktif',    1),
+('prefiks_verbal',  'mem',    'awalan verba aktif',    1),
+('prefiks_verbal',  'me',     'awalan verba aktif',    1),
+('prefiks_verbal',  'peng',   'awalan nomina agen',    2),
+('prefiks_verbal',  'peny',   'awalan nomina agen',    2),
+('prefiks_verbal',  'pen',    'awalan nomina agen',    2),
+('prefiks_verbal',  'per',    'awalan nomina agen',    2),
+('prefiks_verbal',  'pe',     'awalan nomina agen',    2),
+('penanda_pasif',   'diper',  'penanda kalimat pasif', 1),
+('penanda_pasif',   'di',     'penanda kalimat pasif', 1),
+('penanda_pasif',   'terper', 'penanda kalimat pasif', 1),
+('penanda_pasif',   'ter',    'penanda kalimat pasif', 1),
+('predikat_sifat',  'sangat', 'penguat adjektiva',     1),
+('predikat_sifat',  'amat',   'penguat adjektiva',     1),
+('predikat_sifat',  'paling', 'superlatif',            1),
+('predikat_sifat',  'terlalu','berlebihan',            1),
+('penanda_subjek',  'saya',   'subjek orang pertama',  1),
+('penanda_subjek',  'kami',   'subjek orang pertama jamak', 1),
+('penanda_subjek',  'kita',   'subjek inklusif',      1),
+('penanda_subjek',  'dia',    'subjek orang ketiga',  1),
+('penanda_subjek',  'mereka', 'subjek orang ketiga jamak', 1),
+('penanda_subjek',  'anda',   'subjek orang kedua formal', 1),
+('penanda_subjek',  'beliau', 'subjek orang ketiga hormat', 1),
+('penanda_subjek',  'ia',     'subjek orang ketiga singkat', 1),
+('penanda_subjek',  'aku',    'subjek orang pertama informal', 1),
+('kata_benda_spesial', 'ini',     'referensi dekat', 1),
+('kata_benda_spesial', 'itu',     'referensi jauh',  1),
+('kata_benda_spesial', 'tersebut','referensi sebelumnya', 1),
+('kata_benda_spesial', 'hal',     'perkara',        1),
+('kata_benda_spesial', 'masalah', 'permasalahan',    1);
+
+/* ================================================================== *
+ * 12. AFFIX POS RULE (fallback kelas kata dari afiks)                *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS affix_pos_rule (
+    id INTEGER PRIMARY KEY,
+    jenis TEXT NOT NULL,
+    pola TEXT NOT NULL,
+    kelas_hasil INTEGER,
+    panjang INTEGER DEFAULT 2,
+    prioritas INTEGER DEFAULT 1,
+    UNIQUE(jenis, pola)
+);
+
+INSERT OR IGNORE INTO affix_pos_rule
+    (jenis, pola, kelas_hasil, panjang, prioritas) VALUES
+('awalan', 'me',   2, 2, 1),
+('awalan', 'ber',  2, 3, 1),
+('awalan', 'di',   2, 2, 1),
+('awalan', 'ter',  2, 3, 1),
+('awalan', 'pe',   1, 2, 2),
+('awalan', 'pen',  1, 3, 2),
+('awalan', 'peng', 1, 4, 2),
+('awalan', 'peny', 1, 4, 2),
+('akhiran', 'an',  1, 2, 2),
+('akhiran', 'i',   2, 1, 2),
+('akhiran', 'kan', 2, 3, 2);
+
+/* ================================================================== *
+ * 13. KATA KOPULA (kata hubung predikat)                             *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS kata_kopula (
+    id INTEGER PRIMARY KEY,
+    kata TEXT NOT NULL UNIQUE,
+    ragam TEXT DEFAULT 'baku',
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO kata_kopula
+    (kata, ragam, prioritas) VALUES
+('adalah',      'baku',    1),
+('merupakan',   'baku',    2),
+('yakni',       'baku',    3),
+('ialah',       'baku',    2),
+('yaitu',       'baku',    3),
+('artinya',     'baku',    4),
+('maknanya',    'baku',    5),
+('sama dengan', 'baku',    4),
+('barupa',      'tidak_baku', 6),
+('berupa',      'baku',    5),
+('terdiri dari','baku',    5),
+('sebagai',     'baku',    6);
+
+/* ================================================================== *
+ * 14. KONJUNGSI RESPON (kata sambung respons)                       *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS konjungsi_respon (
+    id INTEGER PRIMARY KEY,
+    kata TEXT NOT NULL UNIQUE,
+    jenis TEXT,
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO konjungsi_respon
+    (kata, jenis, prioritas) VALUES
+('dan',         'koordinatif',  1),
+('serta',       'koordinatif',  2),
+('atau',        'alternatif',   2),
+('tetapi',      'kontras',      2),
+('namun',       'kontras',      2),
+('meskipun',    'kontras',      3),
+('walaupun',    'kontras',      3),
+('karena',      'kausal',       1),
+('oleh karena', 'kausal',       2),
+('sehingga',    'konsekutif',   2),
+('maka',        'konsekutif',   1),
+('jika',        'kondisional',  1),
+('kalau',       'kondisional',  2),
+('untuk',       'final',        1),
+('supaya',      'final',        2),
+('agar',        'final',        2),
+('selain itu',  'adisi',        3),
+('di samping itu', 'adisi',     3);
+
+/* ================================================================== *
+ * 15. TANDA BACA (untuk penyusunan kalimat)                         *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS tanda_baca (
+    id INTEGER PRIMARY KEY,
+    tanda TEXT NOT NULL UNIQUE,
+    konteks TEXT,
+    spasi_sebelum INTEGER DEFAULT 0,
+    spasi_sesudah INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO tanda_baca
+    (tanda, konteks, spasi_sebelum, spasi_sesudah) VALUES
+('.',  'akhiran kalimat',  0, 0),
+(',',  'pemisah klausa',   0, 1),
+('?',  'akhiran tanya',     0, 0),
+('!',  'akhiran seru',      0, 0),
+(':',  'pendahuluman',      0, 1),
+(';',  'pemisah kalimat',   0, 1),
+('-',  'daftar item',       1, 1),
+('(',  'kurung buka',       0, 0),
+(')',  'kurung tutup',      0, 1),
+('"',  'kutip',             0, 0);
+
+/* ================================================================== *
+ * 16. REFERENSI WAKTU (penalaran temporal)                           *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS referensi_waktu (
+    id INTEGER PRIMARY KEY,
+    frasa TEXT NOT NULL UNIQUE,
+    offset_hari INTEGER,
+    kategori TEXT,
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO referensi_waktu
+    (frasa, offset_hari, kategori, prioritas) VALUES
+('kemarin',            -1, 'relatif_hari',  1),
+('hari ini',            0, 'relatif_hari',  1),
+('besok',               1, 'relatif_hari',  1),
+('lusa',                2, 'relatif_hari',  2),
+('minggu lalu',        -7, 'relatif_minggu',2),
+('minggu depan',        7, 'relatif_minggu',2),
+('bulan lalu',         -30,'relatif_bulan', 3),
+('bulan depan',         30,'relatif_bulan', 3),
+('tahun lalu',        -365,'relatif_tahun', 3),
+('tahun depan',        365,'relatif_tahun', 3),
+('tadinya',            -1, 'implisit',      4),
+('sekarang',            0, 'absolut',        1),
+('tadi',               -1, 'implisit',      3);
+
+/* ================================================================== *
+ * 17. HARI MINGGU (nama hari)                                       *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS hari_minggu (
+    id INTEGER PRIMARY KEY,
+    nama TEXT NOT NULL UNIQUE,
+    urutan INTEGER NOT NULL,
+    ragam TEXT DEFAULT 'baku'
+);
+
+INSERT OR IGNORE INTO hari_minggu
+    (nama, urutan, ragam) VALUES
+('senin',   1, 'baku'),
+('selasa',  2, 'baku'),
+('rabu',    3, 'baku'),
+('kamis',   4, 'baku'),
+('jumat',   5, 'baku'),
+('sabtu',   6, 'baku'),
+('minggu',  7, 'baku'),
+('ahad',    7, 'baku');
+
+/* ================================================================== *
+ * 18. KATA BILANGAN (angka Indonesia)                                *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS kata_bilangan (
+    id INTEGER PRIMARY KEY,
+    kata TEXT NOT NULL UNIQUE,
+    nilai INTEGER NOT NULL,
+    ragam TEXT DEFAULT 'baku'
+);
+
+INSERT OR IGNORE INTO kata_bilangan
+    (kata, nilai, ragam) VALUES
+('nol',      0,  'baku'),
+('kosong',   0,  'tidak_baku'),
+('satu',     1,  'baku'),
+('se',       1,  'tidak_baku'),
+('dua',      2,  'baku'),
+('tiga',     3,  'baku'),
+('empat',    4,  'baku'),
+('lima',     5,  'baku'),
+('enam',     6,  'baku'),
+('tujuh',    7,  'baku'),
+('delapan',  8,  'baku'),
+('sembilan', 9,  'baku'),
+('sepuluh', 10,  'baku'),
+('sebelas', 11,  'baku'),
+('belas',   10,  'imbuhan'),
+('puluh',   10,  'imbuhan'),
+('ratus',  100,  'imbuhan'),
+('ribu',  1000,  'imbuhan'),
+('juta',1000000,'imbuhan');
+
+/* ================================================================== *
+ * 19. KATA OPERASI MATEMATIKA                                        *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS kata_operasi_mat (
+    id INTEGER PRIMARY KEY,
+    kata TEXT NOT NULL UNIQUE,
+    operasi TEXT NOT NULL,
+    kategori TEXT,
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO kata_operasi_mat
+    (kata, operasi, kategori, prioritas) VALUES
+('tambah',     'tambah',  'aritmatika',  1),
+('ditambah',   'tambah',  'aritmatika',  1),
+('plus',       'tambah',  'aritmatika',  2),
+('kurang',     'kurang',  'aritmatika',  1),
+('dikurangi',  'kurang',  'aritmatika',  1),
+('dikurang',   'kurang',  'aritmatika',  2),
+('dipotong',   'kurang',  'aritmatika',  3),
+('berkurang',  'kurang',  'aritmatika',  3),
+('hilang',     'kurang',  'aritmatika',  4),
+('jatuh',      'kurang',  'aritmatika',  4),
+('pecah',      'kurang',  'aritmatika',  4),
+('rusak',      'kurang',  'aritmatika',  4),
+('mati',       'kurang',  'aritmatika',  5),
+('kali',       'kali',    'aritmatika',  1),
+('dikali',     'kali',    'aritmatika',  1),
+('dikalikan',  'kali',    'aritmatika',  2),
+('bagi',       'bagi',    'aritmatika',  1),
+('dibagi',     'bagi',    'aritmatika',  1),
+('dibagikan',  'bagi',    'aritmatika',  2),
+('sisa',       'modulus', 'aritmatika',  1),
+('mod',        'modulus', 'aritmatika',  2),
+('sisa bagi',  'modulus', 'aritmatika',  1),
+('berapa',     'tanya',   'aritmatika',  1),
+('berapa',     'tanya',   'aritmatika',  1),
+('hasilnya',   'tanya',   'aritmatika',  2),
+('total',      'tanya',   'aritmatika',  2),
+('jumlah',     'tanya',   'aritmatika',  2),
+('membeli',    'inisial', 'konteks',     3),
+('memiliki',   'inisial', 'konteks',     3),
+('punya',      'inisial', 'konteks',     3),
+('ada',        'inisial', 'konteks',     4),
+('sisanya',    'tanya',   'aritmatika',  3),
+('tersisa',    'tanya',   'aritmatika',  3),
+('masih',      'tanya',   'aritmatika',  4);
+
+/* ================================================================== *
+ * 20. POLA RESPON (blueprint SPOK untuk merangkai jawaban)          *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS pola_respon (
+    id INTEGER PRIMARY KEY,
+    intent TEXT NOT NULL,
+    konteks TEXT NOT NULL,
+    ragam TEXT DEFAULT 'baku',
+    prioritas INTEGER DEFAULT 1
+);
+
+INSERT OR IGNORE INTO pola_respon
+    (intent, konteks, ragam, prioritas) VALUES
+('definisi', 'normal',      'baku',  1),
+('definisi', 'dengan_ket',  'baku',  2),
+('definisi', 'dengan_judul','baku',  3),
+('definisi', 'fallback',    'baku',  4),
+('penjelasan', 'lengkap',   'baku',  1),
+('penjelasan', 'ringkas',   'baku',  2),
+('penjelasan', 'bot',       'baku',  3),
+('penjelasan', 'fallback',  'baku',  4),
+('arti',      'normal',     'baku',  1),
+('arti',      'dengan_ket', 'baku',  2),
+('arti',      'fallback',   'baku',  3),
+('sebab',     'normal',     'baku',  1),
+('sebab',     'fallback',   'baku',  2),
+('jenis',     'bertingkat', 'baku',  1),
+('jenis',     'semantik',   'baku',  2),
+('jenis',     'fallback',   'baku',  3),
+('daftar',    'normal',     'baku',  1),
+('daftar',    'fallback',   'baku',  2),
+('analitik',  'normal',     'baku',  1),
+('analitik',  'bot',        'baku',  2),
+('analitik',  'fallback',   'baku',  3),
+('sapaan',    'waktu',      'baku',  1),
+('sapaan',    'normal',     'baku',  2),
+('sapaan',    'fallback',   'baku',  3),
+('lanjutan',  'normal',     'baku',  1),
+('lanjutan',  'fallback',   'baku',  2),
+('matematika','normal',     'baku',  1),
+('matematika','fallback',   'baku',  2),
+('waktu',     'normal',     'baku',  1),
+('waktu',     'koreksi',    'baku',  2),
+('waktu',     'fallback',   'baku',  3);
+
+/* ================================================================== *
+ * 21. KOMPONEN RESPON (slot kata dalam pola)                        *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS komponen_respon (
+    id INTEGER PRIMARY KEY,
+    pola_id INTEGER NOT NULL,
+    posisi INTEGER NOT NULL,
+    peran_spok TEXT NOT NULL,
+    sumber_data TEXT,
+    konten_tetap TEXT,
+    bentuk TEXT DEFAULT 'dasar',
+    spasi_sebelum INTEGER DEFAULT 1,
+    spasi_sesudah INTEGER DEFAULT 1,
+    FOREIGN KEY(pola_id) REFERENCES pola_respon(id)
+);
+
+/* Komponen untuk definisi normal (pola_id=1) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(1, 1, 'objek',  'input_topik', NULL, 'dasar', 0, 1),
+(1, 2, 'predikat','tetap',      'adalah','kopula',1, 1),
+(1, 3, 'objek',  'db_ringkasan',NULL, 'dasar',1, 0),
+(1, 4, 'keterangan','tetap',    '.',     'tanda_baca',0, 0);
+
+/* Komponen untuk definisi dengan keterangan (pola_id=2) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(2, 1, 'objek',     'input_topik', NULL,    'dasar', 0, 1),
+(2, 2, 'predikat',  'tetap',       'adalah','kopula',1, 1),
+(2, 3, 'objek',     'db_ringkasan',NULL,    'dasar', 1, 1),
+(2, 4, 'keterangan','input_keterangan',NULL, 'dasar',1, 0),
+(2, 5, 'keterangan','tetap',       '.',     'tanda_baca',0, 0);
+
+/* Komponen untuk sapaan waktu (pola_id=24) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(24, 1, 'predikat', 'sapaan_waktu', NULL,   'dasar', 0, 1),
+(24, 2, 'keterangan','tetap',      '! Ada yang bisa saya bantu?',
+     'dasar', 0, 0);
+
+/* Komponen untuk sapaan normal (pola_id=25) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(25, 1, 'predikat','tetap', 'Halo! Saya AJUDAN, asisten virtual Anda.',
+     'dasar', 0, 0);
+
+/* Komponen untuk matematika normal (pola_id=29) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(29, 1, 'keterangan','mat_langkah', NULL,  'dasar', 0, 0);
+
+/* Komponen untuk waktu koreksi (pola_id=31) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(31, 1, 'keterangan','waktu_koreksi', NULL,  'dasar', 0, 0);
+
+/* ================================================================== *
+ * KOMPONEN RESPON TAMBAHAN (Task 2-a)                                *
+ * pola_id yang sebelumnya belum punya komponen:                     *
+ * 3-23, 26-28, 30                                                    *
+ * ================================================================== */
+
+/* Komponen untuk definisi/dengan_judul (pola_id=3) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(3, 1, 'subjek',  'input_topik', NULL,    'judul', 0, 1),
+(3, 2, 'predikat','tetap',       'adalah','kopula',1, 1),
+(3, 3, 'objek',  'db_ringkasan', NULL,    'dasar', 1, 0),
+(3, 4, 'keterangan','tetap',     '.',     'tanda_baca',0, 0);
+
+/* Komponen untuk definisi/fallback (pola_id=4) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(4, 1, 'predikat','tetap',
+     'Maaf, saya belum tahu tentang','dasar', 0, 1),
+(4, 2, 'objek',  'input_topik', NULL, 'dasar', 1, 0),
+(4, 3, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk penjelasan/lengkap (pola_id=5) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(5, 1, 'subjek',  'input_topik', NULL,    'dasar', 0, 1),
+(5, 2, 'predikat','tetap',       'adalah','kopula',1, 1),
+(5, 3, 'objek',  'db_ringkasan', NULL,    'dasar', 1, 1),
+(5, 4, 'keterangan','db_penjelasan', NULL,'dasar', 1, 0),
+(5, 5, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk penjelasan/ringkas (pola_id=6) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(6, 1, 'subjek',  'input_topik', NULL,    'dasar', 0, 1),
+(6, 2, 'predikat','tetap',       'adalah','kopula',1, 1),
+(6, 3, 'objek',  'db_ringkasan', NULL,    'dasar', 1, 0),
+(6, 4, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk penjelasan/bot (pola_id=7) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(7, 1, 'subjek',  'tetap', 'Saya', 'dasar', 0, 1),
+(7, 2, 'predikat','tetap', 'adalah','kopula', 1, 1),
+(7, 3, 'objek',  'db_ringkasan', NULL, 'dasar', 1, 0),
+(7, 4, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk penjelasan/fallback (pola_id=8) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(8, 1, 'predikat','tetap',
+     'Maaf, saya belum bisa menjelaskan','dasar', 0, 1),
+(8, 2, 'objek',  'input_topik', NULL, 'dasar', 1, 0),
+(8, 3, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk arti/normal (pola_id=9) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(9, 1, 'subjek',  'input_topik', NULL,    'dasar', 0, 1),
+(9, 2, 'predikat','tetap',       'berarti','kopula',1, 1),
+(9, 3, 'objek',  'db_ringkasan', NULL,    'dasar', 1, 0),
+(9, 4, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk arti/dengan_ket (pola_id=10) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(10, 1, 'subjek',  'input_topik', NULL,    'dasar', 0, 1),
+(10, 2, 'predikat','tetap',       'berarti','kopula',1, 1),
+(10, 3, 'objek',  'db_ringkasan', NULL,    'dasar', 1, 1),
+(10, 4, 'keterangan','input_keterangan',NULL,'dasar',1, 0),
+(10, 5, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk arti/fallback (pola_id=11) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(11, 1, 'predikat','tetap',
+     'Maaf, saya belum tahu arti','dasar', 0, 1),
+(11, 2, 'objek',  'input_topik', NULL, 'dasar', 1, 0),
+(11, 3, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk sebab/normal (pola_id=12) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(12, 1, 'subjek',  'input_topik', NULL, 'dasar', 0, 1),
+(12, 2, 'keterangan','tetap',
+     'terjadi karena', 'dasar', 1, 1),
+(12, 3, 'objek',  'db_penjelasan', NULL, 'dasar', 1, 0),
+(12, 4, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk sebab/fallback (pola_id=13) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(13, 1, 'predikat','tetap',
+     'Maaf, saya belum tahu penyebab','dasar', 0, 1),
+(13, 2, 'objek',  'input_topik', NULL, 'dasar', 1, 0),
+(13, 3, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk jenis/bertingkat (pola_id=14) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(14, 1, 'subjek',  'tetap', 'Jenis-jenis','dasar',0, 1),
+(14, 2, 'objek',  'input_topik', NULL, 'dasar', 1, 0),
+(14, 3, 'keterangan','tetap', ':', 'dasar', 0, 1),
+(14, 4, 'keterangan','db_ringkasan', NULL, 'dasar',1, 0),
+(14, 5, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk jenis/semantik (pola_id=15) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(15, 1, 'subjek',  'tetap','Beberapa jenis','dasar',0, 1),
+(15, 2, 'objek',  'input_topik', NULL, 'dasar', 1, 1),
+(15, 3, 'predikat','tetap', 'adalah','kopula', 1, 1),
+(15, 4, 'keterangan','db_ringkasan',NULL, 'dasar', 1, 0),
+(15, 5, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk jenis/fallback (pola_id=16) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(16, 1, 'predikat','tetap',
+     'Maaf, saya belum memiliki data jenis-jenis',
+     'dasar', 0, 1),
+(16, 2, 'objek',  'input_topik', NULL, 'dasar', 1, 0),
+(16, 3, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk daftar/normal (pola_id=17) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(17, 1, 'subjek',  'input_topik', NULL, 'dasar', 0, 0),
+(17, 2, 'keterangan','tetap', ':', 'dasar', 0, 1),
+(17, 3, 'keterangan','db_ringkasan', NULL, 'dasar', 1, 0),
+(17, 4, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk daftar/fallback (pola_id=18) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(18, 1, 'predikat','tetap','Maaf, daftar','dasar',0, 1),
+(18, 2, 'objek',  'input_topik', NULL, 'dasar', 1, 1),
+(18, 3, 'keterangan','tetap',
+     'belum tersedia', 'dasar', 1, 0),
+(18, 4, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk sapaan/waktu (pola_id=22) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(22, 1, 'predikat', 'sapaan_waktu', NULL,
+     'dasar', 0, 1),
+(22, 2, 'keterangan','tetap',
+     '! Ada yang bisa saya bantu?',
+     'dasar', 0, 0);
+
+/* Komponen untuk sapaan/normal (pola_id=23) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(23, 1, 'predikat','tetap',
+     'Halo! Saya AJUDAN, asisten virtual Anda.',
+     'dasar', 0, 0);
+
+/* Komponen untuk analitik/normal (pola_id=19) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(19, 1, 'subjek',  'tetap','Analisis', 'dasar', 0, 1),
+(19, 2, 'objek',  'input_topik', NULL, 'dasar', 1, 0),
+(19, 3, 'keterangan','tetap', ':', 'dasar', 0, 1),
+(19, 4, 'keterangan','db_penjelasan',NULL, 'dasar',1, 0),
+(19, 5, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk analitik/bot (pola_id=20) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(20, 1, 'subjek',  'tetap', 'Saya adalah','dasar',0, 1),
+(20, 2, 'predikat','db_ringkasan', NULL, 'dasar', 1, 0),
+(20, 3, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk analitik/fallback (pola_id=21) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(21, 1, 'predikat','tetap',
+     'Maaf, saya belum bisa menganalisis','dasar',0, 1),
+(21, 2, 'objek',  'input_topik', NULL, 'dasar', 1, 0),
+(21, 3, 'keterangan','tetap', '.', 'tanda_baca', 0, 0);
+
+/* Komponen untuk lanjutan/fallback (pola_id=26) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(26, 1, 'predikat','tetap',
+     'Maaf, saya tidak yakin topik yang dimaksud.',
+     'dasar', 0, 0);
+
+/* Komponen untuk matematika/normal (pola_id=27) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(27, 1, 'keterangan','mat_langkah', NULL,  'dasar', 0, 0);
+
+/* Komponen untuk matematika/fallback (pola_id=28) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(28, 1, 'predikat','tetap',
+     'Maaf, saya tidak bisa menghitung dari informasi yang diberikan.', 'dasar', 0, 0);
+
+/* Komponen untuk waktu/koreksi (pola_id=30) */
+INSERT OR IGNORE INTO komponen_respon
+    (pola_id, posisi, peran_spok, sumber_data,
+     konten_tetap, bentuk, spasi_sebelum, spasi_sesudah)
+VALUES
+(30, 1, 'keterangan','waktu_koreksi', NULL,  'dasar', 0, 0);
+
+/* ================================================================== *
+ * 22. INDEKS UNTUK TABEL BARU                                        *
+ * ================================================================== */
+
+CREATE INDEX IF NOT EXISTS idx_kata_tanya_kata
+    ON kata_tanya(kata);
+CREATE INDEX IF NOT EXISTS idx_pemisah_klausa_frasa
+    ON pemisah_klausa(frasa);
+CREATE INDEX IF NOT EXISTS idx_kata_lumpat_kata
+    ON kata_lumpat(kata);
+CREATE INDEX IF NOT EXISTS idx_kata_lumpat_kategori
+    ON kata_lumpat(kategori);
+CREATE INDEX IF NOT EXISTS idx_pola_referensi_frasa
+    ON pola_referensi(frasa);
+CREATE INDEX IF NOT EXISTS idx_frasa_pembuka_frasa
+    ON frasa_pembuka(frasa);
+CREATE INDEX IF NOT EXISTS idx_sapaan_waktu_frasa
+    ON sapaan_waktu(frasa);
+CREATE INDEX IF NOT EXISTS idx_penanda_kalimat_jenis
+    ON penanda_kalimat(jenis);
+CREATE INDEX IF NOT EXISTS idx_referensi_waktu_frasa
+    ON referensi_waktu(frasa);
+CREATE INDEX IF NOT EXISTS idx_hari_minggu_nama
+    ON hari_minggu(nama);
+CREATE INDEX IF NOT EXISTS idx_kata_bilangan_kata
+    ON kata_bilangan(kata);
+CREATE INDEX IF NOT EXISTS idx_kata_operasi_mat_kata
+    ON kata_operasi_mat(kata);
+CREATE INDEX IF NOT EXISTS idx_kata_operasi_mat_operasi
+    ON kata_operasi_mat(operasi);
+CREATE INDEX IF NOT EXISTS idx_pola_respon_intent
+    ON pola_respon(intent);
+CREATE INDEX IF NOT EXISTS idx_komponen_respon_pola
+    ON komponen_respon(pola_id);
+CREATE INDEX IF NOT EXISTS idx_fallback_respon_jenis
+    ON fallback_respon(jenis);
+CREATE INDEX IF NOT EXISTS idx_kata_kopula_ragam
+    ON kata_kopula(ragam);
+CREATE INDEX IF NOT EXISTS idx_konjungsi_respon_jenis
+    ON konjungsi_respon(jenis);
+CREATE INDEX IF NOT EXISTS idx_marker_penjelasan_frasa
+    ON marker_penjelasan(frasa);
+CREATE INDEX IF NOT EXISTS idx_marker_implisit_frasa
+    ON marker_implisit(frasa);
+CREATE INDEX IF NOT EXISTS idx_affix_pos_rule_jenis
+    ON affix_pos_rule(jenis);
+CREATE INDEX IF NOT EXISTS idx_penanda_kalimat_kata
+    ON penanda_kalimat(kata);
+
+/* ================================================================== *
+ * 22. DATA KATA (kosakata untuk pengetahuan)                           *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS kata (
+    id INTEGER PRIMARY KEY,
+    kata TEXT NOT NULL UNIQUE,
+    kelas_id INTEGER,
+    ragam_id INTEGER,
+    bidang_id INTEGER
+);
+
+INSERT OR IGNORE INTO kata (id, kata, kelas_id, ragam_id, bidang_id) VALUES
+(1, 'komputer', 1, 1, 1),
+(2, 'internet', 1, 1, 1),
+(3, 'algoritma', 1, 5, 3),
+(4, 'program', 1, 1, 1),
+(5, 'database', 1, 2, 1),
+(6, 'robot', 1, 1, 1),
+(7, 'kecerdasan', 1, 1, 1),
+(8, 'sistem', 1, 1, 1),
+(9, 'aplikasi', 1, 1, 1),
+(10, 'jaringan', 1, 1, 1),
+(11, 'data', 1, 1, 1),
+(12, 'informasi', 1, 1, 1),
+(13, 'air', 1, 1, 2),
+(14, 'bumi', 1, 1, 6),
+(15, 'matahari', 1, 1, 2),
+(16, 'bulan', 1, 1, 2),
+(17, 'gravitasi', 1, 1, 2),
+(18, 'energi', 1, 1, 2),
+(19, 'cahaya', 1, 1, 2),
+(20, 'fotosintesis', 1, 1, 2),
+(21, 'evolusi', 1, 1, 2),
+(22, 'ekosistem', 1, 1, 16),
+(23, 'atom', 1, 1, 2),
+(24, 'oksigen', 1, 1, 2),
+(25, 'manusia', 1, 1, 20),
+(26, 'sel', 1, 1, 20),
+(27, 'hewan', 1, 1, 20),
+(28, 'tumbuhan', 1, 1, 20),
+(29, 'vitamin', 1, 1, 11),
+(30, 'otak', 1, 1, 20),
+(31, 'jantung', 1, 1, 20),
+(32, 'bahasa', 1, 1, 7),
+(33, 'kata', 1, 1, 7),
+(34, 'kalimat', 1, 1, 7),
+(35, 'sinonim', 1, 1, 7),
+(36, 'antonim', 1, 1, 7),
+(37, 'imbuhan', 1, 1, 7),
+(38, 'indonesia', 1, 1, 4),
+(39, 'batik', 1, 1, 4),
+(40, 'budaya', 1, 1, 4),
+(41, 'sejarah', 1, 1, 5),
+(42, 'matematika', 1, 1, 3),
+(43, 'angka', 1, 1, 3),
+(44, 'aljabar', 1, 1, 3),
+(45, 'gunung', 1, 1, 6),
+(46, 'laut', 1, 1, 6),
+(47, 'hutan', 1, 1, 16),
+(48, 'pengetahuan', 1, 1, 12),
+(49, 'pendidikan', 1, 1, 12),
+(50, 'kesehatan', 1, 1, 11),
+(51, 'ekonomi', 1, 1, 13),
+(52, 'uang', 1, 1, 13),
+(53, 'obat', 1, 1, 11),
+(54, 'olahraga', 1, 1, 10),
+(55, 'musik', 1, 1, 19),
+(56, 'makanan', 1, 1, 18),
+(57, 'rumah', 1, 1, NULL),
+(58, 'laptop', 1, 1, 1),
+(59, 'telepon', 1, 1, 1),
+(60, 'website', 1, 2, 1),
+(61, 'server', 1, 2, 1),
+(62, 'prosesor', 1, 1, 1),
+(63, 'memori', 1, 1, 1),
+(64, 'kode', 1, 1, 1);
+
+/* ================================================================== *
+ * 23. PENGETAHUAN UMUM (data ensiklopedia untuk bot)                    *
+ * ================================================================== */
+
+CREATE TABLE IF NOT EXISTS pengetahuan_umum (
+    id INTEGER PRIMARY KEY,
+    id_kata INTEGER,
+    id_bidang INTEGER,
+    judul TEXT,
+    ringkasan TEXT,
+    penjelasan TEXT,
+    saran TEXT,
+    sumber TEXT,
+    id_hubungan TEXT,
+    FOREIGN KEY(id_kata) REFERENCES kata(id)
+);
 
 INSERT OR IGNORE INTO pengetahuan_umum (id_kata, id_bidang, judul, ringkasan, penjelasan, saran, sumber, id_hubungan) VALUES
--- === TEKNOLOGI ===
-((SELECT id FROM kata WHERE kata='komputer'), 1,
- 'Komputer',
- 'Mesin elektronik yang memproses data menjadi informasi berguna sesuai instruksi program yang diberikan.',
- 'Komputer adalah perangkat elektronik yang terdiri dari perangkat keras (hardware) dan perangkat lunak (software). Perangkat keras mencakup prosesor, memori, penyimpanan, dan perangkat input-output. Perangkat lunak mencakup sistem operasi dan aplikasi. Komputer pertama modern bernama ENIAC dikembangkan pada tahun 1945 di Universitas Pennsylvania. Saat ini, komputer telah berevolusi dari ukuran sebesar ruangan menjadi perangkat portabel seperti laptop dan smartphone yang kita gunakan sehari-hari.',
- 'Pelajari lebih lanjut tentang cara kerja prosesor dan sistem operasi untuk memahami komputer secara lebih mendalam.',
- 'Buku "Computer Organization and Design" oleh Patterson dan Hennessy',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='internet'), 1,
- 'Internet',
- 'Jaringan komputer global yang menghubungkan miliaran perangkat di seluruh dunia menggunakan protokol TCP/IP.',
- 'Internet bermula dari proyek ARPANET yang dikembangkan oleh Departemen Pertahanan Amerika Serikat pada tahun 1969. Internet bekerja menggunakan protokol TCP/IP yang memungkinkan berbagai jenis perangkat saling berkomunikasi. Layanan internet meliputi World Wide Web (WWW), email, transfer file, dan banyak lagi. Menurut data International Telecommunication Union, pada tahun 2024 lebih dari 5,4 miliar orang telah menggunakan internet di seluruh dunia, menjadikannya salah satu penemuan paling transformatif dalam sejarah umat manusia.',
- 'Pelajari tentang protokol jaringan dan keamanan siber untuk memahami internet secara lebih mendalam.',
- 'Website resmi Internet Society (internetsociety.org)',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='algoritma'), 3,
- 'Algoritma',
- 'Sekumpulan langkah-langkah logis dan terstruktur untuk menyelesaikan suatu masalah komputasi.',
- 'Algoritma berasal dari nama matematikawan Persia bernama Al-Khawarizmi yang hidup pada abad ke-9. Dalam ilmu komputer, algoritma adalah fondasi dari semua program perangkat lunak. Setiap algoritma memiliki input, proses, dan output yang terdefinisi dengan jelas. Contoh algoritma sederhana mencakup algoritma pencarian biner, algoritma pengurutan, dan algoritma graf. Efisiensi algoritma diukur berdasarkan kompleksitas waktu dan ruang menggunakan notasi Big-O. Pemilihan algoritma yang tepat sangat mempengaruhi performa suatu program komputer.',
- 'Pelajari tentang struktur data dan notasi Big-O untuk memahami efisiensi algoritma.',
- 'Buku "Introduction to Algorithms" oleh Cormen, Leiserson, Rivest, dan Stein',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='database'), 1,
- 'Basis Data (Database)',
- 'Sistem penyimpanan data terstruktur yang memungkinkan pengelolaan dan pengambilan informasi secara efisien.',
- 'Basis data adalah kumpulan data yang terorganisir dan disimpan secara sistematis agar dapat diakses, dikelola, dan diperbarui dengan mudah. Sistem manajemen basis data (DBMS) yang populer meliputi MySQL, PostgreSQL, SQLite, Oracle, dan MongoDB. Basis data relasional menggunakan tabel, baris, dan kolom untuk menyimpan data serta bahasa SQL untuk mengelolanya. Basis data sangat penting dalam berbagai aplikasi modern, mulai dari sistem perbankan, e-commerce, media sosial, hingga aplikasi mobile. Desain basis data yang baik memerlukan pemahaman tentang normalisasi, integritas data, dan optimasi kueri.',
- 'Pelajari bahasa SQL dan desain basis data relasional untuk menguasai pengelolaan data.',
- 'Website resmi W3Schools untuk tutorial SQL',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='kecerdasan'), 1,
- 'Kecerdasan Buatan (Artificial Intelligence)',
- 'Cabang ilmu komputer yang berupaya membuat mesin mampu berpikir, belajar, dan mengambil keputusan seperti manusia.',
- 'Kecerdasan buatan atau AI merupakan bidang yang berkembang pesat sejak tahun 1950-an. AI mencakup berbagai sub-bidang seperti pembelajaran mesin (machine learning), pemrosesan bahasa alami (NLP), penglihatan komputer (computer vision), dan robotika. Teknologi AI telah diterapkan secara luas dalam kehidupan sehari-hari, termasuk asisten virtual, sistem rekomendasi, mobil otonom, dan diagnosis medis. AI generatif yang muncul belakangan seperti model bahasa besar telah menunjukkan kemampuan yang semakin mendekati kecerdasan manusia dalam berbagai tugas kognitif.',
- 'Pelajari dasar-dasar pembelajaran mesin dan matematika terkait untuk memahami AI secara mendalam.',
- 'Buku "Artificial Intelligence: A Modern Approach" oleh Russell dan Norvig',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='robot'), 1,
- 'Robot',
- 'Mesin yang diprogram untuk melakukan tugas tertentu secara otomatis, baik secara otonom maupun dikendalikan dari jauh.',
- 'Robot telah digunakan dalam berbagai industri mulai dari manufaktur, kesehatan, eksplorasi ruang angkasa, hingga rumah tangga. Robot industri pertama bernama Unimate dipasang di pabrik General Motors pada tahun 1961. Robot modern dilengkapi dengan sensor, aktuator, dan sistem kontrol canggih yang memungkinkan mereka berinteraksi dengan lingkungan. Perkembangan AI telah memungkinkan robot menjadi lebih cerdas dan adaptif, mampu belajar dari pengalaman dan membuat keputusan secara mandiri. Robotika merupakan bidang interdisciplinary yang menggabungkan ilmu komputer, teknik mesin, dan teknik elektronika.',
- 'Pelajari tentang elektronika dan pemrograman mikrokontroler untuk memulai membuat robot sederhana.',
- 'Website resmi IEEE Robotics and Automation Society',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='program'), 1,
- 'Program Komputer',
- 'Rangkaian instruksi yang ditulis dalam bahasa pemrograman untuk melakukan tugas tertentu pada komputer.',
- 'Program komputer dibuat oleh programmer menggunakan bahasa pemrograman seperti Python, Java, C++, atau JavaScript. Proses pembuatan program meliputi analisis kebutuhan, desain, penulisan kode, pengujian, dan pemeliharaan. Program dapat dikategorikan menjadi perangkat lunak sistem (seperti sistem operasi) dan perangkat lunak aplikasi (seperti pengolah kata dan browser). Setiap program harus dikompilasi atau diinterpretasi oleh komputer agar dapat dieksekusi. Prinsip-prinsip seperti modularitas, reusabilitas, dan dokumentasi yang baik sangat penting dalam pengembangan perangkat lunak berkualitas.',
- 'Mulai belajar bahasa pemrograman Python untuk pemula karena sintaksisnya yang mudah dipahami.',
- 'Website Codecademy atau freeCodeCamp untuk tutorial pemrograman gratis',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='data'), 1,
- 'Data',
- 'Fakta atau informasi mentah yang dapat diolah menjadi bentuk yang bermakna untuk pengambilan keputusan.',
- 'Data merupakan aset berharga di era digital saat ini. Data dapat berupa teks, angka, gambar, audio, atau video. Dalam konteks komputasi, data disimpan dalam format digital menggunakan sistem bilangan biner (0 dan 1). Proses pengolahan data meliputi pengumpulan, pembersihan, transformasi, analisis, dan visualisasi. Ilmu data (data science) merupakan bidang yang mempelajari bagaimana mengekstrak pengetahuan dan wawasan dari data dalam jumlah besar. Perlindungan data dan privasi menjadi isu penting seiring dengan meningkatnya jumlah data yang dikumpulkan oleh organisasi dan perusahaan.',
- 'Pelajari tentang analisis data dan visualisasi menggunakan tools seperti Excel, Python Pandas, atau Tableau.',
- 'Website resmi Kaggle untuk dataset dan kompetisi ilmu data',
- 'definisi'),
-
--- === SAINS ===
-((SELECT id FROM kata WHERE kata='air'), 2,
- 'Air',
- 'Zat cair esensial yang menyusun sekitar 71 persen permukaan Bumi dan merupakan kebutuhan utama bagi seluruh makhluk hidup.',
- 'Air memiliki rumus kimia H2O yang tersusun dari dua atom hidrogen dan satu atom oksigen. Air memiliki sifat unik seperti kemampuan melarutkan banyak zat (pelarut universal), densitas tertinggi pada suhu 4 derajat Celsius, dan kapasitas panas yang tinggi. Siklus air (hidrologi) meliputi penguapan, kondensasi, presipitasi, dan infiltrasi yang menjaga keseimbangan air di bumi. Tubuh manusia terdiri dari sekitar 60 persen air, membuatnya sangat vital untuk fungsi metabolisme, regulasi suhu, dan transportasi nutrisi. Kelangkaan air bersih menjadi salah satu tantangan terbesar yang dihadapi umat manusia di abad ke-21.',
- 'Konsumsi air putih minimal 8 gelas per hari dan kurangi penggunaan air bersih yang berlebihan di rumah.',
- 'Website Badan PBB untuk urusan air (UN-Water)',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='bumi'), 6,
- 'Bumi',
- 'Planet ketiga dari Matahari yang merupakan satu-satunya planet yang diketahui memiliki kehidupan.',
- 'Bumi memiliki diameter sekitar 12.742 kilometer dan berusia sekitar 4,54 miliar tahun. Atmosfer Bumi terdiri dari 78 persen nitrogen, 21 persen oksigen, dan gas-gas lain dalam jumlah kecil. Bumi memiliki satu satelit alami yaitu Bulan yang mempengaruhi pasang surut dan stabilitas sumbu rotasi Bumi. Lapisan Bumi terdiri dari inti dalam, inti luar, mantel, dan kerak. Planet ini berputar pada porosnya sekali setiap 24 jam dan mengorbit Matahari sekali setiap 365,25 hari. Gravitasi Bumi sebesar 9,8 meter per detik kuadrat memungkinkan kehidupan dan menahan atmosfer agar tidak terlepas ke ruang angkasa.',
- 'Pelajari tentang pemanasan global dan perubahan iklim untuk turut menjaga kelestarian Bumi.',
- 'Website NASA Earth Science untuk informasi terbaru tentang Bumi',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='matahari'), 2,
- 'Matahari',
- 'Bintang pusat tata surya yang menghasilkan energi melalui reaksi fusi nuklir dan menjadi sumber kehidupan di Bumi.',
- 'Matahari memiliki diameter sekitar 1,39 juta kilometer, atau sekitar 109 kali diameter Bumi. Suhu permukaan Matahari mencapai sekitar 5.500 derajat Celsius, sedangkan suhu intinya mencapai 15 juta derajat Celsius. Matahari menghasilkan energi melalui reaksi fusi nuklir yang mengubah hidrogen menjadi helium. Energi dari Matahari memerlukan waktu sekitar 8 menit 20 detik untuk sampai ke Bumi. Matahari diperkirakan telah berusia sekitar 4,6 miliar tahun dan akan terus bersinar selama sekitar 5 miliar tahun lagi sebelum menjadi raksasa merah.',
- 'Jangan menatap Matahari secara langsung tanpa pelindung mata karena dapat menyebabkan kerusakan permanen pada retina.',
- 'Website NASA Solar System Exploration',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='fotosintesis'), 2,
- 'Fotosintesis',
- 'Proses biokimia yang dilakukan tumbuhan, alga, dan beberapa bakteri untuk mengubah energi cahaya menjadi energi kimia.',
- 'Fotosintesis berlangsung di kloroplas tumbuhan yang mengandung pigmen klorofil. Reaksi ini mengubah karbon dioksida dan air menjadi glukosa dan oksigen menggunakan energi cahaya matahari. Fotosintesis dapat dibagi menjadi reaksi terang dan reaksi gelap (siklus Calvin). Fotosintesis merupakan proses fundamental bagi kehidupan di Bumi karena menghasilkan oksigen yang kita hirup dan menjadi dasar rantai makanan. Tumbuhan menghasilkan sekitar 100-115 miliar ton karbon organik per tahun melalui fotosintesis.',
- 'Tanam pepohonan di sekitar lingkungan untuk meningkatkan produksi oksigen dan mengurangi CO2.',
- 'Buku "Biochemistry" oleh Lehninger',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='evolusi'), 20,
- 'Evolusi',
- 'Proses perubahan bertahap pada sifat-sifat populasi makhluk hidup dari generasi ke generasi.',
- 'Teori evolusi dipopulerkan oleh Charles Darwin melalui bukunya "On the Origin of Species" pada tahun 1859. Evolusi terjadi melalui mekanisme seleksi alam, mutasi genetik, dan hanyutan genetik. Organisme yang memiliki sifat-sifat menguntungkan lebih mungkin bertahan hidup dan berkembang biak, menurunkan sifat-sifat tersebut kepada keturunannya. Bukti evolusi ditemukan dalam rekam fosil, anatomi perbandingan, embriologi, dan genetika molekuler. Evolusi menjelaskan keragaman hayati yang kita lihat saat ini, mulai dari bakteri hingga manusia.',
- 'Pelajari tentang genetika dan biologi molekuler untuk memahami mekanisme evolusi secara lebih mendalam.',
- 'Buku "The Origin of Species" oleh Charles Darwin',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='gravitasi'), 2,
- 'Gravitasi',
- 'Gaya tarik-menarik antarmassa yang menjaga planet pada orbitnya dan menyebabkan benda jatuh ke permukaan Bumi.',
- 'Hukum gravitasi universal dirumuskan oleh Isaac Newton pada tahun 1687, menyatakan bahwa setiap benda bermassa saling menarik dengan kekuatan sebanding dengan hasil kali massanya dan berbanding terbalik dengan kuadrat jarak antara keduanya. Teori relativitas umum Albert Einstein pada tahun 1915 memperluas pemahaman gravitasi sebagai kelengkungan ruang-waktu. Percepatan gravitasi di permukaan Bumi adalah sekitar 9,8 meter per detik kuadrat. Gravitasi adalah gaya terlemah dari empat gaya dasar alam, tetapi memiliki jangkauan tak terbatas.',
- 'Pelajari fisika dasar dan mekanika klasik untuk memahami gravitasi secara lebih mendalam.',
- 'Buku "The Feynman Lectures on Physics" oleh Richard Feynman',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='energi'), 2,
- 'Energi',
- 'Kemampuan untuk melakukan usaha atau menggerakkan benda, yang dapat berwujud dalam berbagai bentuk.',
- 'Energi tidak dapat diciptakan atau dimusnahkan, hanya dapat diubah dari satu bentuk ke bentuk lainnya (hukum kekekalan energi). Bentuk-bentuk energi meliputi energi kinetik (gerak), energi potensial (posisi), energi panas, energi cahaya, energi listrik, energi kimia, energi nuklir, dan energi suara. Satuan energi dalam sistem internasional adalah Joule (J). Di Indonesia, konsumsi energi per kapita terus meningkat seiring dengan pertumbuhan ekonomi dan industrialisasi. Pemanfaatan energi terbarukan seperti surya, angin, dan air menjadi fokus utama untuk mengurangi ketergantungan pada bahan bakar fosil.',
- 'Hemat energi dengan mematikan perangkat elektronik yang tidak digunakan dan gunakan lampu hemat energi.',
- 'Website Kementerian ESDM Republik Indonesia',
- 'definisi'),
-
--- === BIOLOGI ===
-((SELECT id FROM kata WHERE kata='manusia'), 20,
- 'Manusia',
- 'Spesies Homo sapiens yang merupakan makhluk hidup paling maju dengan kemampuan berpikir abstrak dan berbahasa.',
- 'Manusia termasuk dalam keluarga Hominidae dan berevolusi di Afrika sekitar 300.000 tahun yang lalu. Manusia memiliki otak yang sangat berkembang dengan berat rata-rata 1,4 kilogram yang memungkinkan kemampuan berpikir abstrak, berbahasa, bernalar, dan membuat alat. Tubuh manusia tersusun dari sekitar 37,2 triliun sel yang terorganisir menjadi berbagai jaringan dan organ. Manusia adalah spesies omnivora yang mampu bertahan di berbagai habitat di seluruh dunia. Populasi manusia saat ini mencapai lebih dari 8 miliar jiwa dan terus bertambah.',
- 'Jaga kesehatan dengan pola makan seimbang, olahraga teratur, dan istirahat yang cukup.',
- 'Buku "Sapiens: A Brief History of Humankind" oleh Yuval Noah Harari',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='sel'), 20,
- 'Sel',
- 'Satuan struktural dan fungsional terkecil dari makhluk hidup yang mampu melakukan metabolisme secara mandiri.',
- 'Sel pertama kali diamati oleh Robert Hooke pada tahun 1665 menggunakan mikroskop sederhana. Setiap sel memiliki membran sel, sitoplasma, dan materi genetik (DNA). Sel dibagi menjadi dua jenis utama yaitu sel prokariotik (tanpa membran inti, seperti bakteri) dan sel eukariotik (dengan membran inti, seperti sel hewan dan tumbuhan). Sel manusia memiliki diameter rata-rata 10 hingga 100 mikrometer. Tubuh manusia dewasa terdiri dari sekitar 200 jenis sel yang berbeda, masing-masing memiliki fungsi khusus.',
- 'Pelajari biologi sel dan mikroskopi untuk mengamati sel secara langsung.',
- 'Buku "Molecular Biology of the Cell" oleh Alberts dan kawan-kawan',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='vitamin'), 11,
- 'Vitamin',
- 'Senyawa organik yang dibutuhkan tubuh dalam jumlah kecil untuk menjalankan fungsi metabolisme secara optimal.',
- 'Vitamin dibagi menjadi dua kelompok yaitu vitamin larut lemak (A, D, E, K) dan vitamin larut air (B kompleks dan C). Tubuh tidak dapat memproduksi sebagian besar vitamin sehingga harus didapatkan dari makanan. Vitamin A penting untuk penglihatan, vitamin C untuk sistem kekebalan, vitamin D untuk kesehatan tulang, dan vitamin B12 untuk pembentukan sel darah merah. Kekurangan vitamin dapat menyebabkan berbagai penyakit seperti skorbut (kekurangan vitamin C), beri-beri (kekurangan vitamin B1), dan rabun senja (kekurangan vitamin A).',
- 'Konsumsi buah dan sayuran setiap hari untuk memenuhi kebutuhan vitamin harian.',
- 'Website Kementerian Kesehatan Republik Indonesia',
- 'definisi'),
-
--- === BAHASA INDONESIA ===
-((SELECT id FROM kata WHERE kata='bahasa'), 7,
- 'Bahasa',
- 'Sistem lambang bunyi yang digunakan oleh kelompok masyarakat untuk berkomunikasi dan menyampaikan gagasan.',
- 'Bahasa Indonesia merupakan bahasa nasional dan bahasa resmi Republik Indonesia yang diresmikan pada tanggal 28 Oktober 1928 melalui Sumpah Pemuda. Bahasa Indonesia memiliki lebih dari 23 juta penutur asli dan lebih dari 140 juta penutur sebagai bahasa kedua. Bahasa Indonesia berkembang dari bahasa Melayu yang telah digunakan sebagai lingua franca di kepulauan Nusantara selama berabad-abad. Bahasa Indonesia menggunakan abjad Latin yang terdiri dari 26 huruf, dan sistem penulisan distandardisasi dalam Ejaan Yang Disempurnakan (EYD) yang kini disebut sebagai Pedoman Umum Ejaan Bahasa Indonesia (PUEBI).',
- 'Perbanyak membaca dan menulis dalam Bahasa Indonesia untuk meningkatkan kemahiran berbahasa.',
- 'Website resmi Badan Pengembangan dan Pembinaan Bahasa (badanbahasa.kemdikbud.go.id)',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='kalimat'), 7,
- 'Kalimat',
- 'Satuan bahasa yang mengandung pikiran utuh dan diakhiri dengan tanda baca akhir.',
- 'Kalimat dalam Bahasa Indonesia terdiri dari subjek, predikat, objek, dan keterangan (SPOK). Subjek adalah pelaku atau tokoh kalimat, predikat adalah inti kegiatan atau keadaan, objek adalah penerima kegiatan, dan keterangan menjelaskan waktu, tempat, atau cara. Kalimat efektif memiliki empat syarat yaitu kejelasan ide, kehematan kata, kelogisan, dan kecermatan bahasa. Kalimat dapat diklasifikasikan berdasarkan jenis (berita, tanya, perintah, seru), jumlah klausa (tunggal, majemuk), dan pola dasar SPOK.',
- 'Latihan menulis kalimat efektif setiap hari untuk meningkatkan keterampilan menulis.',
- 'Buku "Tata Bahasa Baku Bahasa Indonesia" oleh Badan Pengembangan Bahasa',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='sinonim'), 7,
- 'Sinonim',
- 'Kata yang memiliki makna sama atau sangat mirip dengan kata lain, memungkinkan variasi dalam penggunaan bahasa.',
- 'Sinonim memperkaya kosa kata dan memungkinkan penulis atau pembicara memilih kata yang paling tepat sesuai konteks. Contoh sinonim dalam Bahasa Indonesia antara lain: besar-rama, kecil-mungil, cepat-cepat, indah-elok, dan mulia-luhur. Penggunaan sinonim yang tepat dapat membuat tulisan atau ucapan menjadi lebih bervariasi dan tidak monoton. Sinonim berbeda dari homonim (kata yang bentuknya sama tetapi maknanya berbeda) dan polisemi (satu kata dengan beberapa makna terkait).',
- 'Gunakan tesaurus atau kamus sinonim untuk memperkaya kosa kata Anda dalam menulis.',
- 'Kamus Besar Bahasa Indonesia (KBBI) daring di kbbi.kemdikbud.go.id',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='antonim'), 7,
- 'Antonim',
- 'Kata yang memiliki makna berlawanan atau bertentangan dengan kata lain dalam suatu bahasa.',
- 'Antonim memainkan peran penting dalam memahami makna kata melalui kontras. Antonim dibagi menjadi tiga jenis yaitu antonim bergradasi (misalnya panjang-pendek, besar-kecil), antonim bertentangan (misalnya hidup-mati, hadir-absen), dan antonim relasional (misalnya guru-murid, pembeli-penjual). Pemahaman antonim sangat berguna dalam penulisan yang efektif untuk menciptakan kontras dan penekanan. Antonim juga digunakan dalam tes kemampuan verbal dan berbagai aplikasi pemrosesan bahasa alami.',
- 'Latihan mencari pasangan kata berlawanan untuk meningkatkan pemahaman kosakata.',
- 'Kamus Besar Bahasa Indonesia (KBBI) daring di kbbi.kemdikbud.go.id',
- 'definisi'),
-
--- === BUDAYA ===
-((SELECT id FROM kata WHERE kata='indonesia'), 4,
- 'Indonesia',
- 'Negara kepulauan terbesar di dunia yang terletak di Asia Tenggara dengan keanekaragaman budaya yang luar biasa.',
- 'Indonesia terdiri dari lebih dari 17.000 pulau dengan luas wilayah daratan sekitar 1,9 juta kilometer persegi. Negara ini memiliki lebih dari 1.300 suku bangsa dengan lebih dari 700 bahasa daerah yang masih hidup. Indonesia merdeka pada tanggal 17 Agustus 1945 dan diproklamasikan oleh Soekarno dan Mohammad Hatta. Indonesia merupakan negara demokrasi terbesar di dunia dengan populasi lebih dari 270 juta jiwa. Keanekaragaman hayati Indonesia termasuk yang tertinggi di dunia, dikenal sebagai salah satu negara megabiodiversitas.',
- 'Jelajahi berbagai budaya dan tradisi daerah di Indonesia untuk menghargai keanekaragaman bangsa.',
- 'Website resmi Kementerian Pariwisata dan Ekonomi Kreatif',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='batik'), 4,
- 'Batik',
- 'Seni menghias kain menggunakan teknik malam (lilin) dan pewarnaan yang diakui UNESCO sebagai warisan budaya dunia.',
- 'Batik Indonesia diakui oleh UNESCO sebagai Warisan Kemanusiaan untuk Budaya Lisan dan Nonbendawi pada tanggal 2 Oktober 2009. Batik memiliki berbagai motif khas dari berbagai daerah seperti batik Solo, batik Pekalongan, batik Yogyakarta, dan batik Madura. Teknik pembuatan batik meliputi batik tulis (dibuat dengan tangan menggunakan canting), batik cap (menggunakan tembaga), dan batik printing (menggunakan mesin). Batik tulis memiliki nilai seni dan harga yang paling tinggi karena setiap helai kainnya unik. Batik kini menjadi pilihan busana formal dan kasual yang populer di Indonesia.',
- 'Gunakan batik pada hari Jumat untuk mendukung pelestarian warisan budaya Indonesia.',
- 'Website resmi UNESCO untuk warisan budaya batik Indonesia',
- 'definisi'),
-
--- === MATEMATIKA ===
-((SELECT id FROM kata WHERE kata='matematika'), 3,
- 'Matematika',
- 'Ilmu yang mempelajari bilangan, struktur, ruang, dan perubahan melalui penalaran logis dan simbol.',
- 'Matematika sering disebut sebagai ratu ilmu pengetahuan karena menjadi landasan bagi berbagai disiplin ilmu lain. Cabang-cabang utama matematika meliputi aritmetika, aljabar, geometri, trigonometri, kalkulus, statistika, dan teori bilangan. Matematika telah berkembang sejak peradaban Mesopotamia dan Mesir Kuno sekitar 3000 SM. Dalam kehidupan modern, matematika diterapkan dalam berbagai bidang termasuk ilmu komputer, teknik, ekonomi, fisika, dan keuangan. Banyak penemuan matematika terbesar yang ditemukan oleh matematikawan Indonesia seperti rumus pembagi (Suryakusuma) dan kontribusi Moehammad Hatta dalam statistika.',
- 'Latihan mengerjakan soal matematika secara rutin untuk meningkatkan kemampuan berpikir logis.',
- 'Website Khan Academy untuk materi matematika interaktif',
- 'definisi'),
-
--- === GEOGRAFI ===
-((SELECT id FROM kata WHERE kata='gunung'), 6,
- 'Gunung',
- 'Bentuklahan alam yang menonjol dari permukaan tanah sekitarnya dengan ketinggian signifikan.',
- 'Indonesia memiliki sekitar 127 gunung api aktif yang merupakan bagian dari Cincin Api Pasifik (Ring of Fire). Gunung tertinggi di Indonesia adalah Puncak Jaya di Papua dengan ketinggian 4.884 meter di atas permukaan laut. Beberapa gunung berapi terkenal di Indonesia meliputi Gunung Merapi, Gunung Bromo, Gunung Rinjani, dan Gunung Krakatau. Gunung berapi menyumbang terhadap kesuburan tanah di sekitarnya melalui abu vulkanik yang mengandung mineral penting. Gunung juga berfungsi sebagai penyerap air, habitat flora dan fauna, serta objek wisata alam.',
- 'Selalu perhatikan status gunung berapi sebelum mendaki dan patuhi jalur yang telah ditentukan.',
- 'Website PVMBG (Pusat Vulkanologi dan Mitigasi Bencana Geologi)',
- 'definisi'),
-
-((SELECT id FROM kata WHERE kata='hutan'), 16,
- 'Hutan',
- 'Kawasan yang ditumbuhi pepohonan dengan kerapatan tertentu dan berperan penting sebagai paru-paru dunia.',
- 'Indonesia memiliki luas hutan tropis terbesar ketiga di dunia setelah Brasil dan Kongo. Hutan Indonesia menyimpan keanekaragaman hayati yang sangat tinggi termasuk harimau Sumatera, orangutan, dan rafflesia. Hutan berfungsi sebagai penyerap karbon dioksida, penghasil oksigen, pengatur siklus air, dan pencegah erosi. Deforestasi menjadi masalah serius di Indonesia dengan laju kerusakan hutan mencapai jutaan hektar per tahun akibat alih fungsi lahan, illegal logging, dan kebakaran hutan. Upaya pelestarian hutan dilakukan melalui program reboisasi, moratorium izin baru, dan pemberdayaan masyarakat sekitar hutan.',
- 'Dukung program pelestarian hutan dengan mengurangi penggunaan kertas dan mendukung produk ramah lingkungan.',
- 'Website Kementerian Lingkungan Hidup dan Kehutanan Republik Indonesia',
- 'definisi');
-
-COMMIT;
-
--- ========================================================================== --
--- 17. PENGETAHUAN BERTINGKAT (Fakta, Langkah, dll)                            --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO pengetahuan_bertingkat (id_kata, id_bidang, topik, urutan, poin, penjelasan, id_hubungan) VALUES
--- === Komputer: Fakta ===
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'fakta', 1,
- 'Komputer pertama ENIAC seberat 30 ton',
- 'ENIAC (Electronic Numerical Integrator and Computer) dikembangkan pada tahun 1945 di Universitas Pennsylvania dan berukuran sebesar ruangan besar, menggunakan 18.000 tabung vakum.', 'fakta'),
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'fakta', 2,
- 'Komputer menggunakan sistem bilangan biner (0 dan 1)',
- 'Seluruh data dan instruksi yang diproses komputer direpresentasikan dalam bentuk bilangan biner yang disebut bit. Setiap 8 bit membentuk satu byte yang merepresentasikan satu karakter.', 'fakta'),
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'fakta', 3,
- 'Prosesor modern memiliki miliaran transistor',
- 'Prosesor terbaru memiliki lebih dari 10 miliar transistor dalam satu chip berukuran hanya beberapa sentimeter persegi, mampu melakukan miliaran operasi per detik.', 'fakta'),
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'fakta', 4,
- 'Komputer pertama pribadi adalah Altair 8800 tahun 1975',
- 'Altair 8800 diluncurkan oleh MITS dan menginspirasi Bill Gates dan Paul Allen untuk membuat interpreter BASIC untuknya, memulai revolusi komputer pribadi.', 'fakta'),
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'fakta', 5,
- 'Internet menghubungkan lebih dari 5 miliar pengguna',
- 'Menurut data ITU, pada tahun 2024 lebih dari 5,4 miliar orang menggunakan internet di seluruh dunia, setara sekitar 67 persen dari populasi global.', 'fakta'),
-
--- === Komputer: Langkah Kerja ===
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'langkah', 1,
- 'Menerima input dari pengguna',
- 'Komputer menerima data atau instruksi melalui perangkat input seperti keyboard, mouse, mikrofon, atau kamera. Input ini kemudian diterjemahkan menjadi sinyal digital.', 'langkah'),
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'langkah', 2,
- 'Memproses data melalui prosesor (CPU)',
- 'Prosesor (Central Processing Unit) menjalankan instruksi program secara berurutan, melakukan operasi aritmetika dan logika pada data yang telah diterima dari input.', 'langkah'),
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'langkah', 3,
- 'Menyimpan data sementara di memori (RAM)',
- 'Data yang sedang diproses disimpan sementara dalam memori RAM (Random Access Memory) yang memiliki kecepatan akses tinggi tetapi bersifat volatil.', 'langkah'),
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'langkah', 4,
- 'Menyimpan data permanen di penyimpanan',
- 'Hasil pemrosesan disimpan secara permanen pada perangkat penyimpanan seperti hard disk, SSD, atau flash drive untuk penggunaan di kemudian hari.', 'langkah'),
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'langkah', 5,
- 'Menampilkan output kepada pengguna',
- 'Komputer menyajikan hasil pemrosesan kepada pengguna melalui perangkat output seperti monitor, speaker, atau printer dalam bentuk yang dapat dipahami manusia.', 'langkah'),
-
--- === Internet: Fakta ===
-((SELECT id FROM kata WHERE kata='internet'), 1, 'fakta', 1,
- 'Internet bermula dari ARPANET tahun 1969',
- 'ARPANET (Advanced Research Projects Agency Network) dikembangkan oleh Departemen Pertahanan AS sebagai jaringan komunikasi yang tahan terhadap serangan nuklir.', 'fakta'),
-((SELECT id FROM kata WHERE kata='internet'), 1, 'fakta', 2,
- 'World Wide Web ditemukan tahun 1989',
- 'Tim Berners-Lee menemukan World Wide Web (WWW) di CERN, Swiss, yang memungkinkan akses informasi melalui halaman web yang saling terhubung menggunakan hyperlink.', 'fakta'),
-((SELECT id FROM kata WHERE kata='internet'), 1, 'fakta', 3,
- 'Indonesia memiliki lebih dari 210 juta pengguna internet',
- 'Indonesia merupakan salah satu negara dengan pengguna internet terbesar di dunia, mayoritas mengakses internet melalui perangkat mobile.', 'fakta'),
-((SELECT id FROM kata WHERE kata='internet'), 1, 'fakta', 4,
- 'Email pertama dikirim tahun 1971',
- 'Ray Tomlinson mengirim email pertama menggunakan simbol @ untuk memisahkan nama pengguna dan nama komputer, menjadi standar alamat email hingga saat ini.', 'fakta'),
-
--- === Internet: Langkah ===
-((SELECT id FROM kata WHERE kata='internet'), 1, 'langkah', 1,
- 'Data dipecah menjadi paket-paket kecil',
- 'Ketika Anda mengirim data melalui internet, data tersebut dipecah menjadi paket-paket kecil menggunakan protokol TCP/IP agar dapat dikirim secara efisien.', 'langkah'),
-((SELECT id FROM kata WHERE kata='internet'), 1, 'langkah', 2,
- 'Paket melewati router dan jaringan',
- 'Setiap paket data melewati berbagai router dan jaringan komputer di seluruh dunia, masing-masing membuat keputusan tentang rute terbaik untuk mengirimkan paket tersebut.', 'langkah'),
-((SELECT id FROM kata WHERE kata='internet'), 1, 'langkah', 3,
- 'Paket melewati kabel bawah laut atau satelit',
- 'Paket data internasional melewati kabel serat optik bawah laut yang membentang di dasar samudra atau dikirim melalui satelit komunikasi.', 'langkah'),
-((SELECT id FROM kata WHERE kata='internet'), 1, 'langkah', 4,
- 'Paket dirakit kembali menjadi data utuh',
- 'Di tujuan, semua paket yang telah diterima dirakit kembali sesuai urutannya menjadi data lengkap menggunakan protokol TCP.', 'langkah'),
-
--- === Algoritma: Langkah ===
-((SELECT id FROM kata WHERE kata='algoritma'), 3, 'langkah', 1,
- 'Identifikasi masalah yang akan diselesaikan',
- 'Langkah pertama adalah memahami dengan jelas masalah yang akan diselesaikan, termasuk input yang tersedia dan output yang diharapkan dari algoritma.', 'langkah'),
-((SELECT id FROM kata WHERE kata='algoritma'), 3, 'langkah', 2,
- 'Tentukan model matematika atau logika',
- 'Pilih pendekatan yang sesuai untuk menyelesaikan masalah, bisa berupa pendekatan greedy, divide and conquer, dynamic programming, atau brute force.', 'langkah'),
-((SELECT id FROM kata WHERE kata='algoritma'), 3, 'langkah', 3,
- 'Rancang langkah-langkah penyelesaian',
- 'Tulis urutan langkah-langkah yang detail dan jelas untuk menyelesaikan masalah, pastikan setiap langkah terdefinisi dengan baik dan tidak ambigu.', 'langkah'),
-((SELECT id FROM kata WHERE kata='algoritma'), 3, 'langkah', 4,
- 'Implementasi dalam bahasa pemrograman',
- 'Terjemahkan algoritma yang telah dirancang menjadi kode program menggunakan bahasa pemrograman yang sesuai seperti Python, Java, atau C++.', 'langkah'),
-((SELECT id FROM kata WHERE kata='algoritma'), 3, 'langkah', 5,
- 'Uji dan evaluasi performa algoritma',
- 'Uji algoritma dengan berbagai input untuk memastikan kebenarannya, dan ukur efisiensi waktu dan ruang menggunakan notasi Big-O.', 'langkah'),
-
--- === Air: Fakta ===
-((SELECT id FROM kata WHERE kata='air'), 2, 'fakta', 1,
- 'Tubuh manusia 60 persen terdiri dari air',
- 'Air berperan vital dalam hampir semua fungsi tubuh manusia termasuk regulasi suhu, transportasi nutrisi, pembuangan limbah, dan pelumasan sendi.', 'fakta'),
-((SELECT id FROM kata WHERE kata='air'), 2, 'fakta', 2,
- 'Air memiliki sifat anomali densitas',
- 'Air mencapai densitas tertinggi pada suhu 4 derajat Celsius, bukan pada titik beku. Sifat ini membuat es mengapung di atas air dan melindungi kehidupan akuatik.', 'fakta'),
-((SELECT id FROM kata WHERE kata='air'), 2, 'fakta', 3,
- 'Hanya 2,5 persen air di Bumi yang bersih',
- 'Dari total air di Bumi, 97,5 persen adalah air laut dan 2,5 persen adalah air tawar. Dari air tawar tersebut, sebagian besar terperangkap dalam gletser.', 'fakta'),
-((SELECT id FROM kata WHERE kata='air'), 2, 'fakta', 4,
- 'Air menguap pada 100 derajat Celsius di tekanan normal',
- 'Titik didih air bervariasi sesuai tekanan atmosfer. Di dataran tinggi dengan tekanan lebih rendah, air mendidih pada suhu lebih rendah dari 100 derajat.', 'fakta'),
-((SELECT id FROM kata WHERE kata='air'), 2, 'fakta', 5,
- 'Indonesia memiliki sumber air tawar yang melimpah',
- 'Indonesia memiliki sekitar 6 persen sumber air tawar dunia dan merupakan negara dengan sumber air terbanyak kedua di Asia setelah China.', 'fakta'),
-
--- === Bahasa Indonesia: Fakta ===
-((SELECT id FROM kata WHERE kata='bahasa'), 7, 'fakta', 1,
- 'Bahasa Indonesia diresmikan melalui Sumpah Pemuda 1928',
- 'Pada tanggal 28 Oktober 1928, para pemuda Indonesia dari berbagai suku bangsa berikrar untuk mengakui satu tanah air, satu bangsa, dan satu bahasa yaitu Bahasa Indonesia.', 'fakta'),
-((SELECT id FROM kata WHERE kata='bahasa'), 7, 'fakta', 2,
- 'Bahasa Indonesia memiliki lebih dari 700 bahasa daerah',
- 'Indonesia merupakan negara kedua dengan jumlah bahasa terbanyak di dunia setelah Papua Nugini, mencerminkan keanekaragaman budaya yang luar biasa.', 'fakta'),
-((SELECT id FROM kata WHERE kata='bahasa'), 7, 'fakta', 3,
- 'Bahasa Indonesia berkembang dari bahasa Melayu',
- 'Bahasa Melayu telah digunakan sebagai lingua franca di kepulauan Nusantara selama berabad-abad, terutama dalam perdagangan antar-pulau.', 'fakta'),
-((SELECT id FROM kata WHERE kata='bahasa'), 7, 'fakta', 4,
- 'EYD (kini PUEBI) distandardisakan sejak 1972',
- 'Ejaan Yang Disempurnakan resmi berlaku sejak 17 Agustus 1972 menggantikan ejaan Republik dan ejaan van Ophuijsen, kini disebut Pedoman Umum Ejaan Bahasa Indonesia.', 'fakta'),
-
--- === Indonesia: Fakta ===
-((SELECT id FROM kata WHERE kata='indonesia'), 4, 'fakta', 1,
- 'Indonesia memiliki lebih dari 17.000 pulau',
- 'Dari jumlah tersebut, sekitar 6.000 pulau berpenghuni. Pulau-pulau utama meliputi Jawa, Sumatera, Kalimantan, Sulawesi, dan Papua.', 'fakta'),
-((SELECT id FROM kata WHERE kata='indonesia'), 4, 'fakta', 2,
- 'Indonesia merdeka pada 17 Agustus 1945',
- 'Kemerdekaan Indonesia diproklamasikan oleh Ir. Soekarno dan Drs. Mohammad Hatta di Jalan Pegangsaan Timur No. 56, Jakarta.', 'fakta'),
-((SELECT id FROM kata WHERE kata='indonesia'), 4, 'fakta', 3,
- 'Indonesia memiliki 270 juta lebih penduduk',
- 'Indonesia merupakan negara berpenduduk terbanyak keempat di dunia setelah India, China, dan Amerika Serikat.', 'fakta'),
-((SELECT id FROM kata WHERE kata='indonesia'), 4, 'fakta', 4,
- 'Indonesia termasuk negara megabiodiversitas',
- 'Indonesia merupakan salah satu dari 17 negara megabiodiversitas dunia, menjadi habitat bagi 17 persen spesies dunia meskipun hanya mencakup 1,3 persen daratan bumi.', 'fakta'),
-((SELECT id FROM kata WHERE kata='indonesia'), 4, 'fakta', 5,
- 'Borobudur adalah candi Buddha terbesar di dunia',
- 'Candi Borobudur di Jawa Tengah dibangun pada abad ke-8 dan merupakan salah satu Situs Warisan Dunia UNESCO yang paling banyak dikunjungi di Indonesia.', 'fakta'),
-
--- === Database: Langkah ===
-((SELECT id FROM kata WHERE kata='database'), 1, 'langkah', 1,
- 'Identifikasi kebutuhan data',
- 'Analisis jenis data yang akan disimpan, hubungan antar data, dan jenis operasi yang akan dilakukan terhadap data tersebut.', 'langkah'),
-((SELECT id FROM kata WHERE kata='database'), 1, 'langkah', 2,
- 'Desain skema tabel dan relasi',
- 'Rancang tabel-tabel yang diperlukan beserta kolom, tipe data, kunci utama, kunci asing, dan aturan integritas referensial antar tabel.', 'langkah'),
-((SELECT id FROM kata WHERE kata='database'), 1, 'langkah', 3,
- 'Implementasi menggunakan DBMS',
- 'Buat basis data menggunakan sistem manajemen basis data seperti SQLite, MySQL, atau PostgreSQL sesuai skema yang telah dirancang.', 'langkah'),
-((SELECT id FROM kata WHERE kata='database'), 1, 'langkah', 4,
- 'Isi data awal dan uji',
- 'Masukkan data awal ke dalam tabel dan lakukan pengujian untuk memastikan semua relasi dan batasan bekerja dengan benar.', 'langkah'),
-
--- === Program: Langkah ===
-((SELECT id FROM kata WHERE kata='program'), 1, 'langkah', 1,
- 'Tentukan tujuan program',
- 'Definisikan dengan jelas masalah apa yang akan diselesaikan oleh program dan fitur-fitur apa yang dibutuhkan pengguna.', 'langkah'),
-((SELECT id FROM kata WHERE kata='program'), 1, 'langkah', 2,
- 'Pilih bahasa pemrograman yang tepat',
- 'Pilih bahasa pemrograman sesuai kebutuhan: Python untuk AI/data, JavaScript untuk web, C++ untuk performa tinggi, Java untuk aplikasi enterprise.', 'langkah'),
-((SELECT id FROM kata WHERE kata='program'), 1, 'langkah', 3,
- 'Tulis kode program',
- 'Implementasikan logika program dalam bahasa pemrograman yang dipilih, ikuti prinsip clean code dan dokumentasikan kode dengan baik.', 'langkah'),
-((SELECT id FROM kata WHERE kata='program'), 1, 'langkah', 4,
- 'Uji dan debug program',
- 'Jalankan program dengan berbagai input untuk menemukan dan memperbaiki kesalahan (bug), pastikan program berjalan sesuai yang diharapkan.', 'langkah'),
-((SELECT id FROM kata WHERE kata='program'), 1, 'langkah', 5,
- 'Distribusikan dan kelola',
- 'Distribusikan program kepada pengguna akhir dan lakukan pemeliharaan berkala untuk menambah fitur baru dan memperbaiki masalah yang ditemukan.', 'langkah'),
-
--- === Bumi: Fakta ===
-((SELECT id FROM kata WHERE kata='bumi'), 6, 'fakta', 1,
- 'Bumi berusia sekitar 4,54 miliar tahun',
- 'Usia Bumi ditentukan melalui analisis radiometrik pada batuan tertua dan meteorit, memberikan perkiraan usia 4,54 miliar tahun dengan toleransi kurang dari 1 persen.', 'fakta'),
-((SELECT id FROM kata WHERE kata='bumi'), 6, 'fakta', 2,
- 'Bumi terdiri dari empat lapisan utama',
- 'Lapisan Bumi dari luar ke dalam adalah kerak (5-70 km), mantel (2.900 km), inti luar (2.200 km), dan inti dalam (1.200 km) yang tersusun dari besi dan nikel.', 'fakta'),
-((SELECT id FROM kata WHERE kata='bumi'), 6, 'fakta', 3,
- '71 persen permukaan Bumi tertutup air',
- 'Permukaan Bumi didominasi oleh lautan dan samudra, menjadikannya planet biru jika dilihat dari ruang angkasa.', 'fakta'),
-((SELECT id FROM kata WHERE kata='bumi'), 6, 'fakta', 4,
- 'Bumi memiliki medan magnet yang melindungi kehidupan',
- 'Medan magnet Bumi (magnetosfer) melindungi permukaan Bumi dari angin surya dan radiasi kosmik yang berbahaya bagi makhluk hidup.', 'fakta');
-
-COMMIT;
-
--- ========================================================================== --
--- 18. POLA KALIMAT (Kerangka Template Jawaban)                                --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO pola_kalimat (id_jenis, kerangka_jawaban, id_hubungan, prioritas) VALUES
--- Template definisi
-(2, '{topik} adalah {penjelasan}.', 'definisi', 10),
-(2, '{topik} dapat didefinisikan sebagai {penjelasan}.', 'definisi', 8),
-(2, 'Secara umum, {topik} merupakan {penjelasan}.', 'definisi', 6),
-(2, 'Berdasarkan pemahaman saya, {topik} adalah {penjelasan}.', 'definisi', 5),
--- Template sebab/mengapa
-(4, 'Alasan utama mengapa {topik} penting adalah karena {penjelasan}.', 'sebab', 10),
-(4, 'Beberapa penyebab terkait {topik} antara lain:\n{daftar}', 'sebab', 9),
-(4, '{topik} terjadi karena {penjelasan}. Ini merupakan faktor penting yang perlu dipahami.', 'sebab', 7),
--- Template langkah/bagaimana
-(5, 'Berikut cara {topik}:\n{daftar}', 'langkah', 10),
-(5, 'Langkah-langkah untuk {topik} adalah sebagai berikut:\n{daftar}', 'langkah', 9),
-(5, 'Untuk melakukan {topik}, ikuti tahapan berikut:\n{daftar}', 'langkah', 8),
--- Template fakta
-(13, 'Berikut beberapa fakta menarik tentang {topik}:\n{daftar}', 'fakta', 10),
-(13, 'Tahukah Anda fakta berikut tentang {topik}:\n{daftar}', 'fakta', 8),
-(13, 'Berikut informasi yang saya ketahui tentang {topik}:\n{daftar}', 'fakta', 6),
--- Template manfaat
-(14, 'Manfaat {topik} antara lain:\n{daftar}', 'manfaat', 10),
-(14, '{topik} memiliki beberapa manfaat penting, yaitu:\n{daftar}', 'manfaat', 8),
--- Template penjelasan
-(12, 'Tentang {topik}:\n{penjelasan}', 'gabungan_spok', 10),
-(12, 'Berikut penjelasan mengenai {topik}:\n{judul}\n{penjelasan}', 'gabungan_spok', 8),
-(12, '{judul}\n{ringkasan}\n\n{penjelasan}', 'gabungan_spok', 7),
--- Template sapaan
-(11, 'Halo! Saya AJUDAN, asisten virtual Anda. Ada yang bisa saya bantu?', 'sapaan', 10),
-(11, 'Hai! Senang bertemu dengan Anda. Silakan tanyakan apa saja.', 'sapaan', 8),
-(11, 'Halo! Saya siap membantu. Silakan berikan pertanyaan atau instruksi Anda.', 'sapaan', 7);
-
-COMMIT;
-
--- ========================================================================== --
--- 19. STRUKTUR KALIMAT (Pola SPOK)                                            --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO struktur_kalimat (pola_spok, pola_kategori, contoh, nilai) VALUES
-('S-P', 'nomina verba', 'Aku belajar', 3),
-('S-P-O', 'nomina verba nomina', 'Saya membaca buku', 5),
-('S-P-O-K', 'nomina verba nomina adverbia', 'Saya pergi ke sekolah', 5),
-('S-P-K', 'nomina verba adverbia', 'Hujan turun dengan deras', 4),
-('P-O', 'verba nomina', 'Tulis surat itu', 3),
-('P', 'verba', 'Duduklah!', 2),
-('S-P-S', 'nomina verba nomina', 'Anak itu menangis', 4),
-('S-P-O-K-K', 'nomina verba nomina adverbia adverbia', 'Ibu memasak nasi di dapur dengan cinta', 6),
-('P-K', 'verba adverbia', 'Berlari cepat', 3),
-('K-S-P-O', 'adverbia nomina verba nomina', 'Di sekolah guru mengajar matematika', 5);
-
-COMMIT;
-
--- ========================================================================== --
--- 20. SEMANTIK KATA (Relasi Antar-Kata)                                       --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO semantik_kata (id_kata_1, id_kata_2, id_semantik, id_ragam, id_bidang, id_hubungan) VALUES
--- Antonim (berpasangan)
-((SELECT id FROM kata WHERE kata='besar'), (SELECT id FROM kata WHERE kata='kecil'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='tinggi'), (SELECT id FROM kata WHERE kata='rendah'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='baik'), (SELECT id FROM kata WHERE kata='buruk'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='panjang'), (SELECT id FROM kata WHERE kata='pendek'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='berat'), (SELECT id FROM kata WHERE kata='ringan'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='cepat'), (SELECT id FROM kata WHERE kata='lambat'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='kuat'), (SELECT id FROM kata WHERE kata='lemah'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='indah'), (SELECT id FROM kata WHERE kata='jelek'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='pintar'), (SELECT id FROM kata WHERE kata='bodoh'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='rajin'), (SELECT id FROM kata WHERE kata='malas'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='jujur'), (SELECT id FROM kata WHERE kata='dusta'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='sabar'), (SELECT id FROM kata WHERE kata='marah'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='sedih'), (SELECT id FROM kata WHERE kata='senang'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='takut'), (SELECT id FROM kata WHERE kata='berani'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='kaya'), (SELECT id FROM kata WHERE kata='miskin'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='muda'), (SELECT id FROM kata WHERE kata='tua'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='baru'), (SELECT id FROM kata WHERE kata='lama'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='hangat'), (SELECT id FROM kata WHERE kata='dingin'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='enak'), (SELECT id FROM kata WHERE kata='tidak_enak'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='penting'), (SELECT id FROM kata WHERE kata='tidak_penting'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='mudah'), (SELECT id FROM kata WHERE kata='sulit'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='aman'), (SELECT id FROM kata WHERE kata='berbahaya'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='sehat'), (SELECT id FROM kata WHERE kata='sakit'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='bersih'), (SELECT id FROM kata WHERE kata='kotor'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='terang'), (SELECT id FROM kata WHERE kata='gelap'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='tenang'), (SELECT id FROM kata WHERE kata='ramai'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='benar'), (SELECT id FROM kata WHERE kata='salah'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='lebar'), (SELECT id FROM kata WHERE kata='sempit'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='tebal'), (SELECT id FROM kata WHERE kata='tipis'), 2, 1, NULL, 'antonim'),
-((SELECT id FROM kata WHERE kata='banyak'), (SELECT id FROM kata WHERE kata='sedikit'), 2, 1, NULL, 'antonim'),
-
--- Hiperonim-Hiponim (general → specific)
-((SELECT id FROM kata WHERE kata='kendaraan'), (SELECT id FROM kata WHERE kata='mobil'), 3, 1, NULL, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='kendaraan'), (SELECT id FROM kata WHERE kata='sepeda'), 3, 1, NULL, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='kendaraan'), (SELECT id FROM kata WHERE kata='kapal'), 3, 1, NULL, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='kendaraan'), (SELECT id FROM kata WHERE kata='pesawat'), 3, 1, NULL, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='hewan'), (SELECT id FROM kata WHERE kata='kucing'), 3, 1, NULL, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='hewan'), (SELECT id FROM kata WHERE kata='anjing'), 3, 1, NULL, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='hewan'), (SELECT id FROM kata WHERE kata='burung'), 3, 1, NULL, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='hewan'), (SELECT id FROM kata WHERE kata='ikan'), 3, 1, NULL, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='hewan'), (SELECT id FROM kata WHERE kata='serangga'), 3, 1, NULL, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='komputer'), (SELECT id FROM kata WHERE kata='laptop'), 3, 1, 1, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='komputer'), (SELECT id FROM kata WHERE kata='telepon'), 3, 1, 1, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='tumbuhan'), (SELECT id FROM kata WHERE kata='pohon'), 3, 1, NULL, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='tumbuhan'), (SELECT id FROM kata WHERE kata='bunga'), 3, 1, NULL, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='makanan'), (SELECT id FROM kata WHERE kata='nasi'), 3, 1, 18, 'hiperonim'),
-((SELECT id FROM kata WHERE kata='buah'), (SELECT id FROM kata WHERE kata='cabai'), 3, 1, 20, 'hiperonim'),
-
--- Meronim-Holonim (bagian → keseluruhan)
-((SELECT id FROM kata WHERE kata='daun'), (SELECT id FROM kata WHERE kata='pohon'), 5, 1, 20, 'bagian_dari'),
-((SELECT id FROM kata WHERE kata='akar'), (SELECT id FROM kata WHERE kata='pohon'), 5, 1, 20, 'bagian_dari'),
-((SELECT id FROM kata WHERE kata='buah'), (SELECT id FROM kata WHERE kata='pohon'), 5, 1, 20, 'bagian_dari'),
-((SELECT id FROM kata WHERE kata='otak'), (SELECT id FROM kata WHERE kata='manusia'), 5, 1, 20, 'bagian_dari'),
-((SELECT id FROM kata WHERE kata='jantung'), (SELECT id FROM kata WHERE kata='manusia'), 5, 1, 20, 'bagian_dari'),
-((SELECT id FROM kata WHERE kata='otot'), (SELECT id FROM kata WHERE kata='manusia'), 5, 1, 20, 'bagian_dari'),
-((SELECT id FROM kata WHERE kata='mata'), (SELECT id FROM kata WHERE kata='manusia'), 5, 1, 20, 'bagian_dari'),
-((SELECT id FROM kata WHERE kata='telinga'), (SELECT id FROM kata WHERE kata='manusia'), 5, 1, 20, 'bagian_dari'),
-((SELECT id FROM kata WHERE kata='sel'), (SELECT id FROM kata WHERE kata='manusia'), 5, 1, 20, 'bagian_dari'),
-
--- Sinonim (makna sama/similar)
-((SELECT id FROM kata WHERE kata='pakai'), (SELECT id FROM kata WHERE kata='gunakan'), 1, 6, NULL, 'sinonim'),
-((SELECT id FROM kata WHERE kata='punya'), (SELECT id FROM kata WHERE kata='miliki'), 1, 6, NULL, 'sinonim'),
-((SELECT id FROM kata WHERE kata='bicara'), (SELECT id FROM kata WHERE kata='berbicara'), 1, 1, NULL, 'sinonim'),
-((SELECT id FROM kata WHERE kata='pintar'), (SELECT id FROM kata WHERE kata='cerdas'), 1, 1, NULL, 'sinonim'),
-((SELECT id FROM kata WHERE kata='senang'), (SELECT id FROM kata WHERE kata='bahagia'), 1, 1, NULL, 'sinonim'),
-((SELECT id FROM kata WHERE kata='indah'), (SELECT id FROM kata WHERE kata='cantik'), 1, 1, NULL, 'sinonim'),
-((SELECT id FROM kata WHERE kata='makanan'), (SELECT id FROM kata WHERE kata='masakan'), 1, 1, 18, 'sinonim'),
-((SELECT id FROM kata WHERE kata='pengetahuan'), (SELECT id FROM kata WHERE kata='ilmu'), 1, 1, 12, 'sinonim'),
-
--- Terkait (asosiatif)
-((SELECT id FROM kata WHERE kata='komputer'), (SELECT id FROM kata WHERE kata='internet'), 10, 1, 1, 'terkait'),
-((SELECT id FROM kata WHERE kata='komputer'), (SELECT id FROM kata WHERE kata='program'), 10, 1, 1, 'terkait'),
-((SELECT id FROM kata WHERE kata='komputer'), (SELECT id FROM kata WHERE kata='database'), 10, 1, 1, 'terkait'),
-((SELECT id FROM kata WHERE kata='komputer'), (SELECT id FROM kata WHERE kata='algoritma'), 10, 1, 1, 'terkait'),
-((SELECT id FROM kata WHERE kata='internet'), (SELECT id FROM kata WHERE kata='website'), 10, 1, 1, 'terkait'),
-((SELECT id FROM kata WHERE kata='internet'), (SELECT id FROM kata WHERE kata='jaringan'), 10, 1, 1, 'terkait'),
-((SELECT id FROM kata WHERE kata='algoritma'), (SELECT id FROM kata WHERE kata='program'), 10, 1, 1, 'terkait'),
-((SELECT id FROM kata WHERE kata='algoritma'), (SELECT id FROM kata WHERE kata='data'), 10, 1, 1, 'terkait'),
-((SELECT id FROM kata WHERE kata='air'), (SELECT id FROM kata WHERE kata='bumi'), 10, 1, NULL, 'terkait'),
-((SELECT id FROM kata WHERE kata='air'), (SELECT id FROM kata WHERE kata='hujan'), 10, 1, 16, 'terkait'),
-((SELECT id FROM kata WHERE kata='bumi'), (SELECT id FROM kata WHERE kata='matahari'), 10, 1, NULL, 'terkait'),
-((SELECT id FROM kata WHERE kata='bumi'), (SELECT id FROM kata WHERE kata='bulan'), 10, 1, NULL, 'terkait'),
-((SELECT id FROM kata WHERE kata='indonesia'), (SELECT id FROM kata WHERE kata='jakarta'), 10, 1, NULL, 'terkait'),
-((SELECT id FROM kata WHERE kata='indonesia'), (SELECT id FROM kata WHERE kata='batik'), 10, 1, 4, 'terkait'),
-((SELECT id FROM kata WHERE kata='indonesia'), (SELECT id FROM kata WHERE kata='budaya'), 10, 1, 4, 'terkait'),
-((SELECT id FROM kata WHERE kata='bahasa'), (SELECT id FROM kata WHERE kata='kalimat'), 10, 1, 7, 'terkait'),
-((SELECT id FROM kata WHERE kata='bahasa'), (SELECT id FROM kata WHERE kata='kata'), 10, 1, 7, 'terkait'),
-((SELECT id FROM kata WHERE kata='sinonim'), (SELECT id FROM kata WHERE kata='antonim'), 10, 1, 7, 'terkait'),
-((SELECT id FROM kata WHERE kata='matematika'), (SELECT id FROM kata WHERE kata='algoritma'), 10, 1, 3, 'terkait'),
-((SELECT id FROM kata WHERE kata='matematika'), (SELECT id FROM kata WHERE kata='angka'), 10, 1, 3, 'terkait');
-
-COMMIT;
-
--- ========================================================================== --
--- 14. PENGETAHUAN BERTINGKAT: JENIS-JENIS (untuk pertanyaan "X apa itu?")       --
--- ========================================================================== --
-BEGIN TRANSACTION;
-
-INSERT OR IGNORE INTO pengetahuan_bertingkat (id_kata, id_bidang, topik, urutan, poin, penjelasan, id_hubungan) VALUES
--- === Komputer: Jenis-jenis ===
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'jenis', 1,
- 'Komputer Desktop',
- 'Komputer yang ditempatkan di meja, biasanya berukuran besar dengan kemampuan tinggi. Cocok untuk pekerjaan berat seperti editing video, gaming, dan pemrograman.', 'jenis_dari'),
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'jenis', 2,
- 'Laptop (Komputer Jinjing)',
- 'Komputer portabel yang ringan dan bisa dibawa ke mana-mana. Memiliki baterai internal, layar, keyboard, dan touchpad terintegrasi.', 'jenis_dari'),
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'jenis', 3,
- 'Komputer Tablet',
- 'Perangkat portabel dengan layar sentuh sebagai input utama. Lebih kecil dari laptop, cocok untuk konsumsi media dan pekerjaan ringan.', 'jenis_dari'),
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'jenis', 4,
- 'Server',
- 'Komputer berperforma tinggi yang dirancang untuk melayani permintaan jaringan, menyimpan data, dan menjalankan aplikasi bagi banyak pengguna secara bersamaan.', 'jenis_dari'),
-((SELECT id FROM kata WHERE kata='komputer'), 1, 'jenis', 5,
- 'Smartphone (Komputer Saku)',
- 'Telepon pintar yang memiliki kemampuan komputer mirip komputer desktop kecil. Dapat menjalankan aplikasi, mengakses internet, dan memproses data.', 'jenis_dari'),
-
--- === Hewan: Jenis-jenis ===
-((SELECT id FROM kata WHERE kata='hewan'), 20, 'jenis', 1,
- 'Hewan Vertebrata (Ber tulang belakang)',
- 'Hewan yang memiliki tulang belakang, termasuk mamalia, burung, reptil, amfibi, dan ikan. Tubuh mereka memiliki struktur kerangka yang jelas.', 'jenis_dari'),
-((SELECT id FROM kata WHERE kata='hewan'), 20, 'jenis', 2,
- 'Hewan Invertebrata (Tanpa tulang belakang)',
- 'Hewan yang tidak memiliki tulang belakang, seperti serangga, laba-laba, cacing, dan bintang laut. Merupakan kelompok terbesar dari semua hewan.', 'jenis_dari'),
-
--- === Bahasa: Jenis-jenis ===
-((SELECT id FROM kata WHERE kata='bahasa'), 7, 'jenis', 1,
- 'Bahasa Daerah',
- 'Bahasa yang digunakan oleh masyarakat di suatu daerah tertentu sebagai alat komunikasi sehari-hari, misalnya bahasa Jawa, Sunda, atau Minangkabau.', 'jenis_dari'),
-((SELECT id FROM kata WHERE kata='bahasa'), 7, 'jenis', 2,
- 'Bahasa Nasional',
- 'Bahasa resmi yang digunakan sebagai bahasa persatuan suatu negara, seperti Bahasa Indonesia yang menjadi bahasa resmi Republik Indonesia.', 'jenis_dari'),
-((SELECT id FROM kata WHERE kata='bahasa'), 7, 'jenis', 3,
- 'Bahasa Asing',
- 'Bahasa yang berasal dari luar negeri dan dipelajari sebagai bahasa kedua atau bahasa internasional, seperti bahasa Inggris, Arab, atau Mandarin.', 'jenis_dari'),
-((SELECT id FROM kata WHERE kata='bahasa'), 7, 'jenis', 4,
- 'Bahasa Pemrograman',
- 'Bahasa buatan yang digunakan untuk menulis instruksi yang dapat dieksekusi oleh komputer, seperti Python, Java, C, dan JavaScript.', 'jenis_dari'),
-
--- === Energi: Jenis-jenis ===
-((SELECT id FROM kata WHERE kata='energi'), 2, 'jenis', 1,
- 'Energi Kinetik',
- 'Energi yang dimiliki oleh benda yang bergerak. Semakin cepat benda bergerak, semakin besar energi kinetiknya. Contoh: energi angin dan energi aliran air.', 'jenis_dari'),
-((SELECT id FROM kata WHERE kata='energi'), 2, 'jenis', 2,
- 'Energi Potensial',
- 'Energi yang tersimpan dalam suatu benda karena posisi atau keadaannya. Contoh: energi yang tersimpan dalam baterai atau air di ketinggian tertentu.', 'jenis_dari'),
-((SELECT id FROM kata WHERE kata='energi'), 2, 'jenis', 3,
- 'Energi Panas (Kalor)',
- 'Energi yang dihasilkan oleh getaran partikel penyusun materi. Dapat berpindah dari benda bersuhu tinggi ke benda bersuhu rendah.', 'jenis_dari'),
-((SELECT id FROM kata WHERE kata='energi'), 2, 'jenis', 4,
- 'Energi Listrik',
- 'Energi yang dihasilkan oleh aliran muatan listrik. Merupakan bentuk energi yang paling banyak digunakan dalam kehidupan sehari-hari modern.', 'jenis_dari'),
-((SELECT id FROM kata WHERE kata='energi'), 2, 'jenis', 5,
- 'Energi Cahaya',
- 'Energi yang dibawa oleh gelombang elektromagnetik dan dapat dilihat oleh mata manusia. Sumber utamanya adalah matahari.', 'jenis_dari');
-
-COMMIT;
-
--- ========================================================================== --
--- SELESAI                                                                      --
--- ========================================================================== --
-
--- ========================================================================== --
--- 21. TEMPLAT RESPON NATURAL                                                  --
--- ========================================================================== --
--- Templat pembungkus respon agar bot terdengar lebih natural.
--- Hanya menggunakan {ISI} karena isi respon sudah memuat
--- format "Topik adalah ..." secara built-in.
--- ========================================================================== --
-BEGIN TRANSACTION;
-INSERT OR IGNORE INTO templat_respon (tipe_intent, templat, prioritas) VALUES
--- DEFINISI (apa itu X? / X apa?)
-('definisi', 'Ya, saya tahu tentang hal itu. {ISI}', 5),
-('definisi', 'Tentu, ini jawabannya. {ISI}', 4),
-('definisi', 'Oh, begitu ya. {ISI}', 3),
-('definisi', 'Baik, ini penjelasannya. {ISI}', 2),
-
--- ARTI (arti X? / makna X?)
-('arti', 'Artinya sebagai berikut. {ISI}', 5),
-('arti', 'Berdasarkan yang saya ketahui. {ISI}', 4),
-('arti', '{ISI}', 3),
-
--- JENIS (jenis X? / macam X?)
-('jenis', 'Ada beberapa yang saya ketahui. {ISI}', 5),
-('jenis', 'Berikut informasinya. {ISI}', 4),
-('jenis', 'Berikut jenis-jenisnya. {ISI}', 3),
-
--- PENJELASAN (jelaskan X? / uraikan X?)
-('penjelasan', 'Baik, saya akan menjelaskan. {ISI}', 5),
-('penjelasan', 'Tentu, berikut penjelasannya. {ISI}', 4),
-('penjelasan', 'Mengenai hal itu, ini yang bisa saya sampaikan. {ISI}', 3),
-
--- ALASAN (mengapa X? / kenapa X?)
-('alasan', 'Berdasarkan yang saya ketahui, {ISI}', 5),
-('alasan', 'Menurut informasi yang saya miliki, {ISI}', 4),
-('alasan', 'Sepertinya {ISI}', 3),
-('alasan', 'Yang saya pahami, {ISI}', 2),
-
--- CARA (bagaimana X? / cara X?)
-('cara', 'Berikut caranya. {ISI}', 5),
-('cara', 'Begini penjelasannya. {ISI}', 4),
-('cara', 'Langkah-langkahnya adalah sebagai berikut. {ISI}', 3),
-
--- PERBANDINGAN (perbedaan X dan Y?)
-('perbandingan', 'Tentang perbandingan tersebut. {ISI}', 5),
-('perbandingan', 'Berikut perbandingan yang bisa saya sampaikan. {ISI}', 4),
-('perbandingan', '{ISI}', 3),
-
--- LAINNYA (fallback natural)
-('lainnya', '{ISI}', 3),
-('lainnya', 'Yang bisa saya sampaikan adalah sebagai berikut. {ISI}', 2),
-('lainnya', 'Berikut informasinya. {ISI}', 1);
-COMMIT;
+(2, 1, 'Internet', 'Jaringan komputer global yang saling terhubung menggunakan protokol standar untuk bertukar data dan informasi di seluruh dunia', 'Internet adalah sistem jaringan komputer global yang menghubungkan miliaran perangkat di seluruh dunia. Internet menggunakan protokol TCP/IP sebagai standar komunikasi utama, memungkinkan pertukaran data, informasi, dan layanan secara real-time. Internet telah mengubah cara manusia berkomunikasi, bekerja, belajar, dan mengakses hiburan secara fundamental.', 'Pelajari lebih lanjut tentang protokol jaringan dan keamanan internet', 'umum', 'definisi'),
+(10, 1, 'Jaringan Komputer', 'Sistem yang menghubungkan dua atau lebih perangkat komputer agar dapat saling bertukar data dan berbagi sumber daya', 'Jaringan komputer adalah infrastruktur yang memungkinkan perangkat-perangkat komputer untuk saling berkomunikasi dan berbagi sumber daya seperti printer, file, dan koneksi internet. Jenis jaringan meliputi LAN (Local Area Network), WAN (Wide Area Network), dan wireless network. Setiap perangkat dalam jaringan memiliki alamat IP unik sebagai identifikasi.', 'Pelajari topologi jaringan dan protokol komunikasi data', 'umum', 'definisi'),
+(1, 1, 'Komputer', 'Mesin elektronik yang mampu menerima, memproses, menyimpan, dan menghasilkan data sesuai instruksi program yang diberikan oleh pengguna', 'Komputer adalah perangkat elektronik yang terdiri dari perangkat keras (hardware) dan perangkat lunak (software). Perangkat keras utama meliputi CPU, memori (RAM), penyimpanan (hard disk/SSD), dan perangkat input/output. Komputer modern mampu melakukan miliaran kalkulasi per detik dan digunakan di hampir semua bidang kehidupan.', 'Pelajari arsitektur komputer dan sistem operasi', 'umum', 'definisi'),
+(12, 1, 'Sistem', 'Sekumpulan komponen yang saling berhubungan dan bekerja bersama untuk mencapai tujuan tertentu secara terintegrasi', 'Sistem dalam teknologi merujuk pada kumpulan komponen yang terorganisir untuk menjalankan fungsi tertentu. Contoh sistem meliputi sistem operasi, sistem basis data, sistem jaringan, dan sistem informasi. Setiap sistem memiliki komponen input, proses, output, dan umpan balik yang bekerja secara terkoordinasi.', 'Pelajari tentang sistem informasi dan analisis sistem', 'umum', 'definisi'),
+(9, 1, 'Aplikasi', 'Perangkat lunak yang dirancang untuk membantu pengguna menyelesaikan tugas tertentu pada perangkat komputer atau mobile', 'Aplikasi adalah program komputer yang dibuat untuk tujuan spesifik, seperti pengolah kata, browser web, aplikasi pesan, atau game. Aplikasi dapat berjalan di berbagai platform termasuk desktop, web, dan perangkat mobile. Proses pengembangan aplikasi melibatkan analisis kebutuhan, desain, pemrograman, pengujian, dan deployment.', 'Pelajari tentang pengembangan perangkat lunak dan user experience', 'umum', 'definisi'),
+(11, 1, 'Data', 'Fakta atau informasi mentah yang dikumpulkan dan dapat diolah menjadi bentuk yang bermakna untuk pengambilan keputusan', 'Data dalam konteks teknologi adalah representasi fakta, konsep, atau instruksi dalam bentuk yang dapat diproses oleh komputer. Data dapat berupa teks, angka, gambar, audio, atau video. Proses transformasi data menjadi informasi berguna melalui pengolahan, analisis, dan visualisasi adalah inti dari sistem informasi modern.', 'Pelajari tentang ilmu data dan analisis data', 'umum', 'definisi'),
+(58, 1, 'Laptop', 'Komputer portabel yang menggabungkan komponen komputer desktop dalam satu perangkat ringan yang dapat dibawa ke mana-mana', 'Laptop adalah komputer personal yang dirancang agar mudah dibawa dan digunakan di berbagai lokasi. Laptop modern memiliki layar, keyboard, touchpad, baterai, speaker, kamera, dan konektivitas nirkabel terintegrasi. Spesifikasi laptop bervariasi dari penggunaan dasar hingga kebutuhan profesional seperti desain grafis dan pengembangan perangkat lunak.', 'Pelajari tentang spesifikasi laptop dan perawatan baterai', 'umum', 'definisi'),
+(60, 1, 'Website', 'Kumpulan halaman web yang dapat diakses melalui internet menggunakan browser dan memiliki alamat URL unik', 'Website adalah kumpulan halaman berformat HTML yang ditautkan bersama dan dapat diakses melalui internet. Website dapat bersifat statis (konten tetap) atau dinamis (konten berubah sesuai interaksi pengguna). Teknologi pengembangan website meliputi HTML, CSS, JavaScript untuk frontend, serta berbagai bahasa pemrograman untuk backend.', 'Pelajari tentang pengembangan web dan desain responsif', 'umum', 'definisi'),
+(3, 3, 'Algoritma', 'Sekumpulan langkah-langkah terstruktur dan logis yang digunakan untuk menyelesaikan suatu masalah komputasi secara sistematis', 'Algoritma adalah prosedur komputasi yang mendefinisikan serangkaian langkah untuk menyelesaikan masalah tertentu. Setiap algoritma memiliki input, proses, dan output yang terdefinisi dengan jelas. Efisiensi algoritma diukur dengan notasi Big-O yang menggambarkan kompleksitas waktu dan ruang. Contoh algoritma populer meliputi binary search, quicksort, dan Dijkstra.', 'Pelajari tentang struktur data dan analisis kompleksitas algoritma', 'umum', 'definisi'),
+(5, 1, 'Database', 'Sistem penyimpanan data terstruktur yang terorganisir sehingga memudahkan pengelolaan, pencarian, dan pengambilan informasi', 'Database adalah kumpulan data yang terorganisir dan disimpan secara sistematis sehingga mudah diakses, dikelola, dan diperbarui. Sistem Manajemen Database (DBMS) seperti MySQL, PostgreSQL, dan SQLite menyediakan antarmuka untuk operasi CRUD (Create, Read, Update, Delete). Database relasional menyimpan data dalam tabel yang berhubungan melalui kunci primer dan kunci asing.', 'Pelajari tentang desain database dan SQL', 'umum', 'definisi'),
+(6, 1, 'Robot', 'Mesin yang dapat diprogram untuk melakukan tugas secara otomatis, baik secara otonom maupun dengan kendali jarak jauh', 'Robot adalah mesin atau perangkat yang dapat diprogram untuk melakukan tugas-tugas tertentu secara otomatis. Robot modern menggunakan sensor, aktuator, dan sistem kontrol yang canggih. Bidang robotika mencakup robot industri untuk manufaktur, robot medis untuk pembedahan, robot eksplorasi untuk ruang angkasa, dan robot humanoid untuk riset.', 'Pelajari tentang robotika dan kecerdasan buatan', 'umum', 'definisi'),
+(7, 1, 'Kecerdasan', 'Kemampuan untuk belajar, memahami, dan menerapkan pengetahuan dalam menghadapi situasi baru serta memecahkan masalah', 'Kecerdasan dalam konteks teknologi sering merujuk pada kecerdasan buatan (AI), yaitu simulasi kecerdasan manusia oleh mesin. AI mencakup pembelajaran mesin (machine learning), pemrosesan bahasa alami (NLP), penglihatan komputer (computer vision), dan sistem pakar. Kecerdasan manusia sendiri meliputi kecerdasan logis-matematis, linguistik, spasial, dan interpersonal.', 'Pelajari tentang kecerdasan buatan dan machine learning', 'umum', 'definisi'),
+(4, 1, 'Program', 'Rangkaian instruksi tertulis dalam bahasa pemrograman yang dapat dieksekusi oleh komputer untuk melakukan tugas tertentu', 'Program komputer adalah kumpulan instruksi yang ditulis dalam bahasa pemrograman untuk menyelesaikan tugas spesifik. Proses pembuatan program meliputi menulis kode (coding), pengujian (testing), dan debugging. Bahasa pemrograman populer meliputi Python, JavaScript, Java, C++, dan banyak lagi, masing-masing dengan keunggulan di bidang tertentu.', 'Pelajari tentang pemrograman dan algoritma', 'umum', 'definisi'),
+(13, 2, 'Air', 'Zat cair jernih tanpa warna dan rasa yang tersusun dari molekul hidrogen dan oksigen, merupakan kebutuhan esensial bagi seluruh makhluk hidup', 'Air (H2O) adalah senyawa kimia yang terdiri dari dua atom hidrogen dan satu atom oksigen. Air menutupi sekitar 71% permukaan bumi dan merupakan pelarut universal yang sangat penting bagi kehidupan. Siklus air meliputi evaporasi, kondensasi, dan presipitasi yang mengatur distribusi air di bumi. Manusia membutuhkan air minum bersih minimal 2 liter per hari.', 'Pelajari tentang siklus air dan konservasi sumber daya air', 'umum', 'definisi'),
+(14, 2, 'Bumi', 'Planet ketiga dari Matahari dan satu-satunya planet yang diketahui memiliki kehidupan, dengan permukaan yang sebagian besar tertutup air', 'Bumi adalah planet terestrial dengan diameter sekitar 12.742 km. Bumi memiliki atmosfer yang melindungi kehidupan dari radiasi matahari berbahaya, medan magnet yang mengarahkan kompas, dan satu satelit alami yaitu bulan. Bumi terbagi menjadi beberapa lapisan: inti dalam, inti luar, mantel, dan kerak bumi. Rotasi bumi menyebabkan siang dan malam, sedangkan revolusi menyebabkan musim.', 'Pelajari tentang geologi dan ilmu bumi', 'umum', 'definisi'),
+(15, 2, 'Matahari', 'Bintang pusat tata surya yang menghasilkan energi melalui reaksi fusi nuklir, menjadi sumber cahaya dan panas utama bagi planet-planet di sekitarnya', 'Matahari adalah bintang berjenis G2V yang memiliki diameter sekitar 1,4 juta km, sekitar 109 kali diameter bumi. Suhu permukaan matahari mencapai sekitar 5.500 derajat Celsius, sementara suhu intinya mencapai 15 juta derajat Celsius. Matahari menghasilkan energi melalui fusi nuklir hidrogen menjadi helium, dan merupakan sumber energi utama bagi kehidupan di bumi.', 'Pelajari tentang astrofisika dan tata surya', 'umum', 'definisi'),
+(20, 2, 'Evolusi', 'Proses perubahan bertahap pada sifat-sifat populasi makhluk hidup dari generasi ke generasi melalui seleksi alam dan variasi genetik', 'Teori evolusi yang dikemukakan oleh Charles Darwin menjelaskan bahwa spesies makhluk hidup berubah secara bertahap dari generasi ke generasi. Mekanisme utama evolusi adalah seleksi alam (natural selection), di mana individu yang lebih cocok dengan lingkungan memiliki peluang lebih besar untuk bertahan hidup dan berkembang biak. Bukti evolusi ditemukan dalam rekaman fosil, anatomi perbandingan, dan genetika molekuler.', 'Pelajari tentang genetika populasi dan spesiasi', 'umum', 'definisi'),
+(25, 20, 'Manusia', 'Spesies Homo sapiens yang merupakan makhluk hidup paling maju dengan kemampuan berpikir abstrak, berbahasa, dan membuat alat', 'Manusia (Homo sapiens) adalah spesies primata yang memiliki kemampuan kognitif tinggi termasuk berpikir abstrak, menggunakan bahasa kompleks, dan membuat alat. Manusia modern telah ada sekitar 300.000 tahun dan telah mengembangkan peradaban, teknologi, dan budaya yang sangat beragam. Tubuh manusia terdiri dari triliunan sel yang terorganisir menjadi berbagai sistem organ.', 'Pelajari tentang antropologi dan anatomi manusia', 'umum', 'definisi'),
+(30, 20, 'Otak', 'Organ pusat sistem saraf pada vertebrata yang mengendalikan seluruh fungsi tubuh, pemikiran, ingatan, emosi, dan kesadaran', 'Otak manusia terdiri dari sekitar 86 miliar neuron yang saling terhubung melalui triliunan sinapsis. Otak dibagi menjadi beberapa bagian: otak besar (serebrum) untuk fungsi kognitif tinggi, otak kecil (serebelum) untuk koordinasi gerakan, batang otak untuk fungsi vital, dan sistem limbik untuk emosi. Otak menggunakan sekitar 20% dari total energi tubuh meskipun hanya berat sekitar 1,4 kg.', 'Pelajari tentang neurosains dan psikologi kognitif', 'umum', 'definisi'),
+(32, 7, 'Bahasa', 'Sistem lambang bunyi yang digunakan oleh suatu kelompok masyarakat untuk berkomunikasi, menyampaikan gagasan, dan berekspresi', 'Bahasa adalah sistem komunikasi yang menggunakan simbol bunyi, tulisan, atau gerakan. Bahasa Indonesia sebagai bahasa nasional Indonesia berakar dari bahasa Melayu dan telah berkembang menjadi bahasa yang kaya dengan penyerapan dari berbagai bahasa lain. Komponen bahasa meliputi fonologi (bunyi), morfologi (kata), sintaksis (kalimat), dan semantik (makna).', 'Pelajari tentang linguistik dan kaidah bahasa Indonesia', 'umum', 'definisi'),
+(42, 3, 'Matematika', 'Ilmu yang mempelajari bilangan, struktur, ruang, dan perubahan melalui penalaran logis dan notasi simbolis yang terstruktur', 'Matematika adalah ilmu fundamental yang menjadi dasar bagi banyak bidang ilmu lain. Cabang utama matematika meliputi aritmatika, aljabar, geometri, kalkulus, statistika, dan teori bilangan. Matematika digunakan secara luas dalam sains, teknologi, ekonomi, dan kehidupan sehari-hari. Penalaran matematis membantu mengembangkan kemampuan berpikir logis dan analitis.', 'Pelajari tentang cabang-cabang matematika dan penerapannya', 'umum', 'definisi'),
+(48, 12, 'Pengetahuan', 'Segala sesuatu yang diketahui atau dipelajari manusia melalui pengalaman, pendidikan, dan penyelidikan ilmiah', 'Pengetahuan adalah hasil dari proses belajar dan pengalaman yang meliputi fakta, informasi, keterampilan, dan pemahaman. Menurut Bloom, pengetahuan merupakan ranah kognitif paling dasar yang menjadi fondasi untuk kemampuan berpikir tingkat tinggi. Sumber pengetahuan meliputi pengalaman langsung, pembelajaran formal, riset ilmiah, dan tradisi kebudayaan.', 'Pelajari tentang epistemologi dan teori pengetahuan', 'umum', 'definisi'),
+(50, 11, 'Kesehatan', 'Keadaan sejahtera secara fisik, mental, dan sosial yang tidak hanya berarti bebas dari penyakit tetapi juga mencakup kualitas hidup', 'Kesehatan menurut WHO adalah keadaan sempurna secara fisik, mental, dan sosial, bukan hanya bebas dari penyakit atau kecacatan. Faktor yang mempengaruhi kesehatan meliputi pola makan, olahraga, tidur, manajemen stres, dan akses layanan kesehatan. Pencegahan penyakit melalui gaya hidup sehat merupakan strategi kesehatan yang paling efektif dan ekonomis.', 'Pelajari tentang gaya hidup sehat dan pencegahan penyakit', 'umum', 'definisi'),
+(51, 13, 'Ekonomi', 'Ilmu yang mempelajari produksi, distribusi, dan konsumsi barang serta jasa serta interaksi antara individu, bisnis, dan pemerintah', 'Ekonomi adalah ilmu sosial yang mempelajari bagaimana masyarakat mengalokasikan sumber daya yang terbatas untuk memenuhi kebutuhan yang tidak terbatas. Cabang utama ekonomi meliputi mikroekonomi (perilaku individu dan perusahaan) dan makroekonomi (perekonomian secara keseluruhan). Indikator ekonomi penting meliputi PDB, inflasi, pengangguran, dan neraca perdagangan.', 'Pelajari tentang prinsip ekonomi dan keuangan', 'umum', 'definisi'),
+(38, 4, 'Indonesia', 'Negara kepulauan terbesar di dunia yang terletak di Asia Tenggara dengan lebih dari 17.000 pulau dan lebih dari 270 juta penduduk', 'Indonesia adalah negara kesatuan berbentuk republik dengan ibu kota Jakarta. Indonesia terdiri dari lebih dari 17.000 pulau yang membentang di khatulistiwa, menjadikannya memiliki keanekaragaman hayati dan budaya yang sangat tinggi. Indonesia memiliki lebih dari 1.300 suku bangsa dan 700 bahasa daerah. Bahasa Indonesia sebagai bahasa persatuan berperan penting dalam menyatukan keberagaman bangsa.', 'Pelajari tentang sejarah Indonesia dan kebudayaan nusantara', 'umum', 'definisi'),
+(41, 5, 'Sejarah', 'Ilmu yang mempelajari dan mencatat peristiwa-peristiwa masa lampau serta perkembangan peradaban manusia dari waktu ke waktu', 'Sejarah adalah ilmu yang menyelidiki dan mengkaji peristiwa masa lampau untuk memahami proses perkembangan masyarakat manusia. Sumber sejarah meliputi artefak, dokumen tertulis, tradisi lisan, dan bukti arkeologis. Periode sejarah Indonesia dimulai dari era prasejarah, kerajaan Hindu-Buddha, kerajaan Islam, kolonialisme Eropa, hingga kemerdekaan dan pembangunan modern.', 'Pelajari tentang metode penelitian sejarah dan historiografi', 'umum', 'definisi'),
+(31, 20, 'Jantung', 'Otot berongga yang berkontraksi secara ritmis untuk memompa darah ke seluruh tubuh melalui pembuluh darah arteri dan vena', 'Jantung manusia berukuran sekitar sekepalan tangan dan berfungsi memompa darah ke seluruh tubuh. Jantung memiliki empat ruangan: dua atrium dan dua ventrikel. Jantung berkontraksi rata-rata 100.000 kali per hari dan memompa sekitar 7.500 liter darah setiap hari. Penyakit jantung merupakan salah satu penyebab kematian tertinggi di dunia yang dapat dicegah dengan pola hidup sehat.', 'Pelajari tentang sistem kardiovaskular dan pencegahan penyakit jantung', 'umum', 'definisi'),
+(29, 11, 'Vitamin', 'Senyawa organik yang dibutuhkan tubuh dalam jumlah kecil untuk menjalankan berbagai fungsi metabolisme dan menjaga kesehatan secara optimal', 'Vitamin adalah nutrisi esensial yang dibutuhkan tubuh dalam jumlah kecil tetapi vital untuk kesehatan. Vitamin dibagi menjadi dua jenis: larut air (vitamin B kompleks dan C) dan larut lemak (vitamin A, D, E, dan K). Kekurangan vitamin dapat menyebabkan berbagai gangguan kesehatan seperti skorbuto (kekurangan vitamin C), rabun senja (kekurangan vitamin A), dan riketsia (kekurangan vitamin D).', 'Pelajari tentang nutrisi dan gizi seimbang', 'umum', 'definisi'),
+(16, 2, 'Bulan', 'Satelit alami Bumi yang mengorbit pada jarak rata-rata 384.400 kilometer, mempengaruhi pasang surut laut dan pencahayaan malam', 'Bulan adalah satu-satunya satelit alami bumi dengan diameter sekitar 3.474 km. Permukaan bulan dipenuhi kawah yang terbentuk akibat tumbukan asteroid dan komet miliaran tahun lalu. Bulan tidak memiliki atmosfer yang berarti, menyebabkan suhu permukaannya sangat bervariasi dari -173 derajat Celsius di malam hari hingga 127 derajat Celsius di siang hari. Gravitasi bulan menyebabkan fenomena pasang surut di bumi.', 'Pelajari tentang astronomi dan eksplorasi ruang angkasa', 'umum', 'definisi'),
+(17, 2, 'Gravitasi', 'Gaya tarik-menarik antarmassa yang menyebabkan benda saling menarik, menjaga planet pada orbitnya, dan membuat benda jatuh ke permukaan Bumi', 'Gravitasi adalah salah satu dari empat gaya fundamental alam yang ditemukan oleh Isaac Newton dan kemudian dijelaskan lebih mendalam oleh Albert Einstein melalui teori relativitas umum. Gaya gravitasi bumi memberikan percepatan 9,8 m/s persegi yang kita rasakan sebagai berat badan. Semakin besar massa suatu benda, semakin besar gaya gravitasinya.', 'Pelajari tentang mekanika klasik dan relativitas umum', 'umum', 'definisi'),
+(24, 2, 'Oksigen', 'Unsur kimia gas tidak berwarna dan tidak berbau yang sangat penting bagi kehidupan, merupakan sekitar 21 persen dari atmosfer Bumi', 'Oksigen (O2) adalah unsur kimia dengan nomor atom 8 yang sangat penting bagi kehidupan. Oksigen menyusun sekitar 21% dari atmosfer bumi dan merupakan komponen utama dalam air (H2O). Oksigen dihasilkan melalui fotosintesis oleh tumbuhan dan alga. Proses respirasi seluler menggunakan oksigen untuk menghasilkan energi (ATP) dari glukosa. Oksigen juga digunakan dalam banyak proses industri seperti pembakaran dan pengelasan.', 'Pelajari tentang kimia dan proses respirasi seluler', 'umum', 'definisi'),
+(23, 2, 'Atom', 'Satuan dasar materi yang terdiri dari inti atom berisi proton dan neutron serta elektron yang mengelilinginya', 'Atom adalah partikel terkecil dari suatu unsur yang masih memiliki sifat unsur tersebut. Atom terdiri dari inti atom (nukleus) yang berisi proton dan neutron, serta elektron yang mengorbit inti. Jumlah proton menentukan jenis unsur, sedangkan jumlah neutron menentukan isotop. Teori atom modern dikembangkan oleh para ilmuwan seperti Dalton, Thomson, Rutherford, dan Bohr.', 'Pelajari tentang fisika kuantum dan struktur atom', 'umum', 'definisi'),
+(18, 2, 'Energi', 'Kemampuan untuk melakukan usaha atau menggerakkan benda, yang dapat berwujud panas, cahaya, gerak, listrik, kimia, atau nuklir', 'Energi adalah besaran fisika yang tidak dapat diciptakan atau dimusnahkan, hanya dapat diubah dari satu bentuk ke bentuk lain (hukum kekekalan energi). Bentuk-bentuk energi meliputi energi kinetik (gerak), energi potensial (posisi), energi panas, energi listrik, energi kimia, energi nuklir, dan energi cahaya. Satuan energi dalam SI adalah Joule (J). Sumber energi utama di bumi adalah matahari.', 'Pelajari tentang termodinamika dan sumber energi terbarukan', 'umum', 'definisi'),
+(19, 2, 'Cahaya', 'Bentuk radiasi elektromagnetik yang dapat dilihat oleh mata manusia, merambat dengan kecepatan 299.792 kilometer per detik dalam ruang hampa', 'Cahaya adalah gelombang elektromagnetik dengan panjang gelombang antara 380-700 nanometer yang dapat dideteksi oleh mata manusia. Kecepatan cahaya dalam ruang hampa adalah konstanta fisika terpenting sebesar 299.792.458 meter per detik. Cahaya memiliki sifat gelombang (difraksi, interferensi) sekaligus sifat partikel (efek fotolistrik). Spektrum cahaya terlihat membentuk pelangi dari merah hingga ungu.', 'Pelajari tentang optika dan fisika gelombang', 'umum', 'definisi'),
+(21, 2, 'Fotosintesis', 'Proses biokimia yang dilakukan tumbuhan hijau untuk mengubah karbon dioksida dan air menjadi glukosa dan oksigen menggunakan energi cahaya matahari', 'Fotosintesis adalah proses yang dilakukan tumbuhan, alga, dan beberapa bakteri untuk mengubah energi cahaya matahari menjadi energi kimia berupa glukosa. Reaksi ini terjadi di kloroplas menggunakan pigmen klorofil. Persamaan fotosintesis: 6CO2 + 6H2O + cahaya menghasilkan C6H12O6 + 6O2. Fotosintesis merupakan sumber oksigen dan basis rantai makanan di bumi.', 'Pelajari tentang botani dan biokimia tumbuhan', 'umum', 'definisi'),
+(22, 16, 'Ekosistem', 'Satuan ekologi yang terbentuk dari interaksi antara makhluk hidup dengan lingkungan fisiknya dalam suatu area tertentu', 'Ekosistem adalah sistem ekologi yang terdiri dari komponen biotik (makhluk hidup) dan abiotik (lingkungan non-hidup) yang saling berinteraksi. Ekosistem memiliki komponen produsen (tumbuhan), konsumen (hewan), dan dekomposer (bakteri, jamur). Contoh ekosistem meliputi hutan hujan tropis, terumbu karang, padang rumput, dan danau. Keseimbangan ekosistem sangat penting untuk keberlangsungan kehidupan.', 'Pelajari tentang ekologi dan konservasi lingkungan', 'umum', 'definisi'),
+(26, 20, 'Sel', 'Satuan struktural dan fungsional terkecil dari makhluk hidup yang mampu melakukan metabolisme, pertumbuhan, dan reproduksi secara mandiri', 'Sel adalah unit dasar kehidupan yang ditemukan pertama kali oleh Robert Hooke. Sel terdiri dari membran sel, sitoplasma, dan inti sel (nukleus) yang berisi materi genetik (DNA). Organisme uniseluler seperti bakteri terdiri dari satu sel, sedangkan manusia terdiri dari triliunan sel yang terdifferensiasi menjadi berbagai jenis jaringan dan organ.', 'Pelajari tentang biologi sel dan biologi molekuler', 'umum', 'definisi'),
+(27, 20, 'Hewan', 'Organisme eukariotik multiseluler yang tidak mampu melakukan fotosintesis, mendapatkan energi dengan mengonsumsi bahan organik lain', 'Hewan adalah organisme multiseluler yang termasuk dalam kingdom Animalia. Ciri-ciri hewan meliputi kemampuan bergerak secara aktif, tidak memiliki dinding sel, dan memperoleh nutrisi dengan cara mengonsumsi organisme lain. Klasifikasi hewan sangat beragam mulai dari invertebrata (serangga, cacing) hingga vertebrata (ikan, reptil, burung, mamalia). Hewan berperan penting dalam ekosistem sebagai konsumen.', 'Pelajari tentang zoologi dan perilaku hewan', 'umum', 'definisi'),
+(28, 20, 'Tumbuhan', 'Organisme multiseluler eukariotik yang mengandung klorofil dan mampu melakukan fotosintesis untuk menghasilkan makanannya sendiri', 'Tumbuhan adalah organisme autotrof yang menghasilkan makanannya sendiri melalui fotosintesis. Tumbuhan memiliki struktur yang terdiri dari akar, batang, daun, bunga, dan buah. Tumbuhan berperan sangat penting di bumi sebagai produsen oksigen, sumber pangan, bahan bangunan, dan obat-obatan. Tumbuhan juga membantu menjaga keseimbangan ekosistem dan mencegah erosi tanah.', 'Pelajari tentang botani dan fisiologi tumbuhan', 'umum', 'definisi'),
+(44, 3, 'Aljabar', 'Cabang matematika yang menggunakan simbol dan huruf untuk merepresentasikan bilangan dalam persamaan dan memecahkan masalah abstrak', 'Aljabar adalah cabang matematika yang menggunakan variabel, konstanta, dan operasi matematika untuk memecahkan masalah. Aljabar dasar meliputi operasi dengan variabel, persamaan linear, persamaan kuadrat, dan pertidaksamaan. Aljabar linear mempelajari vektor, matriks, dan ruang vektor, sedangkan aljabar abstrak mempelajari struktur aljabar seperti grup, ring, dan field.', 'Pelajari tentang aljabar linear dan aljabar abstrak', 'umum', 'definisi'),
+(45, 6, 'Gunung', 'Bentuklahan alam yang menonjol dari permukaan tanah sekitarnya dengan ketinggian yang signifikan, terbentuk dari proses geologi', 'Gunung terbentuk dari aktivitas tektonik lempeng, vulkanisme, dan erosi selama jutaan tahun. Indonesia memiliki lebih dari 100 gunung berapi aktif karena terletak di Cincin Api Pasifik (Ring of Fire). Gunung tertinggi di dunia adalah Gunung Everest dengan ketinggian 8.849 meter di atas permukaan laut. Gunung berperan penting sebagai sumber air, habitat flora dan fauna, serta objek wisata.', 'Pelajari tentang geologi dan vulkanologi', 'umum', 'definisi'),
+(46, 6, 'Laut', 'Massa air asin yang luas menutupi sebagian besar permukaan Bumi, menjadi habitat bagi berbagai ekosistem laut', 'Laut atau lautan menutupi sekitar 71% permukaan bumi dengan kedalaman rata-rata 3.688 meter. Laut terbagi menjadi lima samudra: Pasifik, Atlantik, Hindia, Arktik, dan Antartika. Ekosistem laut sangat beragam mulai dari terumbu karang, hutan bakau, hingga palung laut terdalam. Laut berperan penting dalam mengatur iklim global, menghasilkan oksigen, dan menyediakan sumber pangan.', 'Pelajari tentang oseanografi dan biologi laut', 'umum', 'definisi'),
+(47, 16, 'Hutan', 'Kawasan yang ditumbuhi pepohonan dengan kerapitan tertentu, berfungsi sebagai paru-paru dunia dan habitat keanekaragaman hayati', 'Hutan adalah ekosistem yang didominasi oleh pepohonan dan vegetasi kayu lainnya. Hutan hujan tropis Indonesia merupakan salah satu yang terluas di dunia dan menjadi habitat bagi keanekaragaman hayati yang sangat tinggi. Hutan berfungsi sebagai penyerap karbon dioksida, penghasil oksigen, pengatur siklus air, dan pencegah erosi. Deforestasi menjadi ancaman serius bagi keberlangsungan hutan dan iklim global.', 'Pelajari tentang kehutanan dan konservasi hutan', 'umum', 'definisi'),
+(49, 12, 'Pendidikan', 'Proses sistematis untuk mengembangkan pengetahuan, keterampilan, karakter, dan kecerdasan individu melalui pengajaran dan pelatihan', 'Pendidikan adalah proses pembelajaran yang bertujuan mengembangkan potensi individu secara optimal. Sistem pendidikan Indonesia terdiri dari pendidikan formal (sekolah), nonformal (kursus), dan informal (keluarga). Kurikulum pendidikan dirancang untuk mengembangkan kompetensi kognitif, afektif, dan psikomotorik. Teknologi pendidikan modern seperti e-learning semakin memperluas akses pendidikan.', 'Pelajari tentang metode pengajaran dan teknologi pendidikan', 'umum', 'definisi'),
+(52, 13, 'Uang', 'Alat tukar yang diterima secara umum sebagai pembayaran barang dan jasa, berfungsi sebagai satuan hitung dan penyimpan nilai', 'Uang adalah alat tukar yang diakui secara umum dalam suatu masyarakat. Fungsi utama uang meliputi medium pertukaran, satuan hitung (unit of account), dan penyimpan nilai (store of value). Uang telah berevolusi dari bentuk barter ke mata uang logam, kertas, hingga uang digital dan cryptocurrency. Bank sentral bertanggung jawab mengatur pasokan uang dan menjaga stabilitas nilai mata uang.', 'Pelajari tentang keuangan dan literasi keuangan', 'umum', 'definisi'),
+(53, 11, 'Obat', 'Zat atau bahan yang digunakan untuk mencegah, meringankan, atau menyembuhkan penyakit serta memulihkan kesehatan tubuh', 'Obat adalah substansi yang digunakan untuk diagnosis, pencegahan, pengobatan, atau penyembuhan penyakit. Obat bekerja dengan cara berinteraksi dengan reseptor atau enzim dalam tubuh. Obat tradisional Indonesia seperti jamu telah digunakan sejak zaman dahulu, sedangkan obat modern dikembangkan melalui riset farmakologi ketat. Penggunaan obat harus sesuai dosis dan resep dokter untuk menghindari efek samping.', 'Pelajari tentang farmakologi dan pengobatan tradisional', 'umum', 'definisi'),
+(54, 10, 'Olahraga', 'Aktivitas fisik yang terstruktur dan kompetitif untuk menjaga kebugaran, meningkatkan keterampilan, dan memberikan hiburan', 'Olahraga adalah aktivitas fisik yang melibatkan gerakan tubuh secara terstruktur dan teratur. Manfaat olahraga bagi kesehatan sangat banyak meliputi penguatan jantung dan paru-paru, peningkatan kepadatan tulang, pengurangan risiko penyakit kronis, dan peningkatan kesehatan mental. Indonesia memiliki berbagai cabang olahraga populer seperti sepak bola, bulu tangkis, dan tinju.', 'Pelajari tentang ilmu olahraga dan nutrisi atlet', 'umum', 'definisi'),
+(55, 19, 'Musik', 'Seni mengatur bunyi dalam waktu melalui ritme, melodi, dan harmoni untuk mengekspresikan emosi dan gagasan secara estetis', 'Musik adalah seni yang mengorganisasikan bunyi dalam waktu dengan elemen-elemen seperti ritme, melodi, harmoni, dan timbre. Musik Indonesia sangat beragam mulai dari gamelan Jawa, angklung Sunda, dangdut, hingga musik pop modern. Musik memiliki efek psikologis yang dapat mempengaruhi mood, produktivitas, dan kesehatan mental. Industri musik modern telah berkembang pesat dengan teknologi streaming digital.', 'Pelajari tentang teori musik dan sejarah musik Indonesia', 'umum', 'definisi'),
+(56, 18, 'Makanan', 'Zat padat atau cair yang dikonsumsi makhluk hidup untuk memenuhi kebutuhan nutrisi, energi, dan pertumbuhan tubuh', 'Makanan adalah bahan yang dikonsumsi organisme untuk memperoleh energi dan nutrisi. Nutrisi esensial dalam makanan meliputi karbohidrat, protein, lemak, vitamin, mineral, dan air. Indonesia memiliki kekayaan kuliner yang sangat beragam dengan cita rasa yang khas di setiap daerah seperti rendang, sate, gado-gado, dan nasi goreng. Gizi seimbang sangat penting untuk kesehatan dan pertumbuhan.', 'Pelajari tentang ilmu gizi dan kuliner Indonesia', 'umum', 'definisi'),
+(57, NULL, 'Rumah', 'Bangunan yang digunakan sebagai tempat tinggal keluarga atau individu, memberikan perlindungan dari cuaca dan lingkungan luar', 'Rumah adalah bangunan yang berfungsi sebagai tempat tinggal dan berlindung. Rumah tradisional Indonesia sangat beragam seperti rumah Joglo (Jawa), rumah Gadang (Minangkabau), rumah Tongkonan (Toraja), dan rumah Honai (Papua). Setiap rumah tradisional memiliki ciri arsitektural yang mencerminkan kearifan lokal. Rumah modern umumnya menggunakan material beton dan bata dengan desain yang lebih minimalis.', 'Pelajari tentang arsitektur dan desain interior', 'umum', 'definisi'),
+(61, 1, 'Server', 'Komputer atau sistem yang menyediakan layanan, data, atau sumber daya kepada komputer klien melalui jaringan', 'Server adalah komputer atau sistem yang menyediakan layanan kepada komputer lain (klien) melalui jaringan. Jenis server meliputi web server, database server, file server, mail server, dan cloud server. Server biasanya memiliki spesifikasi yang lebih tinggi dari komputer biasa dengan prosesor yang lebih cepat, memori yang lebih besar, dan penyimpanan yang lebih luas.', 'Pelajari tentang administrasi server dan cloud computing', 'umum', 'definisi'),
+(62, 1, 'Prosesor', 'Komponen komputer yang berfungsi sebagai otak untuk memproses instruksi dan melakukan kalkulasi', 'Prosesor atau CPU (Central Processing Unit) adalah komponen utama komputer yang menjalankan instruksi program. Prosesor modern memiliki miliaran transistor yang bekerja pada kecepatan miliaran siklus per detik (GHz). Arsitektur prosesor meliputi CISC (Complex Instruction Set Computer) dan RISC (Reduced Instruction Set Computer). Produsen prosesor utama meliputi Intel, AMD, dan ARM.', 'Pelajari tentang arsitektur komputer dan assembly', 'umum', 'definisi'),
+(63, 1, 'Memori', 'Komponen komputer yang berfungsi menyimpan data dan instruksi sementara atau permanen untuk akses cepat oleh prosesor', 'Memori komputer dibagi menjadi dua jenis utama: RAM (Random Access Memory) yang bersifat volatile dan penyimpanan (hard disk/SSD) yang bersifat non-volatile. RAM menyimpan data yang sedang diproses oleh CPU, sedangkan penyimpanan menyimpan data secara permanen. Kapasitas dan kecepatan memori sangat mempengaruhi performa komputer. Teknologi memori terus berkembang dengan DDR5 dan NVMe SSD.', 'Pelajari tentang hierarki memori dan arsitektur penyimpanan', 'umum', 'definisi'),
+(64, 1, 'Kode', 'Kumpulan instruksi yang ditulis dalam bahasa pemrograman untuk membuat program komputer yang dapat dieksekusi', 'Kode sumber (source code) adalah teks yang ditulis programmer menggunakan bahasa pemrograman tertentu. Kode kemudian dikompilasi atau diinterpretasikan menjadi bahasa mesin yang dapat dimengerti oleh komputer. Prinsip-prinsip penulisan kode yang baik meliputi keterbacaan, modularitas, dan dokumentasi. Version control seperti Git digunakan untuk mengelola perubahan kode dalam pengembangan perangkat lunak.', 'Pelajari tentang software engineering dan best practices', 'umum', 'definisi'),
+(59, 1, 'Telepon', 'Perangkat komunikasi elektronik yang digunakan untuk mengirim dan menerima suara melalui jaringan telekomunikasi', 'Telepon telah berevolusi dari telepon kabel tradisional menjadi smartphone yang memiliki kemampuan komputer lengkap. Smartphone modern memiliki layar sentuh, kamera, GPS, dan akses internet yang memungkinkan berbagai aktivitas seperti komunikasi, hiburan, produktivitas, dan pembayaran digital. Sistem operasi mobile utama adalah Android dan iOS.', 'Pelajari tentang teknologi telekomunikasi dan jaringan seluler', 'umum', 'definisi'),
+(39, 4, 'Batik', 'Seni menghias kain dengan cara membubuhkan malam pada kain tersebut, kemudian dicelup warna, merupakan warisan budaya Indonesia', 'Batik adalah seni dekorasi kain Indonesia yang diakui UNESCO sebagai Warisan Kemanusiaan untuk Budaya Lisan dan Nonbendawi sejak 2009. Teknik pembuatan batik meliputi batik tulis (dibuat tangan), batik cap (menggunakan cetakan), dan batik printing (cetak mesin). Setiap daerah di Indonesia memiliki motif batik khas yang mencerminkan budaya dan filosofi lokal seperti batik parang, batik mega mendung, dan batik truntum.', 'Pelajari tentang seni batik dan warisan budaya Indonesia', 'umum', 'definisi'),
+(40, 4, 'Budaya', 'Seluruh sistem nilai, norma, kepercayaan, dan ekspresi kreatif yang dimiliki bersama oleh suatu kelompok masyarakat', 'Budaya mencakup seluruh aspek kehidupan manusia yang diwariskan dari generasi ke generasi melalui pembelajaran dan sosialisasi. Komponen budaya meliputi bahasa, agama, seni, adat istiadat, sistem pengetahuan, dan teknologi. Indonesia memiliki keanekaragaman budaya yang sangat tinggi dengan ratusan suku bangsa dan tradisi yang unik. Pelestarian budaya menjadi tanggung jawab bersama seluruh masyarakat.', 'Pelajari tentang antropologi dan studi budaya Indonesia', 'umum', 'definisi'),
+(34, 7, 'Kalimat', 'Satuan bahasa yang mengandung pikiran utuh dan diakhiri dengan tanda baca, terdiri dari subjek, predikat, dan bisa disertai objek atau keterangan', 'Kalimat adalah satuan bahasa terkecil yang menyatakan pikiran yang lengkap dan diakhiri dengan tanda baca. Kalimat dalam bahasa Indonesia memiliki pola SPOK (Subjek, Predikat, Objek, Keterangan) yang dapat divariasikan. Jenis kalimat meliputi kalimat tunggal, kalimat majemuk, kalimat aktif, kalimat pasif, kalimat langsung, dan kalimat tidak langsung.', 'Pelajari tentang tata bahasa Indonesia yang baik dan benar', 'umum', 'definisi'),
+(35, 7, 'Sinonim', 'Kata yang memiliki makna sama atau sangat mirip dengan kata lain, memungkinkan variasi penggunaan dalam kalimat tanpa mengubah arti', 'Sinonim adalah hubungan semantik antara dua kata atau lebih yang memiliki makna yang sama atau sangat mirip. Contoh sinonim dalam bahasa Indonesia: besar-ujung, kecil-mungil, cepat-lekas, dan indah-cantik. Penggunaan sinonim memperkaya kosa kata dan membuat penulisan menjadi lebih bervariasi. Kamus sinonim menjadi referensi penting dalam penulisan dan penerjemahan.', 'Pelajari tentang semantik dan leksikografi', 'umum', 'definisi'),
+(36, 7, 'Antonim', 'Kata yang memiliki makna berlawanan atau bertentangan dengan kata lain, digunakan untuk menyatakan perbedaan atau kontras', 'Antonim adalah hubungan semantik antara dua kata yang memiliki makna berlawanan. Contoh antonim dalam bahasa Indonesia: besar-kecil, tinggi-rendah, panjang-pendek, dan cepat-lambat. Antonim terbagi menjadi beberapa jenis: gradable (besar-kecil), komplementer (hidup-mati), relasional (guru-murid), dan bertingkat (panas-dingin-sejuk).', 'Pelajari tentang semantik dan hubungan kata', 'umum', 'definisi'),
+(37, 7, 'Imbuhan', 'Afiks atau bagian tambahan yang ditempelkan pada kata dasar untuk membentuk kata baru dengan makna atau fungsi gramatikal tertentu', 'Imbuhan dalam bahasa Indonesia meliputi awalan (prefiks) seperti meN-, ber-, di-, ter-, di-, dan akhiran (sufiks) seperti -kan, -an, -i. Selain itu ada konfiks (awalan + akhiran) seperti peN-...-an, per-...-an. Imbuhan dapat mengubah kelas kata, misalnya dari kata benda menjadi kata kerja (tulis menjadi menulis) atau dari kata kerja menjadi kata benda (tulis menjadi tulisan).', 'Pelajari tentang morfologi bahasa Indonesia', 'umum', 'definisi'),
+(43, 3, 'Angka', 'Simbol atau tanda yang digunakan untuk menyatakan bilangan dalam sistem bilangan tertentu', 'Angka adalah simbol yang digunakan untuk merepresentasikan bilangan. Sistem bilangan yang umum digunakan meliputi sistem desimal (basis 10), biner (basis 2), oktal (basis 8), dan heksadesimal (basis 16). Angka Arab (0-9) adalah sistem penulisan angka yang paling banyak digunakan di dunia. Bilangan dapat dibedakan menjadi bilangan asli, bulat, rasional, irasional, dan kompleks.', 'Pelajari tentang teori bilangan dan sistem numerasi', 'umum', 'definisi'),
+(33, 7, 'Kata', 'Satuan bahasa terkecil yang dapat berdiri sendiri dan memiliki makna dalam komunikasi lisan maupun tulisan', 'Kata adalah satuan bahasa terkecil yang memiliki makna dan dapat digunakan secara mandiri dalam kalimat. Kata dalam bahasa Indonesia diklasifikasikan berdasarkan kelas katanya menjadi kata benda (nomina), kata kerja (verba), kata sifat (adjektiva), kata keterangan (adverbia), kata ganti (pronomina), dan lain-lain. Setiap kata memiliki bentuk dasar dan bentuk terikat melalui proses afiksasi (pembubuhan).', 'Pelajari tentang morfologi dan kelas kata dalam bahasa Indonesia', 'umum', 'definisi');

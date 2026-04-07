@@ -8,6 +8,9 @@
  * - Klasifikasi intent berdasarkan pola SPOK
  *
  * Persyaratan: C89, ajudan.h
+ *
+ * Semua data linguistik (kata tanya, pemisah klausa,
+ * marker, stop words) diambil dari CacheLinguistik.
  */
 
 #include "ajudan.h"
@@ -17,145 +20,6 @@
  * ================================================================== */
 
 #define MAX_KLAUSA 8
-#define MAX_PEMISAH 20
-
-/* ================================================================== *
- *              DATA PEMISAH KLAUSA (KONJUNGSI & TANDA BACA)             *
- * ================================================================== */
-
-/*
- * Pemisah klausa diurutkan dari terpanjang ke terpendek
- * agar pencocokan prioritas panjang duluan.
- */
-static const char *DAFTAR_PEMISAH[] = {
-    "sedangkan",
-    "sambil",
-    "sebelum",
-    "setelah",
-    "walaupun",
-    "meskipun",
-    "padahal",
-    "saatnya",
-    "kemudian",
-    "maupun",
-    "menurutmu",
-    "menurut kamu",
-    "menurutku",
-    "namun",
-    "lalu",
-    "sedang",
-    "atau",
-    "tetapi",
-    "dan",
-    "ketika",
-    NULL
-};
-static const int JML_PEMISAH = 21;
-
-/* ================================================================== *
- *              DATA KATA TANYA BAHASA INDONESIA                         *
- * ================================================================== */
-
-static const char *KATA_TANYA[] = {
-    "apa", "siapa", "mengapa", "kenapa",
-    "bagaimana", "kapan", "dimana", "di mana",
-    "berapa", "mana", "macam apa",
-    NULL
-};
-static const int JML_KATA_TANYA = 11;
-
-/* ================================================================== *
- *          DATA MARKER PERMINTAAN PENJELASAN                           *
- * ================================================================== */
-
-static const char *MARKER_PENJELASAN[] = {
-    "jelaskan", "jabarkan",
-    "beritahu lebih lanjut", "uraikan",
-    "deskripsikan", "ceritakan",
-    "tolong jelaskan", "jelaskan tentang",
-    "jabarkan tentang", "beritahu tentang",
-    "ceritakan tentang",
-    NULL
-};
-static const int JML_MARKER_PENJELASAN = 11;
-
-/* ================================================================== *
- *          DATA MARKER PERTANYAAN IMPLISIT                              *
- * ================================================================== */
-
-static const char *MARKER_IMPLISIT[] = {
-    "menurutmu", "menurut kamu", "menurutku",
-    "kira-kira", "kirakira",
-    "boleh tahu", "bolehkah",
-    "mohon penjelasan",
-    "bisa jelaskan", "bisa jelaskan",
-    NULL
-};
-static const int JML_MARKER_IMPLISIT = 9;
-
-/* ================================================================== *
- *          DAFTAR KATA LUMPAT (STOP WORDS UNTUK EKSTRAKSI TOPIK)         *
- * ================================================================== */
-
-/*
- * Kata-kata yang harus diabaikan saat mengekstrak topik
- * dari klausa pertanyaan. Termasuk: pronomina, negasi,
- * modalitas, preposisi, konjungsi, kata tanya, imperatif,
- * partikel, dan verba umum yang bukan konten/entitas.
- *
- * Penggunaan: bersihkan_topik() menggunakan daftar ini
- * untuk menyaring kata bermakna dari noise.
- */
-static const char *DAFTAR_KATA_LUMPAT[] = {
-    /* Pronomina personal */
-    "saya", "kamu", "aku", "dia", "mereka", "kita", "kami",
-    "anda", "beliau", "ia", "nya", "mu", "ku",
-    /* Pronomina posesif */
-    "padaku", "padamu", "buatku", "buatmu",
-    /* Negasi & aspek temporal */
-    "tidak", "bukan", "belum", "sudah", "telah", "akan",
-    "sedang", "masih", "pernah",
-    /* Modalitas & keinginan */
-    "bisa", "dapat", "mampu", "mau", "ingin", "hendak",
-    /* Kognisi & keadaan */
-    "mengerti", "tahu", "paham", "bingung",
-    /* Preposisi & konjungsi umum */
-    "tentang", "untuk", "dari", "dengan", "pada", "di",
-    "oleh", "bagi", "kepada", "ke", "dalam",
-    "agar", "supaya", "karena", "kalau", "jika",
-    "waktu", "ketika", "saat", "sebelum", "setelah",
-    "dimana", "kemana", "darimana",
-    /* Partikel & kata tambahan */
-    "juga", "pun", "saja", "hanya", "lagi",
-    "yang", "yg",
-    /* Penanda demonstratif */
-    "ini", "itu", "tersebut", "hal", "masalah",
-    /* Kata tanya (bukan konten) */
-    "apa", "siapa", "bagaimana", "mengapa", "kenapa",
-    "kapan", "dimana", "di mana", "berapa", "mana",
-    "macam", "apakah",
-    /* Imperatif/permintaan (bukan konten) */
-    "jelaskan", "jabarkan", "beritahu", "tolong",
-    "uraikan", "deskripsikan", "ceritakan",
-    "mohon", "berikan",
-    /* Kata tambahan/penegas */
-    "lebih", "lanjut", "artinya", "maknanya",
-    "kok", "ya", "yah", "dong", "deh", "sih", "lah",
-    "punya", "punyaku", "punyamu",
-    /* Verba umum yang bukan entitas */
-    "mengajak", "menanyakan", "meminta", "memilih",
-    "membeli", "berbelanja", "sampai",
-    /* Verba pencarian/pemahaman (bukan konten) */
-    "cari", "mencari", "kesulitan", "mendapatkan",
-    "menemukan", "mengetahui", "memahami",
-    /* Verba perujukan (bukan konten) */
-    "disebut", "dimaksud", "dikatakan", "dinamakan",
-    "disebutkan", "dimaksudkan", "diberi nama",
-    "dikenal", "dipanggil", "dimaksudkan",
-    /* Determiner */
-    "seorang", "sesuatu", "sebuah", "suatu",
-    NULL
-};
 
 /* ================================================================== *
  *                    FUNGSI UTILITAS INTERNAL                           *
@@ -165,15 +29,19 @@ static const char *DAFTAR_KATA_LUMPAT[] = {
  * cek_kata_tanya - Cek apakah sebuah token adalah
  * kata tanya bahasa Indonesia.
  * Mengembalikan 1 jika ya, 0 jika tidak.
+ * Data diambil dari cache->kata_tanya.
  */
-static int cek_kata_tanya(const char *kata)
+static int cek_kata_tanya(
+    CacheLinguistik *cache, const char *kata)
 {
     int i;
-    if (!kata || !kata[0]) return 0;
+    if (!cache || !kata || !kata[0]) return 0;
 
-    for (i = 0; i < JML_KATA_TANYA; i++) {
-        if (KATA_TANYA[i] == NULL) break;
-        if (ajudan_strcasecmp(kata, KATA_TANYA[i]) == 0) {
+    for (i = 0; i < cache->n_kata_tanya; i++) {
+        if (cache->kata_tanya[i].kata[0] == '\0')
+            break;
+        if (ajudan_strcasecmp(
+            kata, cache->kata_tanya[i].kata) == 0) {
             return 1;
         }
     }
@@ -183,20 +51,24 @@ static int cek_kata_tanya(const char *kata)
 /*
  * cek_marker_implisit - Cek apakah teks mengandung
  * marker pertanyaan implisit.
+ * Data diambil dari cache->marker_implisit.
  */
-static int cek_marker_implisit(const char *teks)
+static int cek_marker_implisit(
+    CacheLinguistik *cache, const char *teks)
 {
     int i;
     char lo[MAX_INPUT_USER];
 
-    if (!teks || !teks[0]) return 0;
+    if (!cache || !teks || !teks[0]) return 0;
 
     snprintf(lo, sizeof(lo), "%s", teks);
     to_lower_case(lo);
 
-    for (i = 0; i < JML_MARKER_IMPLISIT; i++) {
-        if (MARKER_IMPLISIT[i] == NULL) break;
-        if (strstr(lo, MARKER_IMPLISIT[i]) != NULL) {
+    for (i = 0; i < cache->n_marker_implisit; i++) {
+        if (cache->marker_implisit[i].frasa[0] == '\0')
+            break;
+        if (strstr(lo,
+            cache->marker_implisit[i].frasa) != NULL) {
             return 1;
         }
     }
@@ -222,13 +94,15 @@ static void hapus_tanda_baca_akhir(char *s)
 /*
  * token_kata_tanya_dalam_teks - Cek apakah teks mengandung
  * kata tanya. Mengembalikan 1 jika ya.
+ * Data diambil dari cache->kata_tanya.
  */
-static int token_kata_tanya_dalam_teks(const char *teks)
+static int token_kata_tanya_dalam_teks(
+    CacheLinguistik *cache, const char *teks)
 {
     char buf[MAX_INPUT_USER];
     char *t;
 
-    if (!teks || !teks[0]) return 0;
+    if (!cache || !teks || !teks[0]) return 0;
 
     snprintf(buf, sizeof(buf), "%s", teks);
     t = strtok(buf, " \t\n");
@@ -238,7 +112,7 @@ static int token_kata_tanya_dalam_teks(const char *teks)
             t[tl - 1] = '\0';
             tl--;
         }
-        if (cek_kata_tanya(t)) {
+        if (cek_kata_tanya(cache, t)) {
             return 1;
         }
         t = strtok(NULL, " \t\n");
@@ -261,20 +135,23 @@ static int cek_tanda_tanya_dalam_teks(const char *teks)
 
 /*
  * cek_ada_pertanyaan - Cek apakah sebuah teks/klausa
- * mengandung indikasi pertanyaan (baik eksplisit maupun implisit).
+ * mengandung indikasi pertanyaan (baik eksplisit maupun
+ * implisit). Semua data diambil dari cache.
  */
-static int cek_ada_pertanyaan(const char *teks)
+static int cek_ada_pertanyaan(
+    CacheLinguistik *cache, const char *teks)
 {
-    if (!teks || !teks[0]) return 0;
+    if (!cache || !teks || !teks[0]) return 0;
 
     /* Eksplisit: tanda tanya */
     if (cek_tanda_tanya_dalam_teks(teks)) return 1;
 
     /* Eksplisit: kata tanya */
-    if (token_kata_tanya_dalam_teks(teks)) return 1;
+    if (token_kata_tanya_dalam_teks(cache, teks))
+        return 1;
 
     /* Implisit: marker pertanyaan */
-    if (cek_marker_implisit(teks)) return 1;
+    if (cek_marker_implisit(cache, teks)) return 1;
 
     return 0;
 }
@@ -284,29 +161,12 @@ static int cek_ada_pertanyaan(const char *teks)
  * ================================================================== */
 
 /*
- * is_kata_lumpat - Cek apakah kata termasuk daftar
- * kata lumpat (stop words) yang harus diabaikan
- * saat mengekstrak topik.
- * Mengembalikan 1 jika ya, 0 jika tidak.
- */
-static int is_kata_lumpat(const char *kata)
-{
-    int i;
-
-    if (!kata || !kata[0]) return 0;
-
-    for (i = 0; DAFTAR_KATA_LUMPAT[i] != NULL; i++) {
-        if (strcmp(kata, DAFTAR_KATA_LUMPAT[i]) == 0) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-/*
- * bersihkan_topik - Menghapus kata-kata lumpat (stop words)
- * dari string topik, menyisakan hanya kata bermakna
- * (entitas/konten).
+ * bersihkan_topik_cache - Menghapus kata-kata lumpat
+ * (stop words) dari string topik, menyisakan hanya kata
+ * bermakna (entitas/konten).
+ *
+ * Data stop words diambil dari cache->kata_lumpat
+ * melalui fungsi adalah_kata_lumpat().
  *
  * Contoh:
  *   "saya tidak mengerti komputer" -> "komputer"
@@ -315,13 +175,14 @@ static int is_kata_lumpat(const char *kata)
  *
  * Operasi dilakukan in-place pada string topik.
  */
-void bersihkan_topik(char *topik)
+void bersihkan_topik_cache(
+    CacheLinguistik *cache, char *topik)
 {
     char buf[MAX_PANJANG_STRING];
     char *t;
     int pertama;
 
-    if (!topik || !topik[0]) return;
+    if (!cache || !topik || !topik[0]) return;
 
     snprintf(buf, sizeof(buf), "%s", topik);
     to_lower_case(buf);
@@ -331,7 +192,8 @@ void bersihkan_topik(char *topik)
 
     t = strtok(buf, " \t\n");
     while (t != NULL) {
-        if (!is_kata_lumpat(t) && strlen(t) > 1) {
+        if (!adalah_kata_lumpat(cache, t)
+            && strlen(t) > 1) {
             if (!pertama) {
                 strncat(topik, " ",
                     MAX_PANJANG_STRING
@@ -366,7 +228,8 @@ static int pisah_kalimat(
     int len, i, start, jml;
     int dalam_kalimat;
 
-    if (!input || !kalimat_out || max_kalimat <= 0) return 0;
+    if (!input || !kalimat_out || max_kalimat <= 0)
+        return 0;
 
     snprintf(buf, sizeof(buf), "%s", input);
     len = (int)strlen(buf);
@@ -375,7 +238,8 @@ static int pisah_kalimat(
     dalam_kalimat = 0;
 
     for (i = 0; i < len && jml < max_kalimat; i++) {
-        if (buf[i] == '.' || buf[i] == '?' || buf[i] == '!') {
+        if (buf[i] == '.' || buf[i] == '?'
+            || buf[i] == '!') {
             if (dalam_kalimat) {
                 char tmp[MAX_INPUT_USER];
                 int tlen;
@@ -427,8 +291,10 @@ static int pisah_kalimat(
  *
  * Hanya memecah pada konjungsi yang terdeteksi
  * sebagai pemisah klausa, BUKAN pada setiap koma.
+ * Data pemisah diambil dari cache->pemisah_klausa.
  */
 static int pisah_klausa_dalam_kalimat(
+    CacheLinguistik *cache,
     const char *kalimat,
     char klausa_out[][MAX_INPUT_USER],
     int max_klausa)
@@ -442,7 +308,9 @@ static int pisah_klausa_dalam_kalimat(
     int jml;
     int coba_lagi;
 
-    if (!kalimat || !klausa_out || max_klausa <= 0) return 0;
+    if (!cache || !kalimat || !klausa_out
+        || max_klausa <= 0)
+        return 0;
 
     snprintf(buf, sizeof(buf), "%s", kalimat);
     trim(buf);
@@ -463,9 +331,10 @@ static int pisah_klausa_dalam_kalimat(
         snprintf(lo, sizeof(lo), "%s", buf);
         to_lower_case(lo);
 
-        /* Cari pemisah klausa (konjungsi) */
-        for (j = 0; j < JML_PEMISAH; j++) {
-            if (DAFTAR_PEMISAH[j] == NULL) break;
+        /* Cari pemisah klausa dari cache */
+        for (j = 0; j < cache->n_pemisah_klausa; j++) {
+            if (cache->pemisah_klausa[j].frasa[0] == '\0')
+                break;
             {
                 char pp[64];
                 int pl;
@@ -474,7 +343,7 @@ static int pisah_klausa_dalam_kalimat(
 
                 /* Coba dengan spasi di kedua sisi */
                 snprintf(pp, sizeof(pp), " %s ",
-                    DAFTAR_PEMISAH[j]);
+                    cache->pemisah_klausa[j].frasa);
                 pl = (int)strlen(pp);
 
                 found_lo = strstr(lo, pp);
@@ -492,7 +361,7 @@ static int pisah_klausa_dalam_kalimat(
 
                 /* Coba tanpa spasi awal */
                 snprintf(pp, sizeof(pp), "%s ",
-                    DAFTAR_PEMISAH[j]);
+                    cache->pemisah_klausa[j].frasa);
                 pl = (int)strlen(pp);
 
                 found_lo = strstr(lo, pp);
@@ -523,7 +392,8 @@ static int pisah_klausa_dalam_kalimat(
 
         if (!ketemu || pos_pem == NULL) break;
 
-        /* Ambil bagian SETELAH pemisah sebagai klausa baru */
+        /* Ambil bagian SETELAH pemisah
+         * sebagai klausa baru */
         {
             char *awal_sub;
             awal_sub = pos_pem + panjang_pem;
@@ -546,7 +416,8 @@ static int pisah_klausa_dalam_kalimat(
         }
     }
 
-    /* Sisa buffer adalah klausa pertama (terakhir yang tersisa) */
+    /* Sisa buffer adalah klausa pertama
+     * (terakhir yang tersisa) */
     if (buf[0] != '\0' && jml < max_klausa) {
         trim(buf);
         if (buf[0] != '\0') {
@@ -579,10 +450,11 @@ static int pisah_klausa_dalam_kalimat(
  *
  * Mengembalikan jumlah klausa pertanyaan yang ditemukan.
  *
- * Urutan: klausa_out[0] = pertanyaan pertama yang ditemukan,
+ * Urutan: klausa_out[0] = pertanyaan pertama,
  *         klausa_out[1] = pertanyaan kedua, dst.
  */
 int ekstrak_semua_klausa_pertanyaan(
+    CacheLinguistik *cache,
     const char *input,
     char klausa_out[][MAX_INPUT_USER],
     int max_klausa)
@@ -591,7 +463,9 @@ int ekstrak_semua_klausa_pertanyaan(
     int jml_kalimat;
     int i, jml_hasil;
 
-    if (!input || !klausa_out || max_klausa <= 0) return 0;
+    if (!cache || !input || !klausa_out
+        || max_klausa <= 0)
+        return 0;
 
     jml_hasil = 0;
 
@@ -606,12 +480,13 @@ int ekstrak_semua_klausa_pertanyaan(
         int j;
 
         jml_sub = pisah_klausa_dalam_kalimat(
-            kalimat[i], sub_klausa, MAX_KLAUSA);
+            cache, kalimat[i], sub_klausa, MAX_KLAUSA);
 
         for (j = 0; j < jml_sub; j++) {
             if (jml_hasil >= max_klausa) break;
 
-            if (cek_ada_pertanyaan(sub_klausa[j])) {
+            if (cek_ada_pertanyaan(
+                cache, sub_klausa[j])) {
                 trim(sub_klausa[j]);
                 hapus_tanda_baca_akhir(sub_klausa[j]);
                 if (sub_klausa[j][0] != '\0') {
@@ -647,47 +522,54 @@ int ekstrak_semua_klausa_pertanyaan(
  * ================================================================== */
 
 /*
- * deteksi_pertanyaan_implisit - Mendeteksi apakah
+ * deteksi_pertanyaan_implisit_cache - Mendeteksi apakah
  * sebuah teks adalah pertanyaan meskipun tanpa
  * tanda tanya eksplisit (?).
  *
  * Kriteria pertanyaan implisit:
- * 1. Mengandung kata tanya (apa, siapa, bagaimana, dll)
- * 2. Mengandung marker implisit (menurutmu, kira-kira, dll)
- * 3. Mengandung kata kunci penjelasan (jelaskan, jabarkan, dll)
- * 4. Mengandung kata kunci arti/definisi (arti, makna, definisi dari)
+ * 1. Mengandung kata tanya (dari cache)
+ * 2. Mengandung marker implisit (dari cache)
+ * 3. Mengandung kata kunci penjelasan (dari cache)
+ * 4. Mengandung kata kunci arti/definisi
  * 5. Pola "topik itu apa" atau "apa itu topik"
  *
- * Mengembalikan: 1 jika pertanyaan implisit, 0 jika bukan.
+ * Mengembalikan: 1 jika pertanyaan implisit,
+ *                0 jika bukan.
  */
-int deteksi_pertanyaan_implisit(const char *teks)
+int deteksi_pertanyaan_implisit_cache(
+    CacheLinguistik *cache, const char *teks)
 {
     char lo[MAX_INPUT_USER];
     int i;
 
-    if (!teks || !teks[0]) return 0;
+    if (!cache || !teks || !teks[0]) return 0;
 
-    /* Jika ada tanda tanya eksplisit, bukan "implisit" */
+    /* Jika ada tanda tanya eksplisit,
+     * bukan "implisit" */
     if (cek_tanda_tanya_dalam_teks(teks)) return 0;
 
     snprintf(lo, sizeof(lo), "%s", teks);
     to_lower_case(lo);
 
-    /* 1. Kata tanya */
-    if (token_kata_tanya_dalam_teks(teks)) return 1;
+    /* 1. Kata tanya (dari cache) */
+    if (token_kata_tanya_dalam_teks(cache, teks))
+        return 1;
 
-    /* 2. Marker implisit */
-    if (cek_marker_implisit(teks)) return 1;
+    /* 2. Marker implisit (dari cache) */
+    if (cek_marker_implisit(cache, teks)) return 1;
 
-    /* 3. Marker penjelasan (imperatif pertanyaan) */
-    for (i = 0; i < JML_MARKER_PENJELASAN; i++) {
-        if (MARKER_PENJELASAN[i] == NULL) break;
-        if (strstr(lo, MARKER_PENJELASAN[i]) != NULL) {
+    /* 3. Marker penjelasan (dari cache) */
+    for (i = 0; i < cache->n_marker_penjelasan; i++) {
+        if (cache->marker_penjelasan[i].frasa[0] == '\0')
+            break;
+        if (strstr(lo,
+            cache->marker_penjelasan[i].frasa) != NULL) {
             return 1;
         }
     }
 
-    /* 4. Kata kunci arti/definisi yang menandakan pertanyaan */
+    /* 4. Kata kunci arti/definisi yang menandakan
+     *    pertanyaan */
     if (strstr(lo, "arti dari") != NULL
         || strstr(lo, "makna dari") != NULL
         || strstr(lo, "definisi dari") != NULL
@@ -696,7 +578,7 @@ int deteksi_pertanyaan_implisit(const char *teks)
     }
 
     /* 5. Pola "X itu apa" atau "apa itu X"
-     * (sudah tertangkap oleh kata taya "apa",
+     * (sudah tertangkap oleh kata tanya "apa",
      *  tapi double-check untuk pola "itu apa"
      *  tanpa kata tanya eksplisit lainnya) */
     if (strstr(lo, "itu apa") != NULL
@@ -745,9 +627,11 @@ int deteksi_pertanyaan_implisit(const char *teks)
  * PERBANDINGAN:
  *   "perbedaan X dan Y" -> keyword + SUBJ
  *
- * Mengembalikan TipeIntent dan mengekstrak topik ke topik_out.
+ * Mengembalikan TipeIntent dan mengekstrak topik
+ * ke topik_out. Data diambil dari cache.
  */
 TipeIntent klasifikasi_intent_klausa(
+    CacheLinguistik *cache,
     const char *klausa,
     char *topik_out,
     size_t ukuran_topik)
@@ -765,7 +649,8 @@ TipeIntent klasifikasi_intent_klausa(
         topik_out[0] = '\0';
     }
 
-    if (!klausa || !klausa[0]) return INTENT_LAIN;
+    if (!cache || !klausa || !klausa[0])
+        return INTENT_LAIN;
 
     /* Salin dan bersihkan */
     snprintf(buf, sizeof(buf), "%s", klausa);
@@ -795,10 +680,14 @@ TipeIntent klasifikasi_intent_klausa(
     /* ============================================================
      * PRIORITAS 1: Marker penjelasan (imperatif)
      * "jelaskan X", "jabarkan X", dll
+     * Data dari cache->marker_penjelasan
      * ============================================================ */
-    for (i = 0; i < JML_MARKER_PENJELASAN; i++) {
-        if (MARKER_PENJELASAN[i] == NULL) break;
-        if (strstr(lo, MARKER_PENJELASAN[i]) != NULL) {
+    for (i = 0; i < cache->n_marker_penjelasan; i++) {
+        if (cache->marker_penjelasan[i].frasa[0] == '\0')
+            break;
+        if (strstr(lo,
+            cache->marker_penjelasan[i].frasa)
+            != NULL) {
             /* Ekstrak topik: semua kata setelah marker */
             if (topik_out && ukuran_topik > 0) {
                 int k;
@@ -806,26 +695,8 @@ TipeIntent klasifikasi_intent_klausa(
                 for (k = 0; k < n_tokens; k++) {
                     int skip;
                     skip = 0;
-                    if (ajudan_strcasecmp(
-                        tokens[k], "jelaskan") == 0
-                        || ajudan_strcasecmp(
-                            tokens[k], "jabarkan") == 0
-                        || ajudan_strcasecmp(
-                            tokens[k], "uraikan") == 0
-                        || ajudan_strcasecmp(
-                            tokens[k], "deskripsikan") == 0
-                        || ajudan_strcasecmp(
-                            tokens[k], "ceritakan") == 0
-                        || ajudan_strcasecmp(
-                            tokens[k], "beritahu") == 0
-                        || ajudan_strcasecmp(
-                            tokens[k], "tolong") == 0
-                        || ajudan_strcasecmp(
-                            tokens[k], "tentang") == 0
-                        || ajudan_strcasecmp(
-                            tokens[k], "lebih") == 0
-                        || ajudan_strcasecmp(
-                            tokens[k], "lanjut") == 0) {
+                    if (adalah_kata_lumpat(
+                        cache, tokens[k])) {
                         skip = 1;
                     }
                     if (!skip) {
@@ -841,6 +712,10 @@ TipeIntent klasifikasi_intent_klausa(
                             - 1);
                     }
                 }
+                /* Bersihkan topik dari sisa
+                 * kata lumpat */
+                bersihkan_topik_cache(
+                    cache, topik_out);
             }
             return INTENT_PENJELASAN;
         }
@@ -866,10 +741,8 @@ TipeIntent klasifikasi_intent_klausa(
                         tokens[k], "tipe") == 0
                     || ajudan_strcasecmp(
                         tokens[k], "varian") == 0
-                    || ajudan_strcasecmp(
-                        tokens[k], "dari") == 0
-                    || ajudan_strcasecmp(
-                        tokens[k], "yang") == 0) {
+                    || adalah_kata_lumpat(
+                        cache, tokens[k])) {
                     continue;
                 }
                 if (topik_out[0] != '\0') {
@@ -881,6 +754,7 @@ TipeIntent klasifikasi_intent_klausa(
                     ukuran_topik
                     - strlen(topik_out) - 1);
             }
+            bersihkan_topik_cache(cache, topik_out);
         }
         return INTENT_JENIS;
     }
@@ -906,7 +780,9 @@ TipeIntent klasifikasi_intent_klausa(
                     || ajudan_strcasecmp(
                         tokens[k], "pengertian") == 0
                     || ajudan_strcasecmp(
-                        tokens[k], "dari") == 0) {
+                        tokens[k], "dari") == 0
+                    || adalah_kata_lumpat(
+                        cache, tokens[k])) {
                     continue;
                 }
                 if (topik_out[0] != '\0') {
@@ -918,57 +794,112 @@ TipeIntent klasifikasi_intent_klausa(
                     ukuran_topik
                     - strlen(topik_out) - 1);
             }
+            bersihkan_topik_cache(cache, topik_out);
         }
         return INTENT_ARTI;
     }
 
     /* ============================================================
-     * PRIORITAS 4: Kata tanya khusus -> intent spesifik
+     * PRIORITAS 4: Kata tanya dari cache
+     * -> intent spesifik berdasarkan kategori
      * ============================================================ */
 
-    /* "mengapa X" / "kenapa X" -> ALASAN */
+    /* Cek semua kata tanya dari cache untuk
+     * mencocokkan intent berdasarkan kategori */
     for (i = 0; i < n_tokens; i++) {
-        if (ajudan_strcasecmp(tokens[i], "mengapa") == 0
-            || ajudan_strcasecmp(tokens[i], "kenapa") == 0) {
-            if (topik_out && ukuran_topik > 0) {
-                int k;
-                topik_out[0] = '\0';
-                for (k = i + 1; k < n_tokens; k++) {
-                    if (topik_out[0] != '\0') {
-                        strncat(topik_out, " ",
-                            ukuran_topik
-                            - strlen(topik_out)
-                            - 1);
-                    }
-                    strncat(topik_out, tokens[k],
-                        ukuran_topik
-                        - strlen(topik_out) - 1);
-                }
-            }
-            return INTENT_ALASAN;
-        }
-    }
+        int j;
+        for (j = 0; j < cache->n_kata_tanya; j++) {
+            if (cache->kata_tanya[j].kata[0] == '\0')
+                break;
+            if (ajudan_strcasecmp(tokens[i],
+                cache->kata_tanya[j].kata) != 0)
+                continue;
 
-    /* "bagaimana X" -> CARA */
-    for (i = 0; i < n_tokens; i++) {
-        if (ajudan_strcasecmp(
-            tokens[i], "bagaimana") == 0) {
-            if (topik_out && ukuran_topik > 0) {
-                int k;
-                topik_out[0] = '\0';
-                for (k = i + 1; k < n_tokens; k++) {
-                    if (topik_out[0] != '\0') {
-                        strncat(topik_out, " ",
+            /* Cocok! Tentukan intent dari kategori */
+            if (ajudan_strcasecmp(
+                cache->kata_tanya[j].kategori,
+                "sebab") == 0) {
+                /* "mengapa"/"kenapa" -> ALASAN */
+                if (topik_out && ukuran_topik > 0) {
+                    int k;
+                    topik_out[0] = '\0';
+                    for (k = i + 1;
+                         k < n_tokens; k++) {
+                        if (topik_out[0] != '\0') {
+                            strncat(topik_out,
+                                " ",
+                                ukuran_topik
+                                - strlen(topik_out)
+                                - 1);
+                        }
+                        strncat(topik_out,
+                            tokens[k],
                             ukuran_topik
                             - strlen(topik_out)
                             - 1);
                     }
-                    strncat(topik_out, tokens[k],
-                        ukuran_topik
-                        - strlen(topik_out) - 1);
+                    bersihkan_topik_cache(
+                        cache, topik_out);
                 }
+                return INTENT_ALASAN;
             }
-            return INTENT_CARA;
+            if (ajudan_strcasecmp(
+                cache->kata_tanya[j].kategori,
+                "cara") == 0) {
+                /* "bagaimana" -> CARA */
+                if (topik_out && ukuran_topik > 0) {
+                    int k;
+                    topik_out[0] = '\0';
+                    for (k = i + 1;
+                         k < n_tokens; k++) {
+                        if (topik_out[0] != '\0') {
+                            strncat(topik_out,
+                                " ",
+                                ukuran_topik
+                                - strlen(topik_out)
+                                - 1);
+                        }
+                        strncat(topik_out,
+                            tokens[k],
+                            ukuran_topik
+                            - strlen(topik_out)
+                            - 1);
+                    }
+                    bersihkan_topik_cache(
+                        cache, topik_out);
+                }
+                return INTENT_CARA;
+            }
+            /* Kata tanya lain -> DEFINISI
+             * (siapa, kapan, dimana, dll) */
+            if (i == 0) {
+                if (topik_out
+                    && ukuran_topik > 0) {
+                    int k;
+                    topik_out[0] = '\0';
+                    for (k = 1;
+                         k < n_tokens; k++) {
+                        if (topik_out[0]
+                            != '\0') {
+                            strncat(topik_out,
+                                " ",
+                                ukuran_topik
+                                - strlen(
+                                    topik_out)
+                                - 1);
+                        }
+                        strncat(topik_out,
+                            tokens[k],
+                            ukuran_topik
+                            - strlen(topik_out)
+                            - 1);
+                    }
+                    bersihkan_topik_cache(
+                        cache, topik_out);
+                }
+                return INTENT_DEFINISI;
+            }
+            break;
         }
     }
 
@@ -982,11 +913,12 @@ TipeIntent klasifikasi_intent_klausa(
                 if (ajudan_strcasecmp(
                     tokens[k], "perbedaan") == 0
                     || ajudan_strcasecmp(
-                        tokens[k], "perbandingan") == 0
+                        tokens[k],
+                        "perbandingan") == 0
                     || ajudan_strcasecmp(
                         tokens[k], "antara") == 0
-                    || ajudan_strcasecmp(
-                        tokens[k], "dengan") == 0) {
+                    || adalah_kata_lumpat(
+                        cache, tokens[k])) {
                     continue;
                 }
                 if (topik_out[0] != '\0') {
@@ -998,6 +930,7 @@ TipeIntent klasifikasi_intent_klausa(
                     ukuran_topik
                     - strlen(topik_out) - 1);
             }
+            bersihkan_topik_cache(cache, topik_out);
         }
         return INTENT_PERBANDINGAN;
     }
@@ -1024,9 +957,10 @@ TipeIntent klasifikasi_intent_klausa(
 
     if (!ada_apa && !ada_itu) {
         /* Tidak ada "apa" atau "itu":
-         * cek kata tanya lainnya di awal */
-        if (cek_kata_tanya(tokens[0])) {
-            /* "siapa X", "kapan X", dll -> DEFINISI */
+         * cek kata tanya lainnya dari cache di awal */
+        if (cek_kata_tanya(cache, tokens[0])) {
+            /* "siapa X", "kapan X", dll
+             * -> DEFINISI */
             if (topik_out && ukuran_topik > 0) {
                 int k;
                 topik_out[0] = '\0';
@@ -1039,8 +973,11 @@ TipeIntent klasifikasi_intent_klausa(
                     }
                     strncat(topik_out, tokens[k],
                         ukuran_topik
-                        - strlen(topik_out) - 1);
+                        - strlen(topik_out)
+                        - 1);
                 }
+                bersihkan_topik_cache(
+                    cache, topik_out);
             }
             return INTENT_DEFINISI;
         }
@@ -1057,10 +994,8 @@ TipeIntent klasifikasi_intent_klausa(
                 for (k = 0; k < pos_itu; k++) {
                     if (ajudan_strcasecmp(
                         tokens[k], "itu") == 0
-                        || ajudan_strcasecmp(
-                            tokens[k], "yang") == 0
-                        || ajudan_strcasecmp(
-                            tokens[k], "yg") == 0) {
+                        || adalah_kata_lumpat(
+                            cache, tokens[k])) {
                         continue;
                     }
                     if (topik_out[0] != '\0') {
@@ -1073,6 +1008,8 @@ TipeIntent klasifikasi_intent_klausa(
                         ukuran_topik
                         - strlen(topik_out) - 1);
                 }
+                bersihkan_topik_cache(
+                    cache, topik_out);
             }
             return INTENT_JENIS;
         }
@@ -1096,8 +1033,11 @@ TipeIntent klasifikasi_intent_klausa(
                     }
                     strncat(topik_out, tokens[k],
                         ukuran_topik
-                        - strlen(topik_out) - 1);
+                        - strlen(topik_out)
+                        - 1);
                 }
+                bersihkan_topik_cache(
+                    cache, topik_out);
             }
             return INTENT_DEFINISI;
         }
@@ -1117,8 +1057,11 @@ TipeIntent klasifikasi_intent_klausa(
                     }
                     strncat(topik_out, tokens[k],
                         ukuran_topik
-                        - strlen(topik_out) - 1);
+                        - strlen(topik_out)
+                        - 1);
                 }
+                bersihkan_topik_cache(
+                    cache, topik_out);
             }
             return INTENT_DEFINISI;
         }
@@ -1139,6 +1082,7 @@ TipeIntent klasifikasi_intent_klausa(
                     ukuran_topik
                     - strlen(topik_out) - 1);
             }
+            bersihkan_topik_cache(cache, topik_out);
         }
         return INTENT_DEFINISI;
     }
@@ -1176,6 +1120,7 @@ TipeIntent klasifikasi_intent_klausa(
                     ukuran_topik
                     - strlen(topik_out) - 1);
             }
+            bersihkan_topik_cache(cache, topik_out);
         }
         return INTENT_DEFINISI;
     }
@@ -1187,10 +1132,8 @@ TipeIntent klasifikasi_intent_klausa(
             int k;
             topik_out[0] = '\0';
             for (k = 0; k < pos_itu; k++) {
-                if (ajudan_strcasecmp(
-                    tokens[k], "yang") == 0
-                    || ajudan_strcasecmp(
-                        tokens[k], "yg") == 0) {
+                if (adalah_kata_lumpat(
+                    cache, tokens[k])) {
                     continue;
                 }
                 if (topik_out[0] != '\0') {
@@ -1202,6 +1145,7 @@ TipeIntent klasifikasi_intent_klausa(
                     ukuran_topik
                     - strlen(topik_out) - 1);
             }
+            bersihkan_topik_cache(cache, topik_out);
         }
         return INTENT_DEFINISI;
     }
@@ -1213,10 +1157,8 @@ TipeIntent klasifikasi_intent_klausa(
             int k;
             topik_out[0] = '\0';
             for (k = 0; k < pos_apa; k++) {
-                if (ajudan_strcasecmp(
-                    tokens[k], "yang") == 0
-                    || ajudan_strcasecmp(
-                        tokens[k], "yg") == 0) {
+                if (adalah_kata_lumpat(
+                    cache, tokens[k])) {
                     continue;
                 }
                 if (topik_out[0] != '\0') {
@@ -1228,6 +1170,7 @@ TipeIntent klasifikasi_intent_klausa(
                     ukuran_topik
                     - strlen(topik_out) - 1);
             }
+            bersihkan_topik_cache(cache, topik_out);
         }
         return INTENT_JENIS;
     }
@@ -1249,6 +1192,7 @@ TipeIntent klasifikasi_intent_klausa(
                     ukuran_topik
                     - strlen(topik_out) - 1);
             }
+            bersihkan_topik_cache(cache, topik_out);
         }
         return INTENT_DEFINISI;
     }
